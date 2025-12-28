@@ -1,0 +1,758 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { Modal } from '@/components/ui/Modal';
+import { catererApi, CreatePackageRequest, Dish } from '@/lib/api/caterer.api';
+
+// Component for package item card with image
+interface PackageItemCardProps {
+  item: { id: string; dish: { name: string; image_url?: string | null }; people_count: number; quantity: number };
+  isSelected: boolean;
+  onToggle: () => void;
+}
+
+const PackageItemCard: React.FC<PackageItemCardProps> = ({ item, isSelected, onToggle }) => {
+  const [imageError, setImageError] = useState(false);
+  const fallbackImage = `https://source.unsplash.com/400x300/?food,${encodeURIComponent(item.dish.name || 'delicious')}`;
+  const displayImage = item.dish.image_url && !imageError ? item.dish.image_url : fallbackImage;
+
+  return (
+    <label
+      className={`block bg-white rounded-lg shadow overflow-hidden transition-all cursor-pointer ${
+        isSelected
+          ? 'ring-2 ring-[#268700] ring-offset-2'
+          : 'hover:shadow-md'
+      }`}
+    >
+      {/* Image - Full width, fully visible */}
+      <div className="w-full h-48 bg-gray-200 flex items-center justify-center overflow-hidden">
+        <img
+          src={displayImage}
+          alt={item.dish.name}
+          className="w-full h-full object-cover"
+          onError={() => setImageError(true)}
+        />
+      </div>
+      
+      {/* Content */}
+      <div className="p-4">
+        <div className="flex items-start gap-3 mb-2">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={onToggle}
+            onClick={(e) => e.stopPropagation()}
+            className="mt-1 w-4 h-4 text-[#268700] border-gray-300 rounded focus:ring-[#268700] flex-shrink-0 cursor-pointer"
+          />
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-lg text-gray-900 mb-1">{item.dish.name}</h3>
+            <p className="text-sm text-gray-700">
+              {item.people_count} People • Qty: {item.quantity}
+            </p>
+          </div>
+        </div>
+        {isSelected && (
+          <div className="mt-2 pt-2 border-t border-gray-200">
+            <span className="inline-flex items-center px-2.5 py-1 bg-[#e8f5e0] text-[#1a5a00] rounded-full text-xs font-semibold">
+              ✓ Selected
+            </span>
+          </div>
+        )}
+      </div>
+    </label>
+  );
+};
+
+export default function CreatePackagePage() {
+  const router = useRouter();
+  const [formData, setFormData] = useState<CreatePackageRequest>({
+    name: '',
+    people_count: 0,
+    package_type_id: '',
+    cover_image_url: '',
+    total_price: 0,
+    currency: 'AED',
+    rating: undefined,
+    is_active: true,
+    is_available: true,
+    package_item_ids: [],
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [packageTypes, setPackageTypes] = useState<Array<{ value: string; label: string }>>([
+    { value: '', label: 'Select Package Type' },
+  ]);
+  const [packageItems, setPackageItems] = useState<Array<{ id: string; dish: { name: string; image_url?: string | null }; people_count: number; quantity: number }>>([]);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [loadingMetadata, setLoadingMetadata] = useState(true);
+  const [isCreateItemModalOpen, setIsCreateItemModalOpen] = useState(false);
+  const [dishes, setDishes] = useState<Dish[]>([]);
+  const [loadingDishes, setLoadingDishes] = useState(false);
+  const [createItemFormData, setCreateItemFormData] = useState({
+    dish_id: '',
+    people_count: formData.people_count || 0,
+    quantity: 1,
+    price_at_time: undefined as number | undefined,
+    is_optional: false,
+    is_addon: false,
+  });
+  const [createItemErrors, setCreateItemErrors] = useState<Record<string, string>>({});
+  const [isCreatingItem, setIsCreatingItem] = useState(false);
+
+  useEffect(() => {
+    fetchMetadata();
+  }, []);
+
+  const fetchMetadata = async () => {
+    setLoadingMetadata(true);
+    try {
+      // Fetch package types
+      const packageTypesResponse = await catererApi.getPackageTypes();
+      if (packageTypesResponse.data) {
+        const data = packageTypesResponse.data as any;
+        const typesList = Array.isArray(data) ? data : (data.data || []);
+        setPackageTypes([
+    { value: '', label: 'Select Package Type' },
+          ...typesList.map((pt: any) => ({
+            value: pt.id || pt.value,
+            label: pt.name || pt.label,
+          })),
+        ]);
+      }
+
+      // Fetch draft package items (items without package_id)
+      await fetchPackageItems();
+    } catch (error) {
+      console.error('Error fetching metadata:', error);
+    } finally {
+      setLoadingMetadata(false);
+    }
+  };
+
+  const fetchPackageItems = async () => {
+    try {
+      const itemsResponse = await catererApi.getAllPackageItems();
+      if (itemsResponse.data) {
+        const data = itemsResponse.data as any;
+        const itemsList = Array.isArray(data) ? data : (data.data || []);
+        // Backend now returns only draft items (package_id: null) when no packageId is provided
+        setPackageItems(itemsList);
+      }
+    } catch (error) {
+      console.error('Error fetching package items:', error);
+    }
+  };
+
+  const fetchDishes = async () => {
+    setLoadingDishes(true);
+    try {
+      const response = await catererApi.getAllDishes();
+      if (response.data) {
+        const data = response.data as any;
+        const dishesList = Array.isArray(data) ? data : (data.data || []);
+        setDishes(dishesList);
+      }
+    } catch (error) {
+      console.error('Error fetching dishes:', error);
+    } finally {
+      setLoadingDishes(false);
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleItemToggle = (itemId: string) => {
+    const currentIds = formData.package_item_ids || [];
+    if (currentIds.includes(itemId)) {
+      setFormData({
+        ...formData,
+        package_item_ids: currentIds.filter(id => id !== itemId),
+      });
+    } else {
+      setFormData({
+        ...formData,
+        package_item_ids: [...currentIds, itemId],
+      });
+    }
+  };
+
+
+  const handleOpenCreateItemModal = () => {
+    setCreateItemFormData({
+      dish_id: '',
+      people_count: formData.people_count || 0,
+      quantity: 1,
+      price_at_time: undefined,
+      is_optional: false,
+      is_addon: false,
+    });
+    setCreateItemErrors({});
+    fetchDishes();
+    setIsCreateItemModalOpen(true);
+  };
+
+  const handleCreatePackageItem = async () => {
+    setIsCreatingItem(true);
+    setCreateItemErrors({});
+
+    // Validation
+    if (!createItemFormData.dish_id) {
+      setCreateItemErrors({ dish_id: 'Please select a dish' });
+      setIsCreatingItem(false);
+      return;
+    }
+    if (!createItemFormData.people_count || createItemFormData.people_count <= 0) {
+      setCreateItemErrors({ people_count: 'People count must be greater than 0' });
+      setIsCreatingItem(false);
+      return;
+    }
+
+    try {
+      const response = await catererApi.createPackageItem(createItemFormData);
+
+      if (response.error) {
+        setCreateItemErrors({ general: response.error });
+        setIsCreatingItem(false);
+        return;
+      }
+
+      // Refresh package items list
+      await fetchPackageItems();
+      setIsCreateItemModalOpen(false);
+      setCreateItemFormData({
+        dish_id: '',
+        people_count: formData.people_count || 0,
+        quantity: 1,
+        price_at_time: undefined,
+        is_optional: false,
+        is_addon: false,
+      });
+    } catch (error) {
+      setCreateItemErrors({ general: 'Failed to create package item' });
+    } finally {
+      setIsCreatingItem(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+
+    // Validation
+    if (!formData.name.trim()) {
+      setErrors({ name: 'Package name is required' });
+      return;
+    }
+    if (!formData.people_count || formData.people_count <= 0) {
+      setErrors({ people_count: 'People count must be greater than 0' });
+      return;
+    }
+    if (!formData.package_type_id) {
+      setErrors({ package_type_id: 'Package type is required' });
+      return;
+    }
+    if (!formData.total_price || formData.total_price <= 0) {
+      setErrors({ total_price: 'Total price must be greater than 0' });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const response = await catererApi.createPackage(formData, selectedImage || undefined);
+
+    if (response.error) {
+      setErrors({ general: response.error });
+      setIsSubmitting(false);
+      return;
+    }
+
+    router.push('/caterer/packages');
+  };
+
+  return (
+    <div className="flex-1 p-6 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        {/* Breadcrumbs */}
+        <div className="mb-4 text-sm text-gray-600">
+          <span>Packages</span>
+          <span className="mx-2">/</span>
+          <span className="text-gray-900 font-medium">Create a Package</span>
+        </div>
+
+        {/* Back Button and Title */}
+        <div className="flex items-center gap-4 mb-6">
+          <button
+            onClick={() => router.back()}
+            className="text-gray-600 hover:text-gray-900"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h1 className="text-3xl font-bold text-gray-900">Create a Package</h1>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          {/* General Information Card */}
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-5">General Information</h2>
+            
+            {errors.general && (
+              <div className="mb-4 bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded">
+                {errors.general}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column - Form Fields */}
+              <div className="lg:col-span-2 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Package Name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Enter package name"
+                    error={errors.name}
+                  />
+                  <Input
+                    label="People Count"
+                    type="number"
+                    value={formData.people_count?.toString() || ''}
+                    onChange={(e) => {
+                      const peopleCount = parseInt(e.target.value) || 0;
+                      setFormData({ ...formData, people_count: peopleCount });
+                      setCreateItemFormData(prev => ({ ...prev, people_count: peopleCount }));
+                    }}
+                    placeholder="Enter number of people"
+                    error={errors.people_count}
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Select
+                    label="Package Type"
+                    options={packageTypes}
+                    value={formData.package_type_id}
+                    onChange={(e) => setFormData({ ...formData, package_type_id: e.target.value })}
+                    placeholder="Select Package Type"
+                    error={errors.package_type_id}
+                  />
+                  <Input
+                    label="Rating (Optional)"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="5"
+                    value={formData.rating?.toString() || ''}
+                    onChange={(e) => setFormData({ ...formData, rating: e.target.value ? parseFloat(e.target.value) : undefined })}
+                    placeholder="0.0 - 5.0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Image URL (Optional)
+                  </label>
+                  <Input
+                    type="url"
+                    value={formData.cover_image_url || ''}
+                    onChange={(e) => setFormData({ ...formData, cover_image_url: e.target.value })}
+                    placeholder="https://example.com/image.jpg"
+                  />
+                </div>
+              </div>
+
+              {/* Right Column - Image Upload */}
+              <div className="lg:col-span-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Cover Image
+                </label>
+                {imagePreview ? (
+                  <div className="relative">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="w-full h-40 object-cover rounded-lg border border-gray-300"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedImage(null);
+                        setImagePreview(null);
+                      }}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
+                    <svg
+                      className="mx-auto h-10 w-10 text-gray-400 mb-2"
+                      stroke="currentColor"
+                      fill="none"
+                      viewBox="0 0 48 48"
+                    >
+                      <path
+                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <p className="text-xs text-gray-500 mb-3">No image selected</p>
+                    <label className="flex items-center justify-center w-full px-3 py-2 bg-[#268700] text-white rounded-lg cursor-pointer hover:bg-[#1f6b00] transition-colors text-sm">
+                      <svg
+                        className="w-4 h-4 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
+                      </svg>
+                      Upload
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Package Items Selection */}
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Package Items</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Select items to include in this package
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={handleOpenCreateItemModal}
+              >
+                + Create Item
+              </Button>
+            </div>
+            
+            {/* Selected Items Summary */}
+            {formData.package_item_ids && formData.package_item_ids.length > 0 && (
+              <div className="mb-4 p-3 bg-[#e8f5e0] rounded-lg border border-[#268700]/20">
+                <p className="text-sm font-semibold text-[#1a5a00] mb-2">
+                  {formData.package_item_ids.length} item(s) selected
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {packageItems
+                    .filter(item => formData.package_item_ids?.includes(item.id))
+                    .map((item) => (
+                      <span
+                        key={item.id}
+                        className="inline-flex items-center gap-2 px-3 py-1 bg-white text-[#1a5a00] rounded-full text-sm border border-[#268700]/30"
+                      >
+                        {item.dish.name}
+                        <button
+                          type="button"
+                          onClick={() => handleItemToggle(item.id)}
+                          className="text-[#268700] hover:text-[#1a5a00] font-bold"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Package Items List */}
+            {loadingMetadata ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#268700]"></div>
+              </div>
+            ) : packageItems.length === 0 ? (
+              <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
+                <p className="text-gray-500 mb-3">No package items available</p>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={handleOpenCreateItemModal}
+                >
+                  + Create Your First Item
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {packageItems.map((item) => (
+                  <PackageItemCard
+                    key={item.id}
+                    item={item}
+                    isSelected={formData.package_item_ids?.includes(item.id) || false}
+                    onToggle={() => handleItemToggle(item.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Price Information */}
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-5">Pricing & Status</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Total Price
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 font-medium">AED</span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={formData.total_price?.toString() || ''}
+                    onChange={(e) => setFormData({ ...formData, total_price: parseFloat(e.target.value) || 0 })}
+                    placeholder="0.00"
+                    error={errors.total_price}
+                    className="pl-12"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-6 pt-6">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="is_active"
+                    checked={formData.is_active ?? true}
+                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                    className="w-4 h-4 text-[#268700] border-gray-300 rounded focus:ring-[#268700]"
+                  />
+                  <label htmlFor="is_active" className="text-sm font-medium text-gray-700 cursor-pointer">
+                    Active
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="is_available"
+                    checked={formData.is_available ?? true}
+                    onChange={(e) => setFormData({ ...formData, is_available: e.target.checked })}
+                    className="w-4 h-4 text-[#268700] border-gray-300 rounded focus:ring-[#268700]"
+                  />
+                  <label htmlFor="is_available" className="text-sm font-medium text-gray-700 cursor-pointer">
+                    Available
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Create Package Item from Dishes Modal */}
+          <Modal
+            isOpen={isCreateItemModalOpen}
+            onClose={() => setIsCreateItemModalOpen(false)}
+            title="Create Package Item from Dishes"
+            size="lg"
+          >
+            {createItemErrors.general && (
+              <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                {createItemErrors.general}
+              </div>
+            )}
+            {loadingDishes ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#268700]"></div>
+                <span className="ml-3 text-gray-600">Loading dishes...</span>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select a Dish
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4">
+                    {dishes.map((dish) => (
+                      <label
+                        key={dish.id}
+                        className={`flex flex-col p-3 border-2 rounded-lg cursor-pointer transition-colors ${
+                          createItemFormData.dish_id === dish.id
+                            ? 'border-[#268700] bg-[#e8f5e0]'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="dish_selection"
+                          checked={createItemFormData.dish_id === dish.id}
+                          onChange={() => {
+                            setCreateItemFormData({
+                              ...createItemFormData,
+                              dish_id: dish.id,
+                              price_at_time: dish.price || undefined,
+                            });
+                          }}
+                          className="sr-only"
+                        />
+                        {dish.image_url && (
+                          <img
+                            src={dish.image_url}
+                            alt={dish.name}
+                            className="w-full h-32 object-cover rounded mb-2"
+                          />
+                        )}
+                        <p className="font-medium text-gray-900">{dish.name}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          AED {typeof dish.price === 'number' ? dish.price.toFixed(2) : parseFloat(String(dish.price || '0')).toFixed(2)}
+                        </p>
+                      </label>
+                    ))}
+                  </div>
+                  {createItemErrors.dish_id && (
+                    <p className="mt-1 text-sm text-red-600">{createItemErrors.dish_id}</p>
+                  )}
+                </div>
+                {createItemFormData.dish_id && (
+                  <div className="border-t pt-4 space-y-4">
+                    <Input
+                      label="People Count"
+                      type="number"
+                      value={createItemFormData.people_count?.toString() || ''}
+                      onChange={(e) => setCreateItemFormData({
+                        ...createItemFormData,
+                        people_count: parseInt(e.target.value) || 0,
+                      })}
+                      placeholder="Enter people count"
+                      error={createItemErrors.people_count}
+                    />
+                    <Input
+                      label="Quantity"
+                      type="number"
+                      value={createItemFormData.quantity?.toString() || '1'}
+                      onChange={(e) => setCreateItemFormData({
+                        ...createItemFormData,
+                        quantity: parseInt(e.target.value) || 1,
+                      })}
+                      placeholder="Enter quantity"
+                    />
+                    <Input
+                      label="Price at Time (Optional)"
+                      type="number"
+                      step="0.01"
+                      value={createItemFormData.price_at_time?.toString() || ''}
+                      onChange={(e) => setCreateItemFormData({
+                        ...createItemFormData,
+                        price_at_time: e.target.value ? parseFloat(e.target.value) : undefined,
+                      })}
+                      placeholder="Enter price (defaults to dish price)"
+                    />
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="is_optional"
+                          checked={createItemFormData.is_optional}
+                          onChange={(e) => setCreateItemFormData({
+                            ...createItemFormData,
+                            is_optional: e.target.checked,
+                          })}
+                          className="w-4 h-4 text-[#268700] border-gray-300 rounded focus:ring-[#268700]"
+                        />
+                        <label htmlFor="is_optional" className="text-sm text-gray-700">
+                          Optional
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="is_addon"
+                          checked={createItemFormData.is_addon}
+                          onChange={(e) => setCreateItemFormData({
+                            ...createItemFormData,
+                            is_addon: e.target.checked,
+                          })}
+                          className="w-4 h-4 text-[#268700] border-gray-300 rounded focus:ring-[#268700]"
+                        />
+                        <label htmlFor="is_addon" className="text-sm text-gray-700">
+                          Add-on
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="flex gap-4 mt-6">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setIsCreateItemModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                className="flex-1"
+                onClick={handleCreatePackageItem}
+                isLoading={isCreatingItem}
+              >
+                Create Item
+              </Button>
+            </div>
+          </Modal>
+
+          {/* Footer Actions */}
+          <div className="bg-white rounded-lg shadow-sm p-6 flex items-center justify-between border-t border-gray-100">
+            <div>
+              <span className="text-sm text-gray-600">Total Price: </span>
+              <span className="text-2xl font-bold text-gray-900 ml-2">
+                AED {formData.total_price ? formData.total_price.toFixed(2) : '0.00'}
+              </span>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                isLoading={isSubmitting}
+              >
+                Create Package
+              </Button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+

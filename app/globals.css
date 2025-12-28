@@ -3,11 +3,19 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --primary-green: #268700;
+  --primary-green-hover: #1f6b00;
+  --primary-green-light: #e8f5e0;
+  --primary-green-dark: #1a5a00;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-primary-green: var(--primary-green);
+  --color-primary-green-hover: var(--primary-green-hover);
+  --color-primary-green-light: var(--primary-green-light);
+  --color-primary-green-dark: var(--primary-green-dark);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
