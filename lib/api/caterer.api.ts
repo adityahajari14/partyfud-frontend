@@ -8,7 +8,7 @@ export interface Dish {
   cuisine_type_id: string;
   category_id: string;
   sub_category_id?: string;
-  quantity_in_gm?: number;
+  quantity_in_gm?: string;
   pieces?: number;
   price: number;
   currency: string;
@@ -25,7 +25,7 @@ export interface CreateDishRequest {
   cuisine_type_id: string;
   category_id: string;
   sub_category_id?: string;
-  quantity_in_gm?: number;
+  quantity_in_gm?: string;
   pieces?: number;
   price: number;
   currency?: string;
@@ -40,7 +40,7 @@ export interface UpdateDishRequest {
   cuisine_type_id?: string;
   category_id?: string;
   sub_category_id?: string;
-  quantity_in_gm?: number;
+  quantity_in_gm?: string;
   pieces?: number;
   price?: number;
   currency?: string;
@@ -71,7 +71,8 @@ export interface CreatePackageRequest {
   cover_image_url?: string;
   total_price: number;
   currency?: string;
-  rating?: number;
+  // rating?: number;
+  occassion:string;
   is_active?: boolean;
   is_available?: boolean;
   package_item_ids?: string[];
@@ -268,8 +269,8 @@ export const catererApi = {
     if (data.currency) {
       formData.append('currency', data.currency);
     }
-    if (data.rating !== undefined) {
-      formData.append('rating', data.rating.toString());
+    if (data.occassion !== undefined) {
+      formData.append('occassion', data.occassion);
     }
     if (data.is_active !== undefined) {
       formData.append('is_active', data.is_active.toString());
@@ -355,19 +356,19 @@ export const catererApi = {
   // Package Items
   getAllPackageItems: async (packageId?: string) => {
     const query = packageId ? `?package_id=${packageId}` : '';
-    return apiRequest<Array<{ id: string; dish_id: string; package_id?: string; people_count: number; quantity: number; price_at_time?: number; is_optional: boolean; is_addon: boolean; dish: Dish }>>(`/api/caterer/packages/items${query}`);
+    return apiRequest<Array<{ id: string; dish_id: string; package_id?: string; people_count: number; quantity: string; price_at_time?: number; is_optional: boolean; is_addon: boolean; dish: Dish }>>(`/api/caterer/packages/items${query}`);
   },
 
   createPackageItem: async (data: {
     dish_id: string;
     people_count: number;
-    quantity?: number;
+    quantity?: string;
     price_at_time?: number;
     is_optional?: boolean;
     is_addon?: boolean;
     package_id?: string;
   }) => {
-    return apiRequest<{ id: string; dish_id: string; package_id?: string; people_count: number; quantity: number; price_at_time?: number; is_optional: boolean; is_addon: boolean; dish: Dish }>('/api/caterer/packages/items', {
+    return apiRequest<{ id: string; dish_id: string; package_id?: string; people_count: number; quantity: string; price_at_time?: number; is_optional: boolean; is_addon: boolean; dish: Dish }>('/api/caterer/packages/items', {
       method: 'POST',
       body: JSON.stringify(data),
     });

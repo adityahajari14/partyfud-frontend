@@ -32,6 +32,14 @@ const PackageImage: React.FC<{ imageUrl: string | null; packageName: string }> =
   );
 };
 
+const DEFAULT_PACKAGE_TYPES = [
+  { value: 'birthday', label: 'Birthday' },
+  { value: 'anniversary', label: 'Anniversary' },
+  { value: 'wedding', label: 'Wedding' },
+  { value: 'corporate', label: 'Corporate Event' },
+  { value: 'house_party', label: 'House Party' },
+];
+
 export default function PackagesPage() {
   const router = useRouter();
   const [packages, setPackages] = useState<Package[]>([]);
@@ -96,22 +104,44 @@ export default function PackagesPage() {
   const fetchPackageTypes = async () => {
     try {
       const packageTypesResponse = await catererApi.getPackageTypes();
+
+      let apiTypes: Array<{ value: string; label: string }> = [];
+
       if (packageTypesResponse.data) {
         const data = packageTypesResponse.data as any;
         const typesList = Array.isArray(data) ? data : (data.data || []);
-        setPackageTypes([
-          { value: '', label: 'Select Package Type' },
-          ...typesList.map((pt: any) => ({
-            value: pt.id || pt.value,
-            label: pt.name || pt.label,
-          })),
-        ]);
+
+        apiTypes = typesList.map((pt: any) => ({
+          value: pt.id || pt.value,
+          label: pt.name || pt.label,
+        }));
       }
+
+      // ✅ Merge default + API types (avoid duplicates)
+      const mergedTypes = [
+        ...DEFAULT_PACKAGE_TYPES,
+        ...apiTypes.filter(
+          apiType =>
+            !DEFAULT_PACKAGE_TYPES.some(
+              defaultType => defaultType.value === apiType.value
+            )
+        ),
+      ];
+
+      setPackageTypes([
+        { value: '', label: 'Select Package Type' },
+        ...mergedTypes,
+      ]);
     } catch (error) {
       console.error('Error fetching package types:', error);
+
+      // ✅ Even if API fails, user still gets defaults
+      setPackageTypes([
+        { value: '', label: 'Select Package Type' },
+        ...DEFAULT_PACKAGE_TYPES,
+      ]);
     }
   };
-
 
   return (
     <>
@@ -156,12 +186,12 @@ export default function PackagesPage() {
                 <div key={pkg.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200 flex flex-col">
                   {/* Image Section - Always present for consistent alignment */}
                   <PackageImage imageUrl={pkg.cover_image_url || null} packageName={pkg.name} />
-                  
+
                   {/* Content Section */}
                   <div className="p-5 flex flex-col flex-1">
                     {/* Title */}
                     <h3 className="font-semibold text-xl text-gray-900 mb-2 line-clamp-2">{pkg.name}</h3>
-                    
+
                     {/* People Count */}
                     <div className="flex items-center gap-2 mb-4">
                       <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -169,16 +199,15 @@ export default function PackagesPage() {
                       </svg>
                       <p className="text-sm text-gray-700 font-medium">{pkg.people_count} People</p>
                     </div>
-                    
+
                     {/* Price and Status */}
                     <div className="mt-auto pt-4 border-t border-gray-100">
                       <div className="flex items-center justify-between mb-4">
                         <span
-                          className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
-                            pkg.is_available
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold ${pkg.is_available
                               ? 'bg-[#e8f5e0] text-[#1a5a00]'
                               : 'bg-gray-100 text-gray-800'
-                          }`}
+                            }`}
                         >
                           {pkg.is_available ? 'Available' : 'Unavailable'}
                         </span>
@@ -189,7 +218,7 @@ export default function PackagesPage() {
                           </p>
                         </div>
                       </div>
-                      
+
                       {/* Edit Button */}
                       <Button
                         variant="outline"

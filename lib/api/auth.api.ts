@@ -15,6 +15,18 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface ApiResponse<T> {
+  success?: boolean;
+  data?: T;
+  message?: string;
+  error?: string;
+  status?: number;
+}
+
+export interface GetCurrentUserResponse {
+  user: User;
+}
+
 export interface AuthResponse {
   success: boolean;
   data: {
@@ -83,7 +95,7 @@ export const authApi = {
   },
 
   getCurrentUser: async () => {
-    return apiRequest<User>('/api/auth/me');
-  },
+  return apiRequest<ApiResponse<GetCurrentUserResponse>>('/api/auth/me');
+},
 };
 

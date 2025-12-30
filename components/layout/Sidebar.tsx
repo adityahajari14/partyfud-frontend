@@ -3,6 +3,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import logo from '@/public/logo_partyfud.svg'
+import Image from 'next/image';
 
 interface NavItem {
   name: string;
@@ -21,12 +23,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ navItems }) => {
     <div className="fixed left-0 top-0 h-screen w-64 bg-white flex flex-col border-r border-gray-200 z-10">
       {/* Logo */}
       <div className="p-6 border-b border-gray-200 flex-shrink-0">
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-[#268700] rounded-full flex items-center justify-center">
             <span className="text-white font-bold text-lg">P</span>
           </div>
           <span className="text-gray-900 font-semibold text-lg">Party Fud</span>
-        </div>
+        </div> */}
+        <Image src={logo} alt="Party Fud Logo" className="w-32 h-auto" />
       </div>
 
       {/* Navigation */}

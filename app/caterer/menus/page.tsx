@@ -141,11 +141,11 @@ export default function MenusPage() {
       if (response.data) {
         const data = response.data as any;
         const subCategoryList = Array.isArray(data) ? data : (data.data || []);
-        
+
         // Check if category has subcategories
         const hasSubCategories = subCategoryList.length > 0;
         setSelectedCategoryHasSubCategories(hasSubCategories);
-        
+
         if (hasSubCategories) {
           setSubCategories([
             { value: '', label: 'Select Sub-Category' },
@@ -317,7 +317,7 @@ export default function MenusPage() {
 
   return (
     <>
-      <Header 
+      <Header
         showAddButton={true}
         addButtonText="+ Add Menu Item"
         onAddClick={() => setIsCreateModalOpen(true)}
@@ -368,11 +368,10 @@ export default function MenusPage() {
                     )}
                     <div className="flex items-center justify-between mb-4">
                       <span
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
-                          dish.is_active
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold ${dish.is_active
                             ? 'bg-[#e8f5e0] text-[#1a5a00]'
                             : 'bg-gray-100 text-gray-800'
-                        }`}
+                          }`}
                       >
                         {dish.is_active ? 'Available' : 'Unavailable'}
                       </span>
@@ -515,8 +514,8 @@ export default function MenusPage() {
               options={categories}
               value={createFormData.category_id}
               onChange={(e) => {
-                setCreateFormData({ 
-                  ...createFormData, 
+                setCreateFormData({
+                  ...createFormData,
                   category_id: e.target.value,
                   sub_category_id: '', // Reset subcategory when category changes
                 });
@@ -586,11 +585,16 @@ export default function MenusPage() {
               )}
             </div>
             <Input
-              label="Quantity in gm"
+              label="Quantity (gm)"
               type="number"
-              value={createFormData.quantity_in_gm?.toString() || ''}
-              onChange={(e) => setCreateFormData({ ...createFormData, quantity_in_gm: parseInt(e.target.value) || undefined })}
-              placeholder="Enter Quantity"
+              value={formData.quantity_in_gm || ''}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  quantity_in_gm: e.target.value || undefined, // ✅ STRING
+                })
+              }
+              placeholder="Enter Quantity in gm"
             />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -681,10 +685,16 @@ export default function MenusPage() {
           <Input
             label="Quantity (gm)"
             type="number"
-            value={formData.quantity_in_gm?.toString() || ''}
-            onChange={(e) => setFormData({ ...formData, quantity_in_gm: parseInt(e.target.value) || undefined })}
-            placeholder="Enter Quantity"
+            value={formData.quantity_in_gm || ''}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                quantity_in_gm: e.target.value || undefined, // ✅ STRING
+              })
+            }
+            placeholder="Enter Quantity in gm"
           />
+
           <div className="flex items-center gap-2">
             <input
               type="checkbox"

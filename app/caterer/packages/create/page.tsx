@@ -10,7 +10,7 @@ import { catererApi, CreatePackageRequest, Dish } from '@/lib/api/caterer.api';
 
 // Component for package item card with image
 interface PackageItemCardProps {
-  item: { id: string; dish: { name: string; image_url?: string | null }; people_count: number; quantity: number };
+  item: { id: string; dish: { name: string; image_url?: string | null }; people_count: number; quantity: string };
   isSelected: boolean;
   onToggle: () => void;
 }
@@ -22,11 +22,10 @@ const PackageItemCard: React.FC<PackageItemCardProps> = ({ item, isSelected, onT
 
   return (
     <label
-      className={`block bg-white rounded-lg shadow overflow-hidden transition-all cursor-pointer ${
-        isSelected
+      className={`block bg-white rounded-lg shadow overflow-hidden transition-all cursor-pointer ${isSelected
           ? 'ring-2 ring-[#268700] ring-offset-2'
           : 'hover:shadow-md'
-      }`}
+        }`}
     >
       {/* Image - Full width, fully visible */}
       <div className="w-full h-48 bg-gray-200 flex items-center justify-center overflow-hidden">
@@ -37,7 +36,7 @@ const PackageItemCard: React.FC<PackageItemCardProps> = ({ item, isSelected, onT
           onError={() => setImageError(true)}
         />
       </div>
-      
+
       {/* Content */}
       <div className="p-4">
         <div className="flex items-start gap-3 mb-2">
@@ -76,7 +75,8 @@ export default function CreatePackagePage() {
     cover_image_url: '',
     total_price: 0,
     currency: 'AED',
-    rating: undefined,
+    // rating: undefined,
+    occassion: '',
     is_active: true,
     is_available: true,
     package_item_ids: [],
@@ -86,9 +86,10 @@ export default function CreatePackagePage() {
   const [packageTypes, setPackageTypes] = useState<Array<{ value: string; label: string }>>([
     { value: '', label: 'Select Package Type' },
   ]);
-  const [packageItems, setPackageItems] = useState<Array<{ id: string; dish: { name: string; image_url?: string | null }; people_count: number; quantity: number }>>([]);
+  const [packageItems, setPackageItems] = useState<Array<{ id: string; dish: { name: string; image_url?: string | null }; people_count: number; quantity: string }>>([]);
+  const DEFAULT_COVER = "/cover.png";
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(DEFAULT_COVER);
   const [loadingMetadata, setLoadingMetadata] = useState(true);
   const [isCreateItemModalOpen, setIsCreateItemModalOpen] = useState(false);
   const [dishes, setDishes] = useState<Dish[]>([]);
@@ -96,7 +97,7 @@ export default function CreatePackagePage() {
   const [createItemFormData, setCreateItemFormData] = useState({
     dish_id: '',
     people_count: formData.people_count || 0,
-    quantity: 1,
+    quantity: '1',
     price_at_time: undefined as number | undefined,
     is_optional: false,
     is_addon: false,
@@ -117,7 +118,7 @@ export default function CreatePackagePage() {
         const data = packageTypesResponse.data as any;
         const typesList = Array.isArray(data) ? data : (data.data || []);
         setPackageTypes([
-    { value: '', label: 'Select Package Type' },
+          { value: '', label: 'Select Package Type' },
           ...typesList.map((pt: any) => ({
             value: pt.id || pt.value,
             label: pt.name || pt.label,
@@ -166,14 +167,10 @@ export default function CreatePackagePage() {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+
+    setSelectedImage(file);
+    setImagePreview(URL.createObjectURL(file));
   };
 
   const handleItemToggle = (itemId: string) => {
@@ -196,7 +193,7 @@ export default function CreatePackagePage() {
     setCreateItemFormData({
       dish_id: '',
       people_count: formData.people_count || 0,
-      quantity: 1,
+      quantity: '1',
       price_at_time: undefined,
       is_optional: false,
       is_addon: false,
@@ -237,7 +234,7 @@ export default function CreatePackagePage() {
       setCreateItemFormData({
         dish_id: '',
         people_count: formData.people_count || 0,
-        quantity: 1,
+        quantity: '1',
         price_at_time: undefined,
         is_optional: false,
         is_addon: false,
@@ -311,7 +308,7 @@ export default function CreatePackagePage() {
           {/* General Information Card */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-5">General Information</h2>
-            
+
             {errors.general && (
               <div className="mb-4 bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded">
                 {errors.general}
@@ -352,6 +349,13 @@ export default function CreatePackagePage() {
                     error={errors.package_type_id}
                   />
                   <Input
+                    label="Occassion"
+                    value={formData.occassion}
+                    onChange={(e) => setFormData({ ...formData, occassion: e.target.value })}
+                    placeholder="Enter occassion name"
+                    error={errors.occassion}
+                  />
+                  {/* <Input
                     label="Rating (Optional)"
                     type="number"
                     step="0.1"
@@ -360,10 +364,10 @@ export default function CreatePackagePage() {
                     value={formData.rating?.toString() || ''}
                     onChange={(e) => setFormData({ ...formData, rating: e.target.value ? parseFloat(e.target.value) : undefined })}
                     placeholder="0.0 - 5.0"
-                  />
+                  /> */}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {/* <label className="block text-sm font-medium text-gray-700 mb-2">
                     Image URL (Optional)
                   </label>
                   <Input
@@ -371,7 +375,7 @@ export default function CreatePackagePage() {
                     value={formData.cover_image_url || ''}
                     onChange={(e) => setFormData({ ...formData, cover_image_url: e.target.value })}
                     placeholder="https://example.com/image.jpg"
-                  />
+                  /> */}
                 </div>
               </div>
 
@@ -380,18 +384,21 @@ export default function CreatePackagePage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Cover Image
                 </label>
-                {imagePreview ? (
-                  <div className="relative">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="w-full h-40 object-cover rounded-lg border border-gray-300"
-                    />
+
+                <div className="relative">
+                  <img
+                    src={imagePreview || DEFAULT_COVER}
+                    alt="Cover Preview"
+                    className="w-full h-40 object-cover rounded-lg border border-gray-300"
+                  />
+
+                  {/* Remove only if user uploaded */}
+                  {selectedImage && (
                     <button
                       type="button"
                       onClick={() => {
                         setSelectedImage(null);
-                        setImagePreview(null);
+                        setImagePreview(DEFAULT_COVER);
                       }}
                       className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors"
                     >
@@ -399,48 +406,34 @@ export default function CreatePackagePage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
-                  </div>
-                ) : (
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
-                    <svg
-                      className="mx-auto h-10 w-10 text-gray-400 mb-2"
-                      stroke="currentColor"
-                      fill="none"
-                      viewBox="0 0 48 48"
-                    >
-                      <path
-                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                        strokeWidth={2}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    <p className="text-xs text-gray-500 mb-3">No image selected</p>
-                    <label className="flex items-center justify-center w-full px-3 py-2 bg-[#268700] text-white rounded-lg cursor-pointer hover:bg-[#1f6b00] transition-colors text-sm">
-                      <svg
-                        className="w-4 h-4 mr-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                        />
-                      </svg>
-                      Upload
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                )}
+                  )}
+                </div>
+
+                {/* Upload Button */}
+                <label className="mt-3 flex items-center justify-center w-full px-3 py-2 bg-[#268700] text-white rounded-lg cursor-pointer hover:bg-[#1f6b00] transition-colors text-sm">
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                    />
+                  </svg>
+                  Change Image
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </label>
               </div>
+
             </div>
           </div>
 
@@ -462,7 +455,7 @@ export default function CreatePackagePage() {
                 + Create Item
               </Button>
             </div>
-            
+
             {/* Selected Items Summary */}
             {formData.package_item_ids && formData.package_item_ids.length > 0 && (
               <div className="mb-4 p-3 bg-[#e8f5e0] rounded-lg border border-[#268700]/20">
@@ -599,11 +592,10 @@ export default function CreatePackagePage() {
                     {dishes.map((dish) => (
                       <label
                         key={dish.id}
-                        className={`flex flex-col p-3 border-2 rounded-lg cursor-pointer transition-colors ${
-                          createItemFormData.dish_id === dish.id
+                        className={`flex flex-col p-3 border-2 rounded-lg cursor-pointer transition-colors ${createItemFormData.dish_id === dish.id
                             ? 'border-[#268700] bg-[#e8f5e0]'
                             : 'border-gray-200 hover:border-gray-300'
-                        }`}
+                          }`}
                       >
                         <input
                           type="radio"
@@ -652,11 +644,13 @@ export default function CreatePackagePage() {
                     <Input
                       label="Quantity"
                       type="number"
-                      value={createItemFormData.quantity?.toString() || '1'}
-                      onChange={(e) => setCreateItemFormData({
-                        ...createItemFormData,
-                        quantity: parseInt(e.target.value) || 1,
-                      })}
+                      value={createItemFormData.quantity}
+                      onChange={(e) =>
+                        setCreateItemFormData({
+                          ...createItemFormData,
+                          quantity: e.target.value, // ✅ STRING
+                        })
+                      }
                       placeholder="Enter quantity"
                     />
                     <Input
