@@ -4,6 +4,18 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { authApi, User } from '@/lib/api/auth.api';
 import { getAuthToken, removeAuthToken } from '@/lib/api/config';
 
+interface ApiResponse<T> {
+  success?: boolean;
+  data?: T;
+  error?: string;
+  status?: number;
+}
+
+interface AuthResponse {
+  user: User;
+  token?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -82,13 +94,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (response.data.success && response.data.data?.user) {
           // Backend returns: { success: true, data: { user } }
           updateUser(response.data.data.user);
-        } else if (response.data.user) {
+        } else if (response.data?.data?.user) {
           // Alternative structure: { data: { user } }
-          updateUser(response.data.user);
-        } else if (response.data.id) {
-          // Direct user object: { data: user }
-          updateUser(response.data);
-        } else {
+          updateUser(response.data.data.user);
+        } 
+        // else if (response.data.id) {
+        //   // Direct user object: { data: user }
+        //   updateUser(response.data);
+        // } 
+        else {
           console.warn('⚠️ [AUTH] Unexpected response structure:', response.data);
         }
       } else if (response.error) {
