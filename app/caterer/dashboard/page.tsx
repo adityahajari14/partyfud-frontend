@@ -71,7 +71,7 @@ export default function CatererDashboard() {
         onClick={onClick}
         className="flex items-center gap-4 p-4 bg-white rounded-lg border border-gray-100 hover:shadow-md transition-shadow cursor-pointer"
       >
-        <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+        <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden shrink-0">
           {imageUrl && !imageError ? (
             <img
               src={imageUrl}
@@ -95,11 +95,10 @@ export default function CatererDashboard() {
             </p>
             {status !== undefined && (
               <span
-                className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                  status
+                className={`px-2 py-0.5 rounded-full text-xs font-medium ${status
                     ? 'bg-[#e8f5e0] text-[#1a5a00]'
                     : 'bg-gray-100 text-gray-600'
-                }`}
+                  }`}
               >
                 {status ? 'Active' : 'Inactive'}
               </span>
@@ -138,6 +137,8 @@ export default function CatererDashboard() {
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+
+
             <StatCard
               title="Total Dishes"
               value={stats?.dishes.total || 0}
@@ -187,6 +188,123 @@ export default function CatererDashboard() {
               bgColor="bg-amber-50"
             />
           </div>
+          {/* Revenue & Traffic Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+
+            {/* Revenue */}
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Revenue</h2>
+              </div>
+
+              <div className="relative h-56">
+                {/* Y-axis labels */}
+                <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-gray-400">
+                  <span>60K</span>
+                  <span>50K</span>
+                  <span>40K</span>
+                  <span>30K</span>
+                  <span>20K</span>
+                  <span>10K</span>
+                 
+                </div>
+
+                {/* SVG Line Chart */}
+                <svg viewBox="0 0 500 200" className="ml-8 w-full h-full">
+                  <path
+                    d="M0,140 
+             C50,80 100,90 150,60 
+             C200,30 250,40 300,110 
+             C350,150 400,120 450,100"
+                    fill="none"
+                    stroke="#268700"
+                    strokeWidth="2"
+                  />
+
+                  {/* Highlight Point */}
+                  <circle cx="300" cy="110" r="4" fill="#268700" />
+                  <line
+                    x1="300"
+                    y1="0"
+                    x2="300"
+                    y2="200"
+                    stroke="#268700"
+                    strokeDasharray="4"
+                  />
+
+                  {/* Tooltip */}
+                  <g transform="translate(310,100)">
+                    <rect width="90" height="26" rx="6" fill="#e8f5e0" />
+                    <text x="8" y="17" fontSize="12" fill="#1a5a00">
+                      AED 12,657
+                    </text>
+                  </g>
+                </svg>
+
+                {/* X-axis */}
+                <div className="flex justify-between text-xs text-gray-400 mt-2 ml-8">
+                  {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
+                    <span key={m}>{m}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Traffic */}
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Traffic</h2>
+                <select className="text-sm border rounded px-2 py-1">
+                  <option>Monthly</option>
+                </select>
+              </div>
+
+              {/* CHART WRAPPER */}
+              <div className="relative h-56">
+
+                {/* Y-axis labels */}
+                <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-gray-400">
+                  <span>60K</span>
+                  <span>50K</span>
+                  <span>40K</span>
+                  <span>30K</span>
+                  <span>20K</span>
+                  <span>10K</span>
+                  
+                </div>
+
+                {/* Bars */}
+                <div className="ml-8 h-full flex items-end gap-6 px-6">
+                  {[
+                    { color: 'bg-[#268700]', h: 150 },
+                    { color: 'bg-red-400', h: 100 },
+                    { color: 'bg-red-400', h: 100 },
+                    { color: 'bg-red-400', h: 100 },
+                    { color: 'bg-[#268700]', h: 180 },
+                    { color: 'bg-yellow-400', h: 130 },
+                    { color: 'bg-red-400', h: 100 },
+                    { color: 'bg-red-400', h: 100 },
+                    { color: 'bg-[#268700]', h: 180 },
+                  ].map((bar, idx) => (
+                    <div key={idx} className="flex flex-col items-center">
+                      <div
+                        className={`w-4 rounded ${bar.color}`}
+                        style={{ height: bar.h }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* X-axis */}
+              <div className="ml-8 flex justify-between text-xs text-gray-400 mt-2 px-6">
+                {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'].map(m => (
+                  <span key={m}>{m}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
 
           {/* Detailed Stats */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
