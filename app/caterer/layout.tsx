@@ -62,9 +62,23 @@ const isDetailsPage = pathname === '/caterer/details';
         router.replace('/login');
       } else if (user.type !== 'CATERER') {
         router.replace('/login');
+      } else if (user.type === 'CATERER' && user.profile_completed === false && pathname !== '/caterer/details') {
+        // Redirect to details page if profile is not completed (unless already on details page)
+        // Use replace to prevent back navigation
+        router.replace('/caterer/details');
       }
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, pathname]);
+
+  // Prevent access to any caterer pages except details if profile is not completed
+  useEffect(() => {
+    if (!loading && user && user.type === 'CATERER' && user.profile_completed === false) {
+      // If somehow user navigated to a page other than details, redirect immediately
+      if (pathname !== '/caterer/details') {
+        router.replace('/caterer/details');
+      }
+    }
+  }, [user, loading, router, pathname]);
 
   if (loading) {
     return (

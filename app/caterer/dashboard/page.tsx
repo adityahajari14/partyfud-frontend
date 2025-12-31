@@ -4,15 +4,27 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { catererApi, DashboardStats } from '@/lib/api/caterer.api';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function CatererDashboard() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Redirect to details page if profile is not completed
   useEffect(() => {
-    fetchDashboardStats();
-  }, []);
+    if (!authLoading && user && user.type === 'CATERER' && user.profile_completed === false) {
+      router.replace('/caterer/details');
+    }
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
+    // Only fetch stats if profile is completed
+    if (user && user.type === 'CATERER' && user.profile_completed === true) {
+      fetchDashboardStats();
+    }
+  }, [user]);
 
   const fetchDashboardStats = async () => {
     setLoading(true);
