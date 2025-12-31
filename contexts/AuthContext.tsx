@@ -19,7 +19,7 @@ interface AuthResponse {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ error?: string }>;
+  login: (email: string, password: string) => Promise<{ error?: string; user?: User }>;
   signup: (data: {
     first_name: string;
     last_name: string;
@@ -161,11 +161,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           phone: userData.phone,
           type: userData.type,
           company_name: userData.company_name,
+          profile_completed: userData.profile_completed,
         };
         updateUser(userObj);
         setLoading(false);
         
-        return {};
+        return { user: userObj };
       }
       
       // If response structure is different, try refreshing user
@@ -214,6 +215,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           phone: userData.phone,
           type: userData.type,
           company_name: userData.company_name,
+          profile_completed: userData.profile_completed,
         };
         updateUser(userObj);
         setLoading(false);
@@ -242,8 +244,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    await authApi.logout();
-    updateUser(null);
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if API call fails, we still want to logout client-side
+    } finally {
+      updateUser(null);
+    }
   };
 
   return (

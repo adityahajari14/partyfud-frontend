@@ -12,6 +12,8 @@ import { catererApi, Dish, CreateDishRequest, UpdateDishRequest } from '@/lib/ap
 // Component for dish image with fallback
 const DishImage: React.FC<{ imageUrl: string | null; dishName: string }> = ({ imageUrl, dishName }) => {
   const [imageError, setImageError] = React.useState(false);
+
+
   const fallbackImage = `https://source.unsplash.com/400x300/?food,${encodeURIComponent(dishName || 'delicious')}`;
 
   return (
@@ -57,8 +59,8 @@ export default function MenusPage() {
   });
   const [createFormErrors, setCreateFormErrors] = useState<Record<string, string>>({});
   const [isCreating, setIsCreating] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string>('/default_dish.jpg');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [formData, setFormData] = useState<UpdateDishRequest>({});
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -251,15 +253,12 @@ export default function MenusPage() {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+
+    setSelectedImage(file);
+    setImagePreview(URL.createObjectURL(file));
   };
+
 
   const handleCreate = async () => {
     setIsCreating(true);
@@ -305,7 +304,7 @@ export default function MenusPage() {
       is_active: true,
     });
     setSelectedImage(null);
-    setImagePreview(null);
+    setImagePreview('/default_dish.jpg');
     setSelectedFreeForms([]);
     setSubCategories([{ value: '', label: 'Select Sub-Category' }]);
     setSelectedCategoryHasSubCategories(true);
@@ -369,8 +368,8 @@ export default function MenusPage() {
                     <div className="flex items-center justify-between mb-4">
                       <span
                         className={`px-3 py-1.5 rounded-full text-xs font-semibold ${dish.is_active
-                            ? 'bg-[#e8f5e0] text-[#1a5a00]'
-                            : 'bg-gray-100 text-gray-800'
+                          ? 'bg-[#e8f5e0] text-[#1a5a00]'
+                          : 'bg-gray-100 text-gray-800'
                           }`}
                       >
                         {dish.is_active ? 'Available' : 'Unavailable'}
@@ -426,7 +425,7 @@ export default function MenusPage() {
             is_active: true,
           });
           setSelectedImage(null);
-          setImagePreview(null);
+          setImagePreview('/default_dish.jpg');
           setSelectedFreeForms([]);
           setSubCategories([{ value: '', label: 'Select Sub-Category' }]);
           setSelectedCategoryHasSubCategories(true);
@@ -444,32 +443,14 @@ export default function MenusPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Left Side - Image Upload */}
           <div className="space-y-4">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 aspect-square flex items-center justify-center bg-gray-50">
-              {imagePreview ? (
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="w-full h-full object-cover rounded-lg"
-                />
-              ) : (
-                <div className="text-center">
-                  <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
-                    stroke="currentColor"
-                    fill="none"
-                    viewBox="0 0 48 48"
-                  >
-                    <path
-                      d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <p className="mt-2 text-sm text-gray-700">No image selected</p>
-                </div>
-              )}
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 aspect-square bg-gray-50">
+              <img
+                src={imagePreview}
+                alt="Dish Preview"
+                className="w-full h-full object-cover rounded-lg"
+              />
             </div>
+
             <label className="flex items-center justify-center w-full px-4 py-2 bg-[#268700] text-white rounded-lg cursor-pointer hover:bg-[#1f6b00] transition-colors">
               <svg
                 className="w-5 h-5 mr-2"
@@ -630,7 +611,7 @@ export default function MenusPage() {
                 is_active: true,
               });
               setSelectedImage(null);
-              setImagePreview(null);
+              setImagePreview('/default_dish.jpg');
               setSelectedFreeForms([]);
               setSubCategories([{ value: '', label: 'Select Sub-Category' }]);
               setSelectedCategoryHasSubCategories(true);
