@@ -29,9 +29,9 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/auth/admin/signup",
+							"raw": "{{base_url}}/api/auth/signup",
 							"host": ["{{base_url}}"],
-							"path": ["api", "auth", "admin", "signup"]
+							"path": ["api", "auth", "signup"]
 						},
 						"description": "Register a new regular user account"
 					},
@@ -57,9 +57,9 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/auth/admin/signup",
+							"raw": "{{base_url}}/api/auth/signup",
 							"host": ["{{base_url}}"],
-							"path": ["api", "auth", "admin", "signup"]
+							"path": ["api", "auth", "signup"]
 						},
 						"description": "Register a new caterer account (company_name is required)"
 					},
@@ -85,9 +85,9 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/auth/admin/signup",
+							"raw": "{{base_url}}/api/auth/signup",
 							"host": ["{{base_url}}"],
-							"path": ["api", "auth", "admin", "signup"]
+							"path": ["api", "auth", "signup"]
 						},
 						"description": "Register a new admin account"
 					},
@@ -113,9 +113,9 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/auth/admin/login",
+							"raw": "{{base_url}}/api/auth/login",
 							"host": ["{{base_url}}"],
-							"path": ["api", "auth", "admin", "login"]
+							"path": ["api", "auth", "login"]
 						},
 						"description": "Login with email and password. Returns JWT token with user type information."
 					},

@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { usePathname } from 'next/navigation';
 
 const navItems = [
   {
@@ -50,14 +51,17 @@ export default function CatererLayout({
   children: React.ReactNode;
 }) {
   const { user, loading } = useAuth();
+  const pathname = usePathname();
+
+const isDetailsPage = pathname === '/caterer/details';
   const router = useRouter();
 
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        router.replace('/admin/login');
+        router.replace('/login');
       } else if (user.type !== 'CATERER') {
-        router.replace('/admin/login');
+        router.replace('/login');
       }
     }
   }, [user, loading, router]);
@@ -74,13 +78,19 @@ export default function CatererLayout({
     return null;
   }
 
-  return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar navItems={navItems} />
-      <div className="flex-1 flex flex-col ml-64">
-        {children}
-      </div>
+  return isDetailsPage ? (
+  // 👉 NO SIDEBAR LAYOUT (for /caterer/details)
+  <div className="min-h-screen">
+    {children}
+  </div>
+) : (
+  // 👉 NORMAL CATERER DASHBOARD LAYOUT
+  <div className="flex min-h-screen bg-gray-50">
+    <Sidebar navItems={navItems} />
+    <div className="flex-1 flex flex-col ml-64">
+      {children}
     </div>
-  );
+  </div>
+);
 }
 

@@ -20,7 +20,7 @@ export default function Home() {
           router.replace('/admin/dashboard');
         }
       } else {
-        router.replace('/admin/login');
+        router.replace('/login');
       }
     }
   }, [user, loading, router]);

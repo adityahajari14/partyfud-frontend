@@ -60,7 +60,7 @@ export interface User {
 // Auth API functions
 export const authApi = {
   signup: async (data: SignupRequest) => {
-    const response = await apiRequest<AuthResponse>('/api/auth/admin/signup', {
+    const response = await apiRequest<AuthResponse>('/api/auth/signup', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -74,7 +74,7 @@ export const authApi = {
   },
 
   login: async (data: LoginRequest) => {
-    const response = await apiRequest<AuthResponse>('/api/auth/admin/login', {
+    const response = await apiRequest<AuthResponse>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify(data),
     });

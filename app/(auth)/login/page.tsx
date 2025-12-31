@@ -67,39 +67,6 @@ export default function LoginPage() {
     <div className="min-h-screen flex">
       {/* Left Side - Food Theme Visual */}
       <div className="hidden lg:flex lg:w-1/2 bg-linear-to-br from-[#268700] to-[#1f6b00] relative overflow-hidden">
-        {/* <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 text-6xl">🍕</div>
-          <div className="absolute top-32 right-20 text-5xl">🍔</div>
-          <div className="absolute bottom-32 left-20 text-6xl">🍰</div>
-          <div className="absolute bottom-20 right-10 text-5xl">🥗</div>
-          <div className="absolute top-1/2 left-1/4 text-4xl">🍝</div>
-          <div className="absolute top-1/3 right-1/3 text-5xl">🌮</div>
-        </div>
-        <div className="relative z-10 flex flex-col justify-center items-center text-white p-12">
-          <div className="mb-8">
-            <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-6">
-              <span className="text-white font-bold text-4xl">P</span>
-            </div>
-            <h1 className="text-5xl font-bold mb-4">Party Fud</h1>
-            <p className="text-xl text-white/90 max-w-md text-center">
-              Your one-stop destination for delicious party catering. Connect with the best caterers and make your events memorable.
-            </p>
-          </div>
-          <div className="mt-12 space-y-4">
-            <div className="flex items-center gap-3 text-white/80">
-              <div className="w-2 h-2 bg-white rounded-full"></div>
-              <span>Premium Catering Services</span>
-            </div>
-            <div className="flex items-center gap-3 text-white/80">
-              <div className="w-2 h-2 bg-white rounded-full"></div>
-              <span>Easy Package Management</span>
-            </div>
-            <div className="flex items-center gap-3 text-white/80">
-              <div className="w-2 h-2 bg-white rounded-full"></div>
-              <span>Trusted by Thousands</span>
-            </div>
-          </div>
-        </div> */}
         <Image src="/left_ui.svg" alt="Food Theme" fill className="object-cover" />
         <div className='absolute text-5xl text-white m-8 p-6'>Grow your catering <br></br>business with PartyFud</div>
       </div>
@@ -177,12 +144,12 @@ export default function LoginPage() {
               <div className="text-center">
                 <p className="text-sm text-gray-600">
                   Don't have an account?{' '}
-                  <Link href="/admin/signup" className="font-semibold text-[#268700] hover:text-[#1f6b00]">
+                  <Link href="/signup" className="font-semibold text-[#268700] hover:text-[#1f6b00]">
                     Sign up for free
                   </Link>
                 </p>
 
-                <Link href="/caterer/login" className="flex justify-center">
+                {/* <Link href="/login" className="flex justify-center">
                   <Button
                     type="button"
                     variant="primary"
@@ -190,7 +157,7 @@ export default function LoginPage() {
                   >
                     Login / Signup as Caterer
                   </Button>
-                </Link>
+                </Link> */}
 
               </div>
             </form>

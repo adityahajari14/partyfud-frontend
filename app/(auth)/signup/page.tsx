@@ -10,6 +10,7 @@ import Image from 'next/image';
 
 export default function SignupPage() {
   const router = useRouter();
+  const [justSignedUp, setJustSignedUp] = useState(false);
   const { signup, user } = useAuth();
   const [userType, setUserType] = useState<'USER' | 'CATERER'>('USER');
   const [formData, setFormData] = useState({
@@ -25,17 +26,16 @@ export default function SignupPage() {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (user) {
-      setIsLoading(false); // Reset loading when user is available
-      if (user.type === 'CATERER') {
-        router.replace('/caterer/dashboard');
-      } else if (user.type === 'USER') {
-        router.replace('/user/dashboard');
-      } else if (user.type === 'ADMIN') {
-        router.replace('/admin/dashboard');
-      }
+    if (!user || justSignedUp) return;
+
+    if (user.type === 'CATERER') {
+      router.replace('/caterer/dashboard');
+    } else if (user.type === 'USER') {
+      router.replace('/user/dashboard');
+    } else if (user.type === 'ADMIN') {
+      router.replace('/admin/dashboard');
     }
-  }, [user, router, setIsLoading]);
+  }, [user, justSignedUp, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,17 +56,18 @@ export default function SignupPage() {
       };
 
       const result = await signup(signupData);
-      
+
       if (result.error) {
-        // Ensure error is always a string
-        setError(typeof result.error === 'string' ? result.error : String(result.error));
+        setError(String(result.error));
         setIsLoading(false);
       } else {
-        // If no error, wait a bit for user state to update, then reset loading
-        // This handles the case where redirect might not happen immediately
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 2000);
+        setJustSignedUp(true);
+
+        if (userType === 'CATERER') {
+          router.replace('/caterer/details');
+        } else {
+          router.replace('/user/dashboard');
+        }
       }
     } catch (error) {
       setError('An unexpected error occurred. Please try again.');
@@ -77,44 +78,10 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Side - Food Theme Visual */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#268700] to-[#1f6b00] relative overflow-hidden">
-        {/* <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 text-6xl">🎂</div>
-          <div className="absolute top-32 right-20 text-5xl">🍖</div>
-          <div className="absolute bottom-32 left-20 text-6xl">🍕</div>
-          <div className="absolute bottom-20 right-10 text-5xl">🍗</div>
-          <div className="absolute top-1/2 left-1/4 text-4xl">🥘</div>
-          <div className="absolute top-1/3 right-1/3 text-5xl">🍱</div>
-          <div className="absolute bottom-1/4 right-1/4 text-4xl">🍜</div>
-        </div>
-        <div className="relative z-10 flex flex-col justify-center items-center text-white p-12">
-          <div className="mb-8">
-            <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-6">
-              <span className="text-white font-bold text-4xl">P</span>
-            </div>
-            <h1 className="text-5xl font-bold mb-4">Join Party Fud</h1>
-            <p className="text-xl text-white/90 max-w-md text-center">
-              Start your journey with us. Whether you're looking for catering or offering services, we've got you covered.
-            </p>
-          </div>
-          <div className="mt-12 space-y-4">
-            <div className="flex items-center gap-3 text-white/80">
-              <div className="w-2 h-2 bg-white rounded-full"></div>
-              <span>Quick & Easy Registration</span>
-            </div>
-            <div className="flex items-center gap-3 text-white/80">
-              <div className="w-2 h-2 bg-white rounded-full"></div>
-              <span>Access to Premium Features</span>
-            </div>
-            <div className="flex items-center gap-3 text-white/80">
-              <div className="w-2 h-2 bg-white rounded-full"></div>
-              <span>24/7 Customer Support</span>
-            </div>
-          </div>
-        </div> */}
+      {/* Left Side*/}
+      <div className="hidden lg:flex lg:w-1/2 bg-linear-to-br from-[#268700] to-[#1f6b00] relative overflow-hidden">
         <Image src="/left_ui.svg" alt="Food Theme" fill className="object-cover" />
-                <div className='absolute text-5xl text-white m-8 p-6'>Grow your catering <br></br>business with PartyFud</div>
+        <div className='absolute text-5xl text-white m-8 p-6'>Grow your catering <br></br>business with PartyFud</div>
       </div>
 
       {/* Right Side - Signup Form */}
@@ -139,22 +106,20 @@ export default function SignupPage() {
             <button
               type="button"
               onClick={() => setUserType('USER')}
-              className={`flex-1 py-2.5 px-4 rounded-md font-medium transition-all ${
-                userType === 'USER'
+              className={`flex-1 py-2.5 px-4 rounded-md font-medium transition-all ${userType === 'USER'
                   ? 'bg-[#268700] text-white shadow-sm'
                   : 'text-gray-700 hover:text-gray-900'
-              }`}
+                }`}
             >
               👤 User
             </button>
             <button
               type="button"
               onClick={() => setUserType('CATERER')}
-              className={`flex-1 py-2.5 px-4 rounded-md font-medium transition-all ${
-                userType === 'CATERER'
+              className={`flex-1 py-2.5 px-4 rounded-md font-medium transition-all ${userType === 'CATERER'
                   ? 'bg-[#268700] text-white shadow-sm'
                   : 'text-gray-700 hover:text-gray-900'
-              }`}
+                }`}
             >
               🏢 Caterer
             </button>
@@ -186,7 +151,7 @@ export default function SignupPage() {
                   placeholder="Last name"
                 />
               </div>
-              
+
               <Input
                 label="Phone Number"
                 type="tel"
@@ -195,7 +160,7 @@ export default function SignupPage() {
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="+971501234567"
               />
-              
+
               <Input
                 label="Email address"
                 type="email"
@@ -204,7 +169,7 @@ export default function SignupPage() {
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="Enter your email"
               />
-              
+
               {userType === 'CATERER' && (
                 <Input
                   label="Company Name"
@@ -215,7 +180,7 @@ export default function SignupPage() {
                   placeholder="Enter company name"
                 />
               )}
-              
+
               <Input
                 label="Password"
                 type="password"
@@ -251,10 +216,12 @@ export default function SignupPage() {
             <div className="text-center">
               <p className="text-sm text-gray-600">
                 Already have an account?{' '}
-                <Link href="/admin/login" className="font-semibold text-[#268700] hover:text-[#1f6b00]">
+                <Link href="/login" className="font-semibold text-[#268700] hover:text-[#1f6b00]">
                   Sign in
                 </Link>
               </p>
+
+
             </div>
           </form>
         </div>
@@ -262,3 +229,4 @@ export default function SignupPage() {
     </div>
   );
 }
+
