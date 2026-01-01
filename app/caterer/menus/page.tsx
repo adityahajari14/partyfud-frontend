@@ -12,12 +12,12 @@ import { catererApi, Dish, CreateDishRequest, UpdateDishRequest } from '@/lib/ap
 // Component for dish image with fallback
 const DishImage: React.FC<{ imageUrl: string | null; dishName: string }> = ({ imageUrl, dishName }) => {
   const [imageError, setImageError] = React.useState(false);
+  const [fallbackError, setFallbackError] = React.useState(false);
 
-
-  const fallbackImage = `https://source.unsplash.com/400x300/?food,${encodeURIComponent(dishName || 'delicious')}`;
+  const fallbackImage = '/default_dish.jpg';
 
   return (
-    <div className="w-full h-48 bg-gray-200 flex items-center justify-center overflow-hidden">
+    <div className="w-full h-32 md:h-48 bg-gray-200 flex items-center justify-center overflow-hidden relative shrink-0">
       {imageUrl && !imageError ? (
         <img
           src={imageUrl}
@@ -25,12 +25,30 @@ const DishImage: React.FC<{ imageUrl: string | null; dishName: string }> = ({ im
           className="w-full h-full object-cover"
           onError={() => setImageError(true)}
         />
-      ) : (
+      ) : !fallbackError ? (
         <img
           src={fallbackImage}
           alt={dishName}
           className="w-full h-full object-cover"
+          onError={() => setFallbackError(true)}
         />
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+          <svg
+            className="w-16 h-16 text-gray-400 mb-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+          <p className="text-sm text-gray-500 font-medium text-center px-2 line-clamp-2">{dishName}</p>
+        </div>
       )}
     </div>
   );
@@ -321,19 +339,20 @@ export default function MenusPage() {
         addButtonText="+ Add Menu Item"
         onAddClick={() => setIsCreateModalOpen(true)}
       />
-      <main className="flex-1 p-6 pt-24">
+      <main className="flex-1 p-4 lg:p-6 pt-20 lg:pt-24">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Menu Items</h1>
           <p className="text-gray-700 mb-6">Create and manage your menu items</p>
 
           {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-2 gap-3 md:gap-4 mb-6">
             <Select
               label="Cuisine Type"
               options={cuisineTypes}
               value={filters.cuisine_type_id}
               onChange={(e) => setFilters({ ...filters, cuisine_type_id: e.target.value })}
               placeholder="Select Cuisine Type"
+              className="text-sm"
             />
             <Select
               label="Category"
@@ -341,6 +360,7 @@ export default function MenusPage() {
               value={filters.category_id}
               onChange={(e) => setFilters({ ...filters, category_id: e.target.value })}
               placeholder="Select Category"
+              className="text-sm"
             />
           </div>
 
@@ -354,20 +374,22 @@ export default function MenusPage() {
               <p className="text-gray-700">No dishes found. Create your first dish to get started.</p>
             </div>
           ) : Array.isArray(dishes) && dishes.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
               {dishes.map((dish) => (
-                <div key={dish.id} className="bg-white rounded-lg shadow overflow-hidden">
-                  <DishImage imageUrl={dish.image_url || null} dishName={dish.name} />
-                  <div className="p-4">
-                    <h3 className="font-semibold text-lg text-gray-900 mb-2">{dish.name}</h3>
+                <div key={dish.id} className="bg-white rounded-lg shadow overflow-hidden flex flex-col h-full">
+                  <div className="shrink-0">
+                    <DishImage imageUrl={dish.image_url || null} dishName={dish.name} />
+                  </div>
+                  <div className="p-2 md:p-3 flex flex-col flex-grow">
+                    <h3 className="font-semibold text-sm md:text-base text-gray-900 mb-1 line-clamp-2 min-h-[2rem] md:min-h-[2.5rem]">{dish.name}</h3>
                     {dish.quantity_in_gm && (
-                      <p className="text-sm text-gray-700 mb-4">
+                      <p className="text-xs text-gray-600 mb-1 md:mb-2">
                         {dish.quantity_in_gm} gm
                       </p>
                     )}
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-2 mt-auto gap-1">
                       <span
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold ${dish.is_active
+                        className={`px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-semibold whitespace-nowrap ${dish.is_active
                           ? 'bg-[#e8f5e0] text-[#1a5a00]'
                           : 'bg-gray-100 text-gray-800'
                           }`}
@@ -375,25 +397,27 @@ export default function MenusPage() {
                         {dish.is_active ? 'Available' : 'Unavailable'}
                       </span>
                       <div className="text-right">
-                        <p className="text-lg font-bold text-gray-900">
+                        <p className="text-xs md:text-base font-bold text-gray-900 whitespace-nowrap">
                           {dish.currency} {typeof dish.price === 'number' ? dish.price.toFixed(2) : parseFloat(dish.price || '0').toFixed(2)}
                         </p>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1.5 md:gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className="flex-1 min-w-0 border-2 border-gray-900 text-gray-900 hover:bg-gray-50 hover:text-gray-900 focus:ring-gray-900 text-xs md:text-sm px-1 md:px-2"
                         onClick={() => handleEdit(dish)}
                       >
-                        Edit Item
+                        <span className="hidden sm:inline">Edit Item</span>
+                        <span className="sm:hidden">Edit</span>
                       </Button>
                       <button
                         onClick={() => setDeleteConfirm(dish.id)}
-                        className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                        className="p-1.5 md:p-2 bg-red-50 border-2 border-red-500 hover:bg-red-100 rounded-lg transition-colors shrink-0 w-8 h-8 md:w-10 md:h-10 flex items-center justify-center"
+                        aria-label="Delete item"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 md:w-5 md:h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                       </button>

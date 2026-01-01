@@ -10,10 +10,12 @@ import { catererApi, Package } from '@/lib/api/caterer.api';
 // Component for package image with fallback
 const PackageImage: React.FC<{ imageUrl: string | null; packageName: string }> = ({ imageUrl, packageName }) => {
   const [imageError, setImageError] = React.useState(false);
-  const fallbackImage = `https://source.unsplash.com/400x300/?catering,party,${encodeURIComponent(packageName || 'package')}`;
+  const [fallbackError, setFallbackError] = React.useState(false);
+
+  const fallbackImage = '/default_dish.jpg';
 
   return (
-    <div className="w-full h-56 bg-gray-100 flex items-center justify-center overflow-hidden">
+    <div className="w-full h-56 bg-gray-100 flex items-center justify-center overflow-hidden relative">
       {imageUrl && !imageError ? (
         <img
           src={imageUrl}
@@ -21,12 +23,42 @@ const PackageImage: React.FC<{ imageUrl: string | null; packageName: string }> =
           className="w-full h-full object-cover"
           onError={() => setImageError(true)}
         />
-      ) : (
+      ) : !fallbackError ? (
         <img
           src={fallbackImage}
           alt={packageName}
           className="w-full h-full object-cover"
+          onError={() => setFallbackError(true)}
         />
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 border-2 border-dashed border-amber-200">
+          <div className="relative">
+            {/* Food Package Icon */}
+            <svg
+              className="w-20 h-20 text-amber-600 mb-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+              />
+            </svg>
+            {/* Food Icons Overlay */}
+            <div className="absolute -top-1 -right-1">
+              <svg className="w-6 h-6 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+              </svg>
+            </div>
+          </div>
+          <p className="text-xs text-amber-700 font-semibold text-center px-3 uppercase tracking-wide">
+            {packageName || 'Package'}
+          </p>
+          <p className="text-xs text-amber-600 text-center px-3 mt-1">Food Package</p>
+        </div>
       )}
     </div>
   );
@@ -150,7 +182,7 @@ export default function PackagesPage() {
         addButtonText="+ Create a Package"
         showAddButton={true}
       />
-      <main className="flex-1 p-6 pt-24 bg-gray-50 min-h-screen">
+      <main className="flex-1 p-4 lg:p-6 pt-20 lg:pt-24 bg-gray-50 min-h-screen">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Packages</h1>

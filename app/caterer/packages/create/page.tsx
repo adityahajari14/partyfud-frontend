@@ -66,6 +66,51 @@ const PackageItemCard: React.FC<PackageItemCardProps> = ({ item, isSelected, onT
   );
 };
 
+// Component for dish image with fallback in modal
+const DishImageInModal: React.FC<{ imageUrl: string | null | undefined; dishName: string }> = ({ imageUrl, dishName }) => {
+  const [imageError, setImageError] = React.useState(false);
+  const [fallbackError, setFallbackError] = React.useState(false);
+
+  const fallbackImage = '/default_dish.jpg';
+
+  return (
+    <div className="w-full h-32 bg-gray-200 flex items-center justify-center overflow-hidden rounded mb-2 relative flex-shrink-0">
+      {imageUrl && !imageError ? (
+        <img
+          src={imageUrl}
+          alt={dishName}
+          className="w-full h-full object-cover"
+          onError={() => setImageError(true)}
+        />
+      ) : !fallbackError ? (
+        <img
+          src={fallbackImage}
+          alt={dishName}
+          className="w-full h-full object-cover"
+          onError={() => setFallbackError(true)}
+        />
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+          <svg
+            className="w-10 h-10 text-gray-400 mb-1"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+          <p className="text-xs text-gray-500 font-medium text-center px-2 line-clamp-2">{dishName}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function CreatePackagePage() {
   const router = useRouter();
   const [formData, setFormData] = useState<CreatePackageRequest>({
@@ -452,7 +497,7 @@ export default function CreatePackagePage() {
                 size="sm"
                 onClick={handleOpenCreateItemModal}
               >
-                + Create Item
+                + Add Ons & Options
               </Button>
             </div>
 
@@ -536,7 +581,7 @@ export default function CreatePackagePage() {
                   />
                 </div>
               </div>
-              <div className="flex items-center gap-6 pt-6">
+              {/* <div className="flex items-center gap-6 pt-6">
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -561,7 +606,7 @@ export default function CreatePackagePage() {
                     Available
                   </label>
                 </div>
-              </div>
+              </div> */}
             </div>
           </div>
 
@@ -610,13 +655,7 @@ export default function CreatePackagePage() {
                           }}
                           className="sr-only"
                         />
-                        {dish.image_url && (
-                          <img
-                            src={dish.image_url}
-                            alt={dish.name}
-                            className="w-full h-32 object-cover rounded mb-2"
-                          />
-                        )}
+                        <DishImageInModal imageUrl={dish.image_url} dishName={dish.name} />
                         <p className="font-medium text-gray-900">{dish.name}</p>
                         <p className="text-xs text-gray-500 mt-1">
                           AED {typeof dish.price === 'number' ? dish.price.toFixed(2) : parseFloat(String(dish.price || '0')).toFixed(2)}
@@ -654,7 +693,7 @@ export default function CreatePackagePage() {
                       placeholder="Enter quantity"
                     />
                     <Input
-                      label="Price at Time (Optional)"
+                      label="Total Price "
                       type="number"
                       step="0.01"
                       value={createItemFormData.price_at_time?.toString() || ''}
@@ -664,7 +703,7 @@ export default function CreatePackagePage() {
                       })}
                       placeholder="Enter price (defaults to dish price)"
                     />
-                    <div className="flex items-center gap-4">
+                    {/* <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
                         <input
                           type="checkbox"
@@ -695,7 +734,7 @@ export default function CreatePackagePage() {
                           Add-on
                         </label>
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                 )}
               </div>
@@ -714,7 +753,7 @@ export default function CreatePackagePage() {
                 onClick={handleCreatePackageItem}
                 isLoading={isCreatingItem}
               >
-                Create Item
+                Add On
               </Button>
             </div>
           </Modal>
