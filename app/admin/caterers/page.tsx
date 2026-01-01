@@ -1,11 +1,187 @@
-import React from 'react'
+'use client';
 
-const page = () => {
-  return (
-    <div className="p-8 bg-gray-50 text-4xl min-h-screen">
-      Caterers page coming soon...
-    </div>
-  )
+import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { adminApi } from '@/lib/api/admin.api';
+
+interface Caterer {
+  id: string;
+  name: string;
+  type: string;
+  city: string;
+  email: string;
+  phone: string;
+  registered: string;
 }
 
-export default page
+export default function CaterersPage() {
+  const router = useRouter();
+  const [items, setItems] = useState<Caterer[]>([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch approved caterers only
+  useEffect(() => {
+    const fetchCatererInfo = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const response = await adminApi.getCatererInfo('APPROVED');
+
+        if (response.error) {
+          setError(response.error);
+          setLoading(false);
+          return;
+        }
+
+        if (response.data?.success && response.data.data) {
+          const caterers: Caterer[] = response.data.data.map((item) => ({
+            id: item.id,
+            name: item.business_name,
+            type: item.business_type,
+            city: item.region || item.service_area || 'N/A',
+            email: item.caterer.email,
+            phone: item.caterer.phone,
+            registered: new Date(item.created_at).toLocaleDateString(),
+          }));
+          setItems(caterers);
+        }
+      } catch (err) {
+        console.error('Error fetching caterer info:', err);
+        setError('Failed to load caterer information. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCatererInfo();
+  }, []);
+
+  const filtered = useMemo(() => {
+    return items.filter((c) =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.email.toLowerCase().includes(search.toLowerCase()) ||
+      c.phone.includes(search)
+    );
+  }, [items, search]);
+
+  return (
+    <main className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Approved Caterers</h1>
+              <p className="text-gray-600 mt-2 text-sm">Manage and view all approved caterers</p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-gray-900">{items.length}</p>
+              <p className="text-sm text-gray-600">
+                {items.length === 1 ? 'caterer' : 'caterers'} approved
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-6 py-4 rounded-r-lg shadow-sm">
+            <div className="flex items-center justify-between">
+              <p className="font-medium">{error}</p>
+              <button
+                onClick={() => setError(null)}
+                className="ml-4 text-red-500 hover:text-red-700 font-bold text-xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Search */}
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="relative">
+            <input
+              placeholder="Search by name, email, or phone..."
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent transition-all"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Loading State */}
+        {loading && (
+          <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+            <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-gray-300 border-t-gray-600"></div>
+            <p className="text-gray-600 mt-4 text-sm font-medium">Loading caterers...</p>
+          </div>
+        )}
+
+        {/* Cards */}
+        {!loading && (
+          <>
+            {filtered.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+                <p className="text-gray-500 text-base">
+                  {search ? 'No caterers found matching your search.' : 'No approved caterers found.'}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {filtered.map((c) => (
+                  <div
+                    key={c.id}
+                    className="bg-white rounded-xl shadow-sm p-6 space-y-4 cursor-pointer hover:shadow-lg transition-all border border-gray-100 hover:border-gray-200"
+                    onClick={() => router.push(`/admin/caterers/${c.id}`)}
+                  >
+                    {/* Header */}
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="font-bold text-lg text-gray-900 mb-1">{c.name}</h3>
+                        <p className="text-sm text-gray-600 mb-1">{c.type}</p>
+                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                          <span>📍</span>
+                          <span>{c.city}</span>
+                        </p>
+                      </div>
+                      <span className="text-xs font-semibold bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full uppercase tracking-wide">
+                        Approved
+                      </span>
+                    </div>
+
+                    {/* Info */}
+                    <div className="space-y-2 pt-3 border-t border-gray-100">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <span className="font-medium w-20">Email:</span>
+                        <span className="truncate">{c.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <span className="font-medium w-20">Phone:</span>
+                        <span>{c.phone}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <span className="font-medium w-20">Registered:</span>
+                        <span>{c.registered}</span>
+                      </div>
+                    </div>
+
+                    {/* View Details Hint */}
+                    <div className="pt-3 border-t border-gray-100">
+                      <p className="text-xs text-gray-500 text-center font-medium">
+                        Click to view details →
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </main>
+  );
+}

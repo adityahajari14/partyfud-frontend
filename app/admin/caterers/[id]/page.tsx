@@ -4,9 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { adminApi } from '@/lib/api/admin.api';
 
-type Status = 'PENDING' | 'APPROVED' | 'REJECTED' | 'BLOCKED';
-
-interface CatererInfo {
+interface CatererDetail {
   id: string;
   business_name: string;
   business_type: string;
@@ -22,8 +20,7 @@ interface CatererInfo {
   servers: number | null;
   food_license: string | null;
   Registration: string | null;
-  caterer_id: string;
-  status: Status;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'BLOCKED';
   created_at: string;
   updated_at: string;
   caterer: {
@@ -40,91 +37,81 @@ interface CatererInfo {
   };
 }
 
-const mapStatusToFrontend = (status: Status): 'pending' | 'approved' | 'rejected' => {
-  const statusMap: Record<Status, 'pending' | 'approved' | 'rejected'> = {
-    'PENDING': 'pending',
-    'APPROVED': 'approved',
-    'REJECTED': 'rejected',
-    'BLOCKED': 'rejected',
-  };
-  return statusMap[status] || 'pending';
-};
-
-const mapStatusToBackend = (status: 'pending' | 'approved' | 'rejected'): Status => {
-  const statusMap: Record<'pending' | 'approved' | 'rejected', Status> = {
-    'pending': 'PENDING',
-    'approved': 'APPROVED',
-    'rejected': 'REJECTED',
-  };
-  return statusMap[status];
-};
-
 export default function CatererDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const id = params.id as string;
+  const catererId = params.id as string;
 
-  const [catererInfo, setCatererInfo] = useState<CatererInfo | null>(null);
+  const [caterer, setCaterer] = useState<CatererDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [updating, setUpdating] = useState(false);
+  const [blocking, setBlocking] = useState(false);
 
   useEffect(() => {
-    const fetchCatererInfo = async () => {
-      if (!id) return;
+    if (catererId) {
+      fetchCatererDetails();
+    }
+  }, [catererId]);
 
-      setLoading(true);
-      setError(null);
-
-      try {
-        const response = await adminApi.getCatererInfoById(id);
-
-        if (response.error) {
-          setError(response.error);
-          setLoading(false);
-          return;
-        }
-
-        if (response.data?.success && response.data.data) {
-          setCatererInfo(response.data.data);
-        } else {
-          setError('Caterer information not found');
-        }
-      } catch (err) {
-        console.error('Error fetching caterer info:', err);
-        setError('Failed to load caterer information. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCatererInfo();
-  }, [id]);
-
-  const handleStatusUpdate = async (newStatus: 'pending' | 'approved' | 'rejected') => {
-    if (!catererInfo) return;
-
-    setUpdating(true);
+  const fetchCatererDetails = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const backendStatus = mapStatusToBackend(newStatus);
-      const response = await adminApi.updateCatererInfoStatus(catererInfo.id, backendStatus);
-
+      const response = await adminApi.getCatererInfoById(catererId);
+      
       if (response.error) {
-        setError(`Failed to update status: ${response.error}`);
-        setUpdating(false);
+        setError(response.error);
+        setLoading(false);
         return;
       }
 
-      // Update local state
-      setCatererInfo((prev) => prev ? { ...prev, status: backendStatus } : null);
-      
-      // Optionally redirect back to approvals page
-      // router.push('/admin/approvals');
+      if (response.data?.success && response.data.data) {
+        setCaterer(response.data.data);
+      } else {
+        setError('Caterer information not found.');
+      }
     } catch (err) {
-      console.error('Error updating status:', err);
-      setError('Failed to update status. Please try again.');
+      console.error('Error fetching caterer details:', err);
+      setError('An unexpected error occurred while fetching details.');
     } finally {
-      setUpdating(false);
+      setLoading(false);
+    }
+  };
+
+  const handleBlockCaterer = async () => {
+    if (!caterer) return;
+
+    // Confirm action
+    const confirmed = window.confirm(
+      `Are you sure you want to block ${caterer.business_name}? This action will change their status to BLOCKED.`
+    );
+
+    if (!confirmed) return;
+
+    setBlocking(true);
+    setError(null);
+
+    try {
+      const response = await adminApi.updateCatererInfoStatus(catererId, 'BLOCKED');
+
+      if (response.error) {
+        setError(response.error);
+        setBlocking(false);
+        return;
+      }
+
+      if (response.data?.success) {
+        // Refresh the caterer details to show updated status
+        await fetchCatererDetails();
+        alert('Caterer has been blocked successfully.');
+      } else {
+        setError('Failed to block caterer. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error blocking caterer:', err);
+      setError('An unexpected error occurred while blocking the caterer.');
+    } finally {
+      setBlocking(false);
     }
   };
 
@@ -134,14 +121,14 @@ export default function CatererDetailPage() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center py-20">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-gray-600"></div>
-            <p className="text-gray-600 mt-4 text-sm font-medium">Loading caterer information...</p>
+            <p className="text-gray-600 mt-4 text-sm font-medium">Loading caterer details...</p>
           </div>
         </div>
       </main>
     );
   }
 
-  if (error && !catererInfo) {
+  if (error && !caterer) {
     return (
       <main className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
         <div className="max-w-5xl mx-auto space-y-4">
@@ -151,21 +138,33 @@ export default function CatererDetailPage() {
             </div>
           </div>
           <button
-            onClick={() => router.push('/admin/approvals')}
+            onClick={() => router.push('/admin/caterers')}
             className="px-6 py-2.5 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium text-sm shadow-sm"
           >
-            ← Back to Approvals
+            ← Back to Caterers
           </button>
         </div>
       </main>
     );
   }
 
-  if (!catererInfo) {
-    return null;
+  if (!caterer) {
+    return (
+      <main className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+        <div className="max-w-5xl mx-auto space-y-4">
+          <div className="bg-white rounded-xl shadow-sm p-8 text-center">
+            <p className="text-gray-600 text-lg mb-4">Caterer information not found.</p>
+            <button
+              onClick={() => router.push('/admin/caterers')}
+              className="px-6 py-2.5 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium text-sm shadow-sm"
+            >
+              ← Back to Caterers
+            </button>
+          </div>
+        </div>
+      </main>
+    );
   }
-
-  const currentStatus = mapStatusToFrontend(catererInfo.status);
 
   return (
     <main className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
@@ -173,27 +172,31 @@ export default function CatererDetailPage() {
         {/* Header */}
         <div className="bg-white rounded-xl shadow-sm p-6">
           <button
-            onClick={() => router.push('/admin/approvals')}
+            onClick={() => router.push('/admin/caterers')}
             className="text-gray-600 hover:text-gray-900 mb-4 flex items-center gap-2 text-sm font-medium transition-colors"
           >
             <span>←</span>
-            <span>Back to Approvals</span>
+            <span>Back to Caterers</span>
           </button>
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{catererInfo.business_name}</h1>
-              <p className="text-base text-gray-600">{catererInfo.business_type}</p>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{caterer.business_name}</h1>
+              <p className="text-base text-gray-600">{caterer.business_type}</p>
             </div>
             <span
               className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide uppercase ${
-                currentStatus === 'pending'
-                  ? 'bg-amber-100 text-amber-700'
-                  : currentStatus === 'approved'
+                caterer.status === 'APPROVED'
                   ? 'bg-emerald-100 text-emerald-700'
-                  : 'bg-red-100 text-red-700'
+                  : caterer.status === 'PENDING'
+                  ? 'bg-amber-100 text-amber-700'
+                  : caterer.status === 'REJECTED'
+                  ? 'bg-red-100 text-red-700'
+                  : caterer.status === 'BLOCKED'
+                  ? 'bg-gray-200 text-gray-700'
+                  : 'bg-gray-200 text-gray-700'
               }`}
             >
-              {currentStatus.toUpperCase()}
+              {caterer.status}
             </span>
           </div>
         </div>
@@ -224,25 +227,25 @@ export default function CatererDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Business Name</label>
-                <p className="text-gray-900 font-medium text-base">{catererInfo.business_name}</p>
+                <p className="text-gray-900 font-medium text-base">{caterer.business_name}</p>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Business Type</label>
-                <p className="text-gray-900 font-medium text-base">{catererInfo.business_type}</p>
+                <p className="text-gray-900 font-medium text-base">{caterer.business_type}</p>
               </div>
               <div className="md:col-span-2 space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</label>
                 <p className="text-gray-700 leading-relaxed">
-                  {catererInfo.business_description || <span className="text-gray-400 italic">No description provided</span>}
+                  {caterer.business_description || <span className="text-gray-400 italic">No description provided</span>}
                 </p>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Service Area</label>
-                <p className="text-gray-900 font-medium">{catererInfo.service_area || <span className="text-gray-400">N/A</span>}</p>
+                <p className="text-gray-900 font-medium">{caterer.service_area || <span className="text-gray-400">N/A</span>}</p>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Region</label>
-                <p className="text-gray-900 font-medium">{catererInfo.region || <span className="text-gray-400">N/A</span>}</p>
+                <p className="text-gray-900 font-medium">{caterer.region || <span className="text-gray-400">N/A</span>}</p>
               </div>
             </div>
           </section>
@@ -256,19 +259,19 @@ export default function CatererDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Minimum Guests</label>
-                <p className="text-gray-900 font-medium text-lg">{catererInfo.minimum_guests || <span className="text-gray-400">N/A</span>}</p>
+                <p className="text-gray-900 font-medium text-lg">{caterer.minimum_guests || <span className="text-gray-400">N/A</span>}</p>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Maximum Guests</label>
-                <p className="text-gray-900 font-medium text-lg">{catererInfo.maximum_guests || <span className="text-gray-400">N/A</span>}</p>
+                <p className="text-gray-900 font-medium text-lg">{caterer.maximum_guests || <span className="text-gray-400">N/A</span>}</p>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Staff Count</label>
-                <p className="text-gray-900 font-medium text-lg">{catererInfo.staff || <span className="text-gray-400">N/A</span>}</p>
+                <p className="text-gray-900 font-medium text-lg">{caterer.staff || <span className="text-gray-400">N/A</span>}</p>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Servers Count</label>
-                <p className="text-gray-900 font-medium text-lg">{catererInfo.servers || <span className="text-gray-400">N/A</span>}</p>
+                <p className="text-gray-900 font-medium text-lg">{caterer.servers || <span className="text-gray-400">N/A</span>}</p>
               </div>
             </div>
           </section>
@@ -283,7 +286,7 @@ export default function CatererDetailPage() {
               <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
                 <input
                   type="checkbox"
-                  checked={catererInfo.delivery_only}
+                  checked={caterer.delivery_only}
                   disabled
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
@@ -292,7 +295,7 @@ export default function CatererDetailPage() {
               <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
                 <input
                   type="checkbox"
-                  checked={catererInfo.delivery_plus_setup}
+                  checked={caterer.delivery_plus_setup}
                   disabled
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
@@ -301,7 +304,7 @@ export default function CatererDetailPage() {
               <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
                 <input
                   type="checkbox"
-                  checked={catererInfo.full_service}
+                  checked={caterer.full_service}
                   disabled
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
@@ -320,21 +323,21 @@ export default function CatererDetailPage() {
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Name</label>
                 <p className="text-gray-900 font-medium text-base">
-                  {catererInfo.caterer.first_name} {catererInfo.caterer.last_name}
+                  {caterer.caterer.first_name} {caterer.caterer.last_name}
                 </p>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Email</label>
-                <p className="text-gray-900 font-medium text-base break-all">{catererInfo.caterer.email}</p>
+                <p className="text-gray-900 font-medium text-base break-all">{caterer.caterer.email}</p>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Phone</label>
-                <p className="text-gray-900 font-medium text-base">{catererInfo.caterer.phone}</p>
+                <p className="text-gray-900 font-medium text-base">{caterer.caterer.phone}</p>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Company Name</label>
                 <p className="text-gray-900 font-medium">
-                  {catererInfo.caterer.company_name || <span className="text-gray-400">N/A</span>}
+                  {caterer.caterer.company_name || <span className="text-gray-400">N/A</span>}
                 </p>
               </div>
             </div>
@@ -349,9 +352,9 @@ export default function CatererDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Food License</label>
-                {catererInfo.food_license ? (
+                {caterer.food_license ? (
                   <a
-                    href={catererInfo.food_license}
+                    href={caterer.food_license}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
@@ -365,9 +368,9 @@ export default function CatererDetailPage() {
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Registration</label>
-                {catererInfo.Registration ? (
+                {caterer.Registration ? (
                   <a
-                    href={catererInfo.Registration}
+                    href={caterer.Registration}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
@@ -392,43 +395,34 @@ export default function CatererDetailPage() {
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Created At</label>
                 <p className="text-gray-900 font-medium">
-                  {new Date(catererInfo.created_at).toLocaleString()}
+                  {new Date(caterer.created_at).toLocaleString()}
                 </p>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Last Updated</label>
                 <p className="text-gray-900 font-medium">
-                  {new Date(catererInfo.updated_at).toLocaleString()}
+                  {new Date(caterer.updated_at).toLocaleString()}
                 </p>
               </div>
             </div>
           </section>
+        </div>
 
-          {/* Actions */}
-          {currentStatus === 'pending' && (
-            <section className="pt-6 border-t border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                <span className="w-1 h-6 bg-gray-300 rounded-full"></span>
-                Actions
-              </h2>
-              <div className="flex gap-4">
-                <button
-                  onClick={() => handleStatusUpdate('approved')}
-                  disabled={updating}
-                  className="flex-1 bg-emerald-600 text-white py-3.5 rounded-lg font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-700 transition-colors shadow-sm hover:shadow-md"
-                >
-                  {updating ? 'Updating...' : 'Approve'}
-                </button>
-                <button
-                  onClick={() => handleStatusUpdate('rejected')}
-                  disabled={updating}
-                  className="flex-1 bg-red-600 text-white py-3.5 rounded-lg font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700 transition-colors shadow-sm hover:shadow-md"
-                >
-                  {updating ? 'Updating...' : 'Reject'}
-                </button>
-              </div>
-            </section>
-          )}
+        {/* Action Buttons */}
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={handleBlockCaterer}
+              disabled={blocking || caterer.status === 'BLOCKED'}
+              className={`px-6 py-2.5 rounded-lg font-semibold text-sm transition-all shadow-sm ${
+                blocking || caterer.status === 'BLOCKED'
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-md'
+              }`}
+            >
+              {blocking ? 'Blocking...' : 'BLOCK CATERER'}
+            </button>
+          </div>
         </div>
       </div>
     </main>

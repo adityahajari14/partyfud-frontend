@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { SidebarProvider, useSidebar } from '@/contexts/SidebarContext';
 import { usePathname } from 'next/navigation';
 
 const navItems = [
@@ -37,15 +38,28 @@ const navItems = [
   
 ];
 
-export default function CatererLayout({
+function AdminLayoutContent({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const { isOpen, closeSidebar } = useSidebar();
 
-useEffect(() => {
+  // Close sidebar when window is resized to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        closeSidebar();
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [closeSidebar]);
+
+  useEffect(() => {
     if (!loading) {
       if (!user || user.type !== 'ADMIN') {
         router.replace('/login');
@@ -61,16 +75,31 @@ useEffect(() => {
     );
   }
 
- if (!user || user.type !== 'ADMIN') return null;
+  if (!user || user.type !== 'ADMIN') return null;
 
-return (
-  <div className="flex min-h-screen bg-gray-50">
-    <Sidebar navItems={navItems} />
-    <div className="flex-1 flex flex-col ml-64">
-      {children}
+  return (
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar 
+        navItems={navItems} 
+        isOpen={isOpen}
+        onClose={closeSidebar}
+      />
+      <div className="flex-1 flex flex-col w-full lg:ml-64 transition-all duration-300 overflow-x-hidden">
+        {children}
+      </div>
     </div>
-  </div>
-);
+  );
+}
 
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <SidebarProvider>
+      <AdminLayoutContent>{children}</AdminLayoutContent>
+    </SidebarProvider>
+  );
 }
 
