@@ -1,42 +1,24 @@
 'use client';
+import Plan from '../Plan';
+import Hero from '../Hero';
+import Occasions from '../Occasions';
+import Package from '../Package';
+import Caterers from '../Caterers';
+import Categories from '../Categories';
+import Partner from '../Partner';
+import Testimonials from '../Testimonials';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/Button';
-
-export default function UserDashboardPage() {
-  const router = useRouter();
-  const { logout } = useAuth();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      await logout();
-      // Redirect to login page after logout
-      router.push('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-      // Even if there's an error, redirect to login
-      router.push('/login');
-    } finally {
-      setIsLoggingOut(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <Button 
-          onClick={handleLogout} 
-          variant="primary" 
-          size="lg"
-          isLoading={isLoggingOut}
-        >
-          Logout
-        </Button>
-      </div>
-    </div>
-  );
+export default function Dashboard() {
+    return (
+        <>
+        <Hero/>
+        <Plan/>
+        <Occasions/>
+        <Package/>
+        <Caterers/>
+        <Categories/>
+        <Partner/>
+        <Testimonials/>
+        </>
+    );
 }
