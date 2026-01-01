@@ -1,29 +1,106 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { catererApi, DashboardStats } from '@/lib/api/caterer.api';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function CatererDashboard() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const hasFetched = useRef(false);
+
+  // Reset loading state when auth completes and user is available
+  useEffect(() => {
+    if (!authLoading && user) {
+      // If user is not a caterer or profile not completed, stop loading immediately
+      if (user.type !== 'CATERER' || user.profile_completed === false) {
+        setLoading(false);
+      }
+    } else if (!authLoading && !user) {
+      setLoading(false);
+    }
+  }, [authLoading, user]);
+
+  // Redirect to details page if profile is not completed
+  useEffect(() => {
+    if (!authLoading && user && user.type === 'CATERER' && user.profile_completed === false) {
+      router.replace('/caterer/details');
+    }
+  }, [user, authLoading, router]);
 
   useEffect(() => {
-    fetchDashboardStats();
-  }, []);
+    // If auth is still loading, don't do anything yet
+    if (authLoading) {
+      return;
+    }
+
+    // If no user after auth loading, stop loading
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    // If not a caterer, stop loading
+    if (user.type !== 'CATERER') {
+      setLoading(false);
+      return;
+    }
+
+    // If profile not completed, redirect should have happened, but stop loading just in case
+    if (user.profile_completed === false) {
+      setLoading(false);
+      return;
+    }
+
+    // Only fetch stats if profile is completed and we haven't fetched yet
+    if (user.profile_completed === true && !hasFetched.current) {
+      hasFetched.current = true;
+      fetchDashboardStats();
+    } else if (hasFetched.current) {
+      // If already fetched but still loading, stop loading
+      if (loading) {
+        setLoading(false);
+      }
+    } else {
+      // If we get here and loading is still true, something is wrong - stop loading
+      if (loading) {
+        setLoading(false);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading]);
 
   const fetchDashboardStats = async () => {
     setLoading(true);
+    
     try {
       const response = await catererApi.getDashboardStats();
+      
+      // Check for errors first
+      if (response.error) {
+        console.error('Error fetching dashboard stats:', response.error);
+        setLoading(false);
+        return;
+      }
+      
+      // Handle response data
       if (response.data) {
-        const data = response.data as any;
-        if (data.data) {
-          setStats(data.data);
+        const apiResponse = response.data as any;
+        
+        // API returns: { success: true, data: { dishes, packages, ... } }
+        // apiRequest wraps it, so response.data = { success: true, data: {...} }
+        if (apiResponse.success && apiResponse.data) {
+          setStats(apiResponse.data);
+        } else if (apiResponse.data) {
+          // Fallback: if data exists directly
+          setStats(apiResponse.data);
         } else {
-          setStats(data);
+          // Fallback: if the response itself is the stats
+          setStats(apiResponse);
         }
       }
     } catch (error) {
@@ -109,11 +186,11 @@ export default function CatererDashboard() {
     );
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <>
         <Header showAddButton={false} />
-        <main className="flex-1 p-6 pt-24">
+        <main className="flex-1 p-4 lg:p-6 pt-20 lg:pt-24">
           <div className="max-w-7xl mx-auto">
             <div className="flex justify-center items-center py-20">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#268700]"></div>
@@ -127,7 +204,7 @@ export default function CatererDashboard() {
   return (
     <>
       <Header showAddButton={false} />
-      <main className="flex-1 p-6 pt-24 bg-gray-50 min-h-screen">
+      <main className="flex-1 p-4 lg:p-6 pt-20 lg:pt-24 bg-gray-50 min-h-screen">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
@@ -438,4 +515,3 @@ export default function CatererDashboard() {
     </>
   );
 }
-

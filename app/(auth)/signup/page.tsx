@@ -29,7 +29,12 @@ export default function SignupPage() {
     if (!user || justSignedUp) return;
 
     if (user.type === 'CATERER') {
-      router.replace('/caterer/dashboard');
+      // Check if profile is completed, if not redirect to details page
+      if (user.profile_completed === false) {
+        router.replace('/caterer/details');
+      } else {
+        router.replace('/caterer/dashboard');
+      }
     } else if (user.type === 'USER') {
       router.replace('/user/dashboard');
     } else if (user.type === 'ADMIN') {
@@ -64,6 +69,8 @@ export default function SignupPage() {
         setJustSignedUp(true);
 
         if (userType === 'CATERER') {
+          // Always redirect caterers to details page after signup
+          // The useEffect will handle redirect based on profile_completed status
           router.replace('/caterer/details');
         } else {
           router.replace('/user/dashboard');

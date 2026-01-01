@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { SidebarProvider, useSidebar } from '@/contexts/SidebarContext';
 import { usePathname } from 'next/navigation';
 
 const navItems = [
@@ -45,16 +46,28 @@ const navItems = [
   },
 ];
 
-export default function CatererLayout({
+function CatererLayoutContent({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
-
-const isDetailsPage = pathname === '/caterer/details';
+  const { isOpen, closeSidebar } = useSidebar();
+  const isDetailsPage = pathname === '/caterer/details';
   const router = useRouter();
+
+  // Close sidebar when window is resized to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        closeSidebar();
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [closeSidebar]);
 
   useEffect(() => {
     if (!loading) {
@@ -62,9 +75,23 @@ const isDetailsPage = pathname === '/caterer/details';
         router.replace('/login');
       } else if (user.type !== 'CATERER') {
         router.replace('/login');
+      } else if (user.type === 'CATERER' && user.profile_completed === false && pathname !== '/caterer/details') {
+        // Redirect to details page if profile is not completed (unless already on details page)
+        // Use replace to prevent back navigation
+        router.replace('/caterer/details');
       }
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, pathname]);
+
+  // Prevent access to any caterer pages except details if profile is not completed
+  useEffect(() => {
+    if (!loading && user && user.type === 'CATERER' && user.profile_completed === false) {
+      // If somehow user navigated to a page other than details, redirect immediately
+      if (pathname !== '/caterer/details') {
+        router.replace('/caterer/details');
+      }
+    }
+  }, [user, loading, router, pathname]);
 
   if (loading) {
     return (
@@ -79,18 +106,34 @@ const isDetailsPage = pathname === '/caterer/details';
   }
 
   return isDetailsPage ? (
-  // 👉 NO SIDEBAR LAYOUT (for /caterer/details)
-  <div className="min-h-screen">
-    {children}
-  </div>
-) : (
-  // 👉 NORMAL CATERER DASHBOARD LAYOUT
-  <div className="flex min-h-screen bg-gray-50">
-    <Sidebar navItems={navItems} />
-    <div className="flex-1 flex flex-col ml-64">
+    // 👉 NO SIDEBAR LAYOUT (for /caterer/details)
+    <div className="min-h-screen">
       {children}
     </div>
-  </div>
-);
+  ) : (
+    // 👉 NORMAL CATERER DASHBOARD LAYOUT
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar 
+        navItems={navItems} 
+        isOpen={isOpen}
+        onClose={closeSidebar}
+      />
+      <div className="flex-1 flex flex-col w-full lg:ml-64 transition-all duration-300 overflow-x-hidden">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+export default function CatererLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <SidebarProvider>
+      <CatererLayoutContent>{children}</CatererLayoutContent>
+    </SidebarProvider>
+  );
 }
 

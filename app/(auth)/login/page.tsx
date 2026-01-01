@@ -31,7 +31,12 @@ export default function LoginPage() {
 
       // Redirect immediately based on user type
       if (user.type === 'CATERER') {
-        router.replace('/caterer/dashboard');
+        // Check if profile is completed, if not redirect to details page
+        if (user.profile_completed === false) {
+          router.replace('/caterer/details');
+        } else {
+          router.replace('/caterer/dashboard');
+        }
       } else if (user.type === 'USER') {
         router.replace('/user/dashboard');
       } else if (user.type === 'ADMIN') {
@@ -52,10 +57,25 @@ export default function LoginPage() {
         // Ensure error is always a string
         setError(typeof result.error === 'string' ? result.error : String(result.error));
         setIsLoading(false);
+      } else if (result.user) {
+        // Success - redirect immediately based on user data from login response
+        const loggedInUser = result.user;
+        
+        if (loggedInUser.type === 'CATERER') {
+          // Check if profile is completed, if not redirect to details page immediately
+          if (loggedInUser.profile_completed === false) {
+            router.replace('/caterer/details');
+          } else {
+            router.replace('/caterer/dashboard');
+          }
+        } else if (loggedInUser.type === 'USER') {
+          router.replace('/user/dashboard');
+        } else if (loggedInUser.type === 'ADMIN') {
+          router.replace('/admin/dashboard');
+        }
       } else {
-        // Success - the useEffect will handle redirect when user state updates
-        // Just wait a moment for refreshUser to complete
-        // The redirect will happen automatically via the useEffect above
+        // Fallback: wait for user state to update via useEffect
+        // The useEffect will handle redirect when user state updates
       }
     } catch (error) {
       setError('An unexpected error occurred. Please try again.');
