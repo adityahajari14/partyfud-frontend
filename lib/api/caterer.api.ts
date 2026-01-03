@@ -139,15 +139,16 @@ export interface DashboardStats {
 // Caterer API functions
 export const catererApi = {
   // Dishes
-  getAllDishes: async (filters?: { cuisine_type_id?: string; category_id?: string }) => {
+  getAllDishes: async (filters?: { cuisine_type_id?: string; category_id?: string; group_by_category?: boolean }) => {
     const params = new URLSearchParams();
     if (filters?.cuisine_type_id) params.append('cuisine_type_id', filters.cuisine_type_id);
     if (filters?.category_id) params.append('category_id', filters.category_id);
+    if (filters?.group_by_category) params.append('group_by_category', 'true');
     
     const queryString = params.toString();
     const endpoint = `/api/caterer/dishes${queryString ? `?${queryString}` : ''}`;
     
-    return apiRequest<Dish[]>(endpoint);
+    return apiRequest<any>(endpoint);
   },
 
   getDishById: async (id: string) => {
@@ -354,9 +355,16 @@ export const catererApi = {
   },
 
   // Package Items
-  getAllPackageItems: async (packageId?: string) => {
-    const query = packageId ? `?package_id=${packageId}` : '';
-    return apiRequest<Array<{ id: string; dish_id: string; package_id?: string; people_count: number; quantity: string; price_at_time?: number; is_optional: boolean; is_addon: boolean; dish: Dish }>>(`/api/caterer/packages/items${query}`);
+  getAllPackageItems: async (packageId?: string, draft?: boolean) => {
+    const params = new URLSearchParams();
+    if (packageId) {
+      params.append('package_id', packageId);
+    }
+    if (draft) {
+      params.append('draft', 'true');
+    }
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiRequest<any>(`/api/caterer/packages/items${query}`);
   },
 
   createPackageItem: async (data: {

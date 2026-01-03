@@ -28,7 +28,7 @@ export default function BrowseOccasionsPage() {
   };
 
   return (
-    <section className="bg-white py-20 overflow-hidden">
+    <section className="bg-[#FAFAFA] py-20 overflow-hidden">
       <div className="max-w-7xl mx-auto px-6">
         {/* Heading */}
         <div className="text-center mb-14">
@@ -53,7 +53,7 @@ export default function BrowseOccasionsPage() {
                 key={item.title}
                 className="min-w-[calc(33.333%-1.33rem)]"
               >
-                <div className="relative w-full h-[260px] rounded-2xl overflow-hidden shadow-sm">
+                <div className="relative w-full h-[260px] bg-white border border-gray-200 rounded-2xl overflow-hidden">
                   <Image
                     src={item.image}
                     alt={item.title}
@@ -74,7 +74,7 @@ export default function BrowseOccasionsPage() {
           <button
             onClick={handlePrev}
             disabled={index === 0}
-            className="w-10 h-10 rounded-full border flex items-center justify-center hover:bg-gray-100 disabled:opacity-40"
+            className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100 disabled:opacity-40"
           >
             ‹
           </button>
@@ -82,7 +82,7 @@ export default function BrowseOccasionsPage() {
           <button
             onClick={handleNext}
             disabled={index >= occasions.length - 3}
-            className="w-10 h-10 rounded-full border flex items-center justify-center hover:bg-gray-100 disabled:opacity-40"
+            className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100 disabled:opacity-40"
           >
             ›
           </button>
