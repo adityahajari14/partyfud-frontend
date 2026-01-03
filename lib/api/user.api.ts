@@ -1,11 +1,283 @@
 import { apiRequest } from './config';
 
+// Types
+export interface FilterCaterersParams {
+  location?: string;
+  guests?: number;
+  date?: string;
+  minBudget?: number;
+  maxBudget?: number;
+  menuType?: {
+    fixed?: boolean;
+    customizable?: boolean;
+    liveStations?: boolean;
+  };
+  search?: string;
+}
+
+export interface Caterer {
+  id: string;
+  name: string;
+  first_name: string;
+  last_name: string;
+  company_name?: string;
+  email: string;
+  phone: string;
+  image_url?: string;
+  cuisines: string[];
+  location: string;
+  minPrice: number;
+  maxPrice: number;
+  priceRange: string;
+  description: string;
+  minimum_guests?: number;
+  maximum_guests?: number;
+  service_area?: string;
+  delivery_only: boolean;
+  delivery_plus_setup: boolean;
+  full_service: boolean;
+  packages: any[];
+  packages_count: number;
+}
+
+export interface Package {
+  id: string;
+  name: string;
+  people_count: number;
+  package_type: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+  cover_image_url?: string;
+  total_price: number;
+  price_per_person: number;
+  currency: string;
+  rating?: number;
+  is_available: boolean;
+  items: any[];
+  category_selections: any[];
+  occasions: any[];
+  caterer?: {
+    id: string;
+    name: string;
+    location?: string | null;
+  };
+}
+
+export interface Dish {
+  id: string;
+  name: string;
+  image_url?: string | null;
+  cuisine_type: {
+    id: string;
+    name: string;
+    description?: string | null;
+  };
+  category: {
+    id: string;
+    name: string;
+    description?: string | null;
+  };
+  sub_category?: {
+    id: string;
+    name: string;
+    description?: string | null;
+  } | null;
+  caterer?: {
+    id: string;
+    name: string;
+    location?: string | null;
+  } | null;
+  quantity_in_gm?: number | null;
+  pieces: number;
+  price: number;
+  currency: string;
+  is_active: boolean;
+  free_forms: Array<{
+    id: string;
+    name: string;
+    description?: string | null;
+  }>;
+  created_at: string;
+  updated_at: string;
+}
+
 // User API functions
 export const userApi = {
-  // Placeholder for user-specific endpoints
-  // Will be expanded as needed
-  getUserRoutes: async () => {
-    return apiRequest('/api/user');
+  /**
+   * Filter and fetch all caterers
+   * POST /api/user/caterers
+   */
+  filterCaterers: async (filters: FilterCaterersParams) => {
+    const response = await apiRequest<{ success: boolean; data: Caterer[]; count: number }>(
+      '/api/user/caterers',
+      {
+        method: 'POST',
+        body: JSON.stringify(filters),
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Get caterer by ID
+   * GET /api/user/caterers/:id
+   */
+  getCatererById: async (catererId: string) => {
+    const response = await apiRequest<{ success: boolean; data: Caterer }>(
+      `/api/user/caterers/${catererId}`,
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Get packages by caterer ID
+   * GET /api/user/packages/caterer/:catererId
+   * or
+   * GET /api/user/packages?caterer_id=xxx
+   */
+  getPackagesByCatererId: async (catererId?: string) => {
+    const url = catererId 
+      ? `/api/user/packages?caterer_id=${catererId}`
+      : '/api/user/packages';
+    const response = await apiRequest<{ success: boolean; data: Package[]; count: number }>(
+      url,
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Get package by ID
+   * GET /api/user/packages/:packageId
+   */
+  getPackageById: async (packageId: string) => {
+    const response = await apiRequest<{ success: boolean; data: Package }>(
+      `/api/user/packages/${packageId}`,
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Get all packages with filters
+   * GET /api/user/packages/all?location=xxx&min_price=xxx&max_price=xxx&...
+   */
+  getAllPackages: async (filters?: {
+    caterer_id?: string;
+    location?: string;
+    region?: string;
+    min_guests?: number;
+    max_guests?: number;
+    min_price?: number;
+    max_price?: number;
+    occasion_id?: string;
+    cuisine_type_id?: string;
+    category_id?: string;
+    package_type?: string;
+    search?: string;
+    menu_type?: 'fixed' | 'customizable';
+    sort_by?: 'price_asc' | 'price_desc' | 'rating_desc' | 'created_desc';
+  }) => {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
+        }
+      });
+    }
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const response = await apiRequest<{ success: boolean; data: Package[]; count: number; filters?: any }>(
+      `/api/user/packages/all${query}`,
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Get all dishes with filters
+   * GET /api/user/dishes?caterer_id=xxx&cuisine_type_id=xxx&category_id=xxx&...
+   */
+  getAllDishes: async (filters?: {
+    caterer_id?: string;
+    cuisine_type_id?: string;
+    category_id?: string;
+    sub_category_id?: string;
+    search?: string;
+    min_price?: number;
+    max_price?: number;
+    is_active?: boolean;
+    group_by_category?: boolean;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
+        }
+      });
+    }
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const response = await apiRequest<{ success: boolean; data: Dish[] | { categories: Array<{ category: any; dishes: Dish[] }> }; count: number }>(
+      `/api/user/dishes${query}`,
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Get dish by ID
+   * GET /api/user/dishes/:id
+   */
+  getDishById: async (dishId: string) => {
+    const response = await apiRequest<{ success: boolean; data: Dish }>(
+      `/api/user/dishes/${dishId}`,
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Get all cuisine types
+   * GET /api/caterer/metadata/cuisine-types
+   */
+  getCuisineTypes: async () => {
+    const response = await apiRequest<{ success: boolean; data: Array<{ id: string; name: string; description?: string | null }> }>(
+      '/api/caterer/metadata/cuisine-types',
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Get all package types
+   * GET /api/user/packages/types
+   */
+  getPackageTypes: async () => {
+    const response = await apiRequest<{ success: boolean; data: Array<{ id: string; name: string; image_url?: string | null; description?: string | null; created_at: string; updated_at: string }>; count: number }>(
+      '/api/user/packages/types',
+      {
+        method: 'GET',
+      }
+    );
+    return response;
   },
 };
 

@@ -5,7 +5,7 @@ import Link from 'next/link';
 export default function Hero() {
 
 return(
-<section className="relative bg-white overflow-hidden">
+<section className="relative bg-[#FAFAFA] overflow-hidden">
             <div className="max-w-8xl mx-auto px-18 py-20">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
@@ -46,7 +46,7 @@ return(
                         </div>
 
                         {/* Floating Card – Top Right */}
-                        <div className="absolute -top-6 -right-6 bg-white rounded-xl shadow-lg w-64 overflow-hidden">
+                        <div className="absolute -top-6 -right-6 bg-white border border-gray-200 rounded-xl shadow-sm w-64 overflow-hidden">
                             <div className="relative h-32">
                                 <Image
                                     src="/user/user_dashboard_img2.svg"
@@ -70,7 +70,7 @@ return(
                         </div>
 
                         {/* Floating Card – Bottom */}
-                        <div className="absolute -bottom-8 -left-10 bg-white rounded-xl shadow-lg flex items-center gap-4 p-2 w-84">
+                        <div className="absolute -bottom-8 -left-10 bg-white border border-gray-200 rounded-xl shadow-sm flex items-center gap-4 p-2 w-84">
                             <div className="w-22 h-14 rounded-lg bg-orange-500 flex items-center justify-center text-white font-bold">
                                 AZIZ
                             </div>

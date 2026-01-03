@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { MapPin, Mail, User } from 'lucide-react';
 import Image from 'next/image';
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
@@ -12,9 +12,12 @@ export function Navbar() {
     const { user, logout } = useAuth();
     const router = useRouter();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     const handleLogout = async () => {
         setIsLoggingOut(true);
+        setIsDropdownOpen(false);
         try {
             await logout();
             // Redirect to login page after logout
@@ -27,6 +30,23 @@ export function Navbar() {
             setIsLoggingOut(false);
         }
     };
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false);
+            }
+        };
+
+        if (isDropdownOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isDropdownOpen]);
 
     return (
         <header className="w-full">
@@ -70,14 +90,14 @@ export function Navbar() {
                 <div className="flex items-center gap-8">
                     {/* Nav Links */}
                     <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-700">
-                        <Link href="/user/home" className="hover:text-black">
+                        <Link href="/user/dashboard" className="hover:text-black">
                             Home
-                        </Link>
-                        <Link href="/user/occasions" className="hover:text-black">
-                            Occasions
                         </Link>
                         <Link href="/user/menu" className="hover:text-black">
                             Menu
+                        </Link>
+                        <Link href="/user/packages" className="hover:text-black">
+                            Packages
                         </Link>
                         <Link href="/user/caterers" className="hover:text-black">
                             Caterers
@@ -89,31 +109,43 @@ export function Navbar() {
                         <Mail className="text-gray-600 cursor-pointer" size={20} />
 
                         {user ? (
-                            <div className="flex items-center gap-3">
-                                <span className="text-sm text-gray-700">
-                                    Hello, {user.first_name || 'User'}
-                                </span>
-
-                                <div className="w-9 h-9 rounded-full bg-[#59c226] flex items-center justify-center">
+                            <div className="relative" ref={dropdownRef}>
+                                <button
+                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                    className="w-9 h-9 rounded-full bg-[#268700] flex items-center justify-center cursor-pointer hover:opacity-90 transition"
+                                >
                                     <span className="text-white font-semibold">
                                         {user.first_name?.[0]?.toUpperCase() || 'U'}
                                     </span>
-                                </div>
+                                </button>
 
-                                <Button
-                                    onClick={handleLogout}
-                                    variant="primary"
-                                    size="md"
-                                    isLoading={isLoggingOut}
-                                >
-                                    Logout
-                                </Button>
+                                {/* Dropdown Menu */}
+                                {isDropdownOpen && (
+                                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                                        <div className="px-4 py-3 border-b border-gray-200">
+                                            <p className="text-sm text-gray-700">
+                                                Hey {user.first_name || 'User'}
+                                            </p>
+                                        </div>
+                                        <div className="px-2 py-1">
+                                            <Button
+                                                onClick={handleLogout}
+                                                variant="primary"
+                                                size="md"
+                                                isLoading={isLoggingOut}
+                                                className="w-full"
+                                            >
+                                                Logout
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <User className="text-gray-600 cursor-pointer" size={20} />
                         )}
 
-                        <button className="bg-[#59c226] text-white text-sm font-medium px-4 py-2 rounded-full hover:opacity-90 transition">
+                        <button className="bg-[#268700] text-white text-sm font-medium px-4 py-2 rounded-full hover:opacity-90 transition">
                             Partner with Us
                         </button>
                     </div>
