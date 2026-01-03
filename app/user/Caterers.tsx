@@ -57,7 +57,7 @@ export default function TopCaterers() {
   };
 
   return (
-    <section className="bg-white py-20">
+    <section className="bg-[#FAFAFA] py-20">
       <div className="max-w-7xl mx-auto px-6">
         {/* Heading */}
         <div className="text-center mb-14">
@@ -78,7 +78,7 @@ export default function TopCaterers() {
             {caterers.map((caterer, i) => (
               <div
                 key={i}
-                className="min-w-[320px] bg-white border rounded-2xl p-5 flex items-center gap-4 hover:shadow-md transition"
+                className="min-w-[320px] bg-white border border-gray-200 rounded-2xl p-5 flex items-center gap-4 hover:shadow-md transition"
               >
                 {/* Logo */}
                 <div
@@ -116,13 +116,13 @@ export default function TopCaterers() {
           <div className="flex justify-center gap-4 mt-10">
             <button
               onClick={() => scroll('left')}
-              className="w-10 h-10 rounded-full border flex items-center justify-center hover:bg-gray-100"
+              className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100"
             >
               ‹
             </button>
             <button
               onClick={() => scroll('right')}
-              className="w-10 h-10 rounded-full border flex items-center justify-center hover:bg-gray-100"
+              className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100"
             >
               ›
             </button>

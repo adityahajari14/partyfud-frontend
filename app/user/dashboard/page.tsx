@@ -3,6 +3,7 @@ import Plan from '../Plan';
 import Hero from '../Hero';
 import Occasions from '../Occasions';
 import Package from '../Package';
+import PackageTypes from '../PackageTypes';
 import Caterers from '../Caterers';
 import Categories from '../Categories';
 import Partner from '../Partner';
@@ -13,7 +14,8 @@ export default function Dashboard() {
         <>
         <Hero/>
         <Plan/>
-        <Occasions/>
+        {/* <Occasions/> */}
+        <PackageTypes/>
         <Package/>
         <Caterers/>
         <Categories/>

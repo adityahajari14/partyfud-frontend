@@ -131,13 +131,21 @@ export default function CreatePackagePage() {
   const [packageTypes, setPackageTypes] = useState<Array<{ value: string; label: string }>>([
     { value: '', label: 'Select Package Type' },
   ]);
-  const [packageItems, setPackageItems] = useState<Array<{ id: string; dish: { name: string; image_url?: string | null }; people_count: number; quantity: string }>>([]);
+  // Store categories with their items
+  const [packageItemsByCategory, setPackageItemsByCategory] = useState<Array<{
+    category: { id: string; name: string; description?: string | null };
+    items: Array<{ id: string; dish: { name: string; image_url?: string | null }; people_count: number; quantity: string }>;
+  }>>([]);
   const DEFAULT_COVER = "/cover.png";
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(DEFAULT_COVER);
   const [loadingMetadata, setLoadingMetadata] = useState(true);
   const [isCreateItemModalOpen, setIsCreateItemModalOpen] = useState(false);
-  const [dishes, setDishes] = useState<Dish[]>([]);
+  // Store dishes grouped by category
+  const [dishesByCategory, setDishesByCategory] = useState<Array<{
+    category: { id: string; name: string; description?: string | null };
+    dishes: Dish[];
+  }>>([]);
   const [loadingDishes, setLoadingDishes] = useState(false);
   const [createItemFormData, setCreateItemFormData] = useState({
     dish_id: '',
@@ -158,7 +166,7 @@ export default function CreatePackagePage() {
     setLoadingMetadata(true);
     try {
       // Fetch package types
-      const packageTypesResponse = await catererApi.getPackageTypes();
+      const packageTypesResponse = await (catererApi as any).getPackageTypes();
       if (packageTypesResponse.data) {
         const data = packageTypesResponse.data as any;
         const typesList = Array.isArray(data) ? data : (data.data || []);
@@ -182,32 +190,109 @@ export default function CreatePackagePage() {
 
   const fetchPackageItems = async () => {
     try {
-      const itemsResponse = await catererApi.getAllPackageItems();
-      if (itemsResponse.data) {
-        const data = itemsResponse.data as any;
-        const itemsList = Array.isArray(data) ? data : (data.data || []);
-        // Backend now returns only draft items (package_id: null) when no packageId is provided
-        setPackageItems(itemsList);
+      // Fetch draft items (items without package_id) for creating a new package
+      const itemsResponse = await (catererApi as any).getAllPackageItems(undefined, true);
+      console.log('📦 [fetchPackageItems] API Response:', itemsResponse);
+      
+      // Backend returns: { success: true, data: { categories: [...] } }
+      // apiRequest wraps it: { data: { success: true, data: { categories: [...] } } }
+      if (itemsResponse?.data) {
+        const responseData = itemsResponse.data as any;
+        console.log('📦 [fetchPackageItems] Response data:', responseData);
+        
+        // Access the nested data structure - backend response has data.data.categories
+        const categoriesData = responseData.data || responseData;
+        console.log('📦 [fetchPackageItems] Categories data:', categoriesData);
+        
+        // New API structure: { categories: [{ category: {...}, items: [...] }] }
+        if (categoriesData?.categories && Array.isArray(categoriesData.categories)) {
+          console.log('📦 [fetchPackageItems] Found categories:', categoriesData.categories.length);
+          
+          // Ensure each category has items as an array and normalize item properties
+          const normalizedCategories = categoriesData.categories.map((cat: any) => {
+            const items = Array.isArray(cat.items) 
+              ? cat.items.map((item: any) => ({
+                  ...item,
+                  quantity: String(item.quantity || 1) // Convert quantity to string
+                }))
+              : [];
+            
+            console.log(`📦 [fetchPackageItems] Category "${cat.category?.name || 'Unknown'}": ${items.length} items`);
+            
+            return {
+              category: cat.category || cat,
+              items: items
+            };
+          });
+          
+          console.log('📦 [fetchPackageItems] Setting normalized categories:', normalizedCategories.length);
+          setPackageItemsByCategory(normalizedCategories);
+        } else {
+          console.warn('📦 [fetchPackageItems] No categories found, using fallback');
+          // Fallback for old structure (if API hasn't updated yet)
+          const itemsList = Array.isArray(categoriesData) ? categoriesData : (categoriesData?.data || []);
+          // Convert flat array to category structure
+          setPackageItemsByCategory([{
+            category: { id: 'all', name: 'All Items', description: null },
+            items: Array.isArray(itemsList) ? itemsList.map((item: any) => ({
+              ...item,
+              quantity: String(item.quantity || 1)
+            })) : []
+          }]);
+        }
+      } else {
+        console.warn('📦 [fetchPackageItems] No data in response');
+        setPackageItemsByCategory([]);
       }
     } catch (error) {
-      console.error('Error fetching package items:', error);
+      console.error('❌ [fetchPackageItems] Error fetching package items:', error);
+      // Set empty state on error
+      setPackageItemsByCategory([]);
     }
+  };
+
+  // Helper function to get all items from all categories (for selected items summary)
+  const getAllItems = () => {
+    return packageItemsByCategory.flatMap(category => 
+      Array.isArray(category.items) ? category.items : []
+    );
   };
 
   const fetchDishes = async () => {
     setLoadingDishes(true);
     try {
-      const response = await catererApi.getAllDishes();
+      // Fetch dishes grouped by category
+      const response = await (catererApi as any).getAllDishes({ group_by_category: true });
       if (response.data) {
         const data = response.data as any;
-        const dishesList = Array.isArray(data) ? data : (data.data || []);
-        setDishes(dishesList);
+        // Backend returns: { success: true, data: { categories: [...] } }
+        // apiRequest wraps it: { data: { success: true, data: { categories: [...] } } }
+        const responseData = data.data || data;
+        
+        if (responseData.categories && Array.isArray(responseData.categories)) {
+          setDishesByCategory(responseData.categories);
+        } else {
+          // Fallback for old structure
+          const dishesList = Array.isArray(data) ? data : (data.data || []);
+          setDishesByCategory([{
+            category: { id: 'all', name: 'All Dishes', description: null },
+            dishes: dishesList
+          }]);
+        }
       }
     } catch (error) {
       console.error('Error fetching dishes:', error);
+      setDishesByCategory([]);
     } finally {
       setLoadingDishes(false);
     }
+  };
+
+  // Helper function to get all dishes from all categories
+  const getAllDishes = () => {
+    return dishesByCategory.flatMap(category => 
+      Array.isArray(category.dishes) ? category.dishes : []
+    );
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -265,7 +350,7 @@ export default function CreatePackagePage() {
     }
 
     try {
-      const response = await catererApi.createPackageItem(createItemFormData);
+      const response = await (catererApi as any).createPackageItem(createItemFormData);
 
       if (response.error) {
         setCreateItemErrors({ general: response.error });
@@ -315,7 +400,7 @@ export default function CreatePackagePage() {
 
     setIsSubmitting(true);
 
-    const response = await catererApi.createPackage(formData, selectedImage || undefined);
+    const response = await (catererApi as any).createPackage(formData, selectedImage || undefined);
 
     if (response.error) {
       setErrors({ general: response.error });
@@ -508,7 +593,7 @@ export default function CreatePackagePage() {
                   {formData.package_item_ids.length} item(s) selected
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {packageItems
+                  {getAllItems()
                     .filter(item => formData.package_item_ids?.includes(item.id))
                     .map((item) => (
                       <span
@@ -529,12 +614,12 @@ export default function CreatePackagePage() {
               </div>
             )}
 
-            {/* Package Items List */}
+            {/* Package Items List - Grouped by Category */}
             {loadingMetadata ? (
               <div className="flex justify-center items-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#268700]"></div>
               </div>
-            ) : packageItems.length === 0 ? (
+            ) : getAllItems().length === 0 ? (
               <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
                 <p className="text-gray-500 mb-3">No package items available</p>
                 <Button
@@ -547,14 +632,42 @@ export default function CreatePackagePage() {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {packageItems.map((item) => (
-                  <PackageItemCard
-                    key={item.id}
-                    item={item}
-                    isSelected={formData.package_item_ids?.includes(item.id) || false}
-                    onToggle={() => handleItemToggle(item.id)}
-                  />
+              <div className="space-y-6">
+                {packageItemsByCategory.map((categoryGroup) => (
+                  <div key={categoryGroup.category.id} className="space-y-4">
+                    {/* Category Header */}
+                    <div className="flex items-center gap-3 pb-2 border-b border-gray-200">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {categoryGroup.category.name}
+                      </h3>
+                      <span className="text-sm text-gray-500">
+                        ({Array.isArray(categoryGroup.items) ? categoryGroup.items.length : 0} {Array.isArray(categoryGroup.items) && categoryGroup.items.length === 1 ? 'item' : 'items'})
+                      </span>
+                      {categoryGroup.category.description && (
+                        <span className="text-sm text-gray-400 italic">
+                          - {categoryGroup.category.description}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Items Grid for this Category */}
+                    {!Array.isArray(categoryGroup.items) || categoryGroup.items.length === 0 ? (
+                      <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50">
+                        <p className="text-sm text-gray-400">No items in this category</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {categoryGroup.items.map((item) => (
+                          <PackageItemCard
+                            key={item.id}
+                            item={item}
+                            isSelected={formData.package_item_ids?.includes(item.id) || false}
+                            onToggle={() => handleItemToggle(item.id)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
@@ -633,35 +746,71 @@ export default function CreatePackagePage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Select a Dish
                   </label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4">
-                    {dishes.map((dish) => (
-                      <label
-                        key={dish.id}
-                        className={`flex flex-col p-3 border-2 rounded-lg cursor-pointer transition-colors ${createItemFormData.dish_id === dish.id
-                            ? 'border-[#268700] bg-[#e8f5e0]'
-                            : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                      >
-                        <input
-                          type="radio"
-                          name="dish_selection"
-                          checked={createItemFormData.dish_id === dish.id}
-                          onChange={() => {
-                            setCreateItemFormData({
-                              ...createItemFormData,
-                              dish_id: dish.id,
-                              price_at_time: dish.price || undefined,
-                            });
-                          }}
-                          className="sr-only"
-                        />
-                        <DishImageInModal imageUrl={dish.image_url} dishName={dish.name} />
-                        <p className="font-medium text-gray-900">{dish.name}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          AED {typeof dish.price === 'number' ? dish.price.toFixed(2) : parseFloat(String(dish.price || '0')).toFixed(2)}
-                        </p>
-                      </label>
-                    ))}
+                  <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4">
+                    {dishesByCategory.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-sm text-gray-400">No dishes available</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {dishesByCategory.map((categoryGroup) => (
+                          <div key={categoryGroup.category.id} className="space-y-3">
+                            {/* Category Header */}
+                            <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
+                              <h4 className="text-base font-semibold text-gray-800">
+                                {categoryGroup.category.name}
+                              </h4>
+                              <span className="text-xs text-gray-500">
+                                ({categoryGroup.dishes.length} {categoryGroup.dishes.length === 1 ? 'dish' : 'dishes'})
+                              </span>
+                              {categoryGroup.category.description && (
+                                <span className="text-xs text-gray-400 italic">
+                                  - {categoryGroup.category.description}
+                                </span>
+                              )}
+                            </div>
+                            
+                            {/* Dishes Grid for this Category */}
+                            {categoryGroup.dishes.length === 0 ? (
+                              <div className="text-center py-4 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50">
+                                <p className="text-xs text-gray-400">No dishes in this category</p>
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {categoryGroup.dishes.map((dish) => (
+                                  <label
+                                    key={dish.id}
+                                    className={`flex flex-col p-3 border-2 rounded-lg cursor-pointer transition-colors ${createItemFormData.dish_id === dish.id
+                                        ? 'border-[#268700] bg-[#e8f5e0]'
+                                        : 'border-gray-200 hover:border-gray-300'
+                                      }`}
+                                  >
+                                    <input
+                                      type="radio"
+                                      name="dish_selection"
+                                      checked={createItemFormData.dish_id === dish.id}
+                                      onChange={() => {
+                                        setCreateItemFormData({
+                                          ...createItemFormData,
+                                          dish_id: dish.id,
+                                          price_at_time: dish.price || undefined,
+                                        });
+                                      }}
+                                      className="sr-only"
+                                    />
+                                    <DishImageInModal imageUrl={dish.image_url} dishName={dish.name} />
+                                    <p className="font-medium text-gray-900">{dish.name}</p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      AED {typeof dish.price === 'number' ? dish.price.toFixed(2) : parseFloat(String(dish.price || '0')).toFixed(2)}
+                                    </p>
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   {createItemErrors.dish_id && (
                     <p className="mt-1 text-sm text-red-600">{createItemErrors.dish_id}</p>
