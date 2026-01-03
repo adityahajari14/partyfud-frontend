@@ -130,7 +130,7 @@ export default function TopCategoriesPage() {
   }, []);
 
   return (
-    <section className="bg-white py-20">
+    <section className="bg-black/5 py-20">
       <div className="max-w-7xl mx-auto px-6">
         {/* Heading */}
         <div className="text-center mb-14">
@@ -178,6 +178,8 @@ export default function TopCategoriesPage() {
 
                   {/* Dark Gradient Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent z-10" />
+              {/* Dark Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
 
                   {/* Title */}
                   <span className="absolute bottom-4 left-4 text-white text-lg font-medium z-20">

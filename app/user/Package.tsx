@@ -161,7 +161,7 @@ export default function PopularPackagesPage() {
     : '/user/packages';
 
   return (
-    <section className="bg-white py-20">
+    <section className="bg-black/5 py-20">
       <div className="max-w-7xl mx-auto px-6">
         {/* Heading */}
         <div className="text-center mb-14">
