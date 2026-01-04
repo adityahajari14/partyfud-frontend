@@ -7,18 +7,55 @@ import React from 'react';
 import { userApi, type Package } from '@/lib/api/user.api';
 // import { Testimonials } from '@/user/Testimonials';
 
+interface PackageType {
+    id: string;
+    name: string;
+    image_url?: string | null;
+    description?: string | null;
+}
+
 export default function PackageDetailsPage() {
-    const [eventType, setEventType] = useState('All');
-    const [location, setLocation] = useState('All');
-    const [guests, setGuests] = useState('All');
+    const [eventType, setEventType] = useState('');
+    const [location, setLocation] = useState('');
+    const [guests, setGuests] = useState<number>(0);
     const [date, setDate] = useState('');
     const [pkg, setPkg] = useState<Package | null>(null);
+    const [packageTypes, setPackageTypes] = useState<PackageType[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingTypes, setLoadingTypes] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [addingToCart, setAddingToCart] = useState(false);
+    const [removingFromCart, setRemovingFromCart] = useState(false);
+    const [cartMessage, setCartMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [isAddedToCart, setIsAddedToCart] = useState(false);
+    const [cartItemId, setCartItemId] = useState<string | null>(null);
 
     const params = useParams();
     const packageId = params.packageId as string;
 
+    // Fetch package types
+    useEffect(() => {
+        const fetchPackageTypes = async () => {
+            setLoadingTypes(true);
+            try {
+                const response = await userApi.getPackageTypes();
+                
+                if (response.error) {
+                    console.error('Failed to fetch package types:', response.error);
+                } else if (response.data?.data) {
+                    setPackageTypes(response.data.data);
+                }
+            } catch (err) {
+                console.error('Error fetching package types:', err);
+            } finally {
+                setLoadingTypes(false);
+            }
+        };
+
+        fetchPackageTypes();
+    }, []);
+
+    // Fetch package details
     useEffect(() => {
         const fetchPackage = async () => {
             if (!packageId) return;
@@ -32,7 +69,16 @@ export default function PackageDetailsPage() {
                 if (response.error) {
                     setError(response.error);
                 } else if (response.data?.data) {
-                    setPkg(response.data.data);
+                    const packageData = response.data.data;
+                    setPkg(packageData);
+                    // Set default event type to the package's type if available
+                    if (packageData.package_type?.id) {
+                        setEventType(packageData.package_type.id);
+                    }
+                    // Set default guests to the package's people_count
+                    if (packageData.people_count) {
+                        setGuests(packageData.people_count);
+                    }
                 }
             } catch (err) {
                 setError('Failed to fetch package');
@@ -43,6 +89,161 @@ export default function PackageDetailsPage() {
 
         fetchPackage();
     }, [packageId]);
+
+    // Check if package is already in cart
+    useEffect(() => {
+        const checkCartStatus = async () => {
+            if (!packageId) return;
+            
+            try {
+                const response = await userApi.getCartItems();
+                
+                if (response.data?.data && Array.isArray(response.data.data)) {
+                    const cartItem = response.data.data.find(
+                        (item: any) => item.package?.id === packageId
+                    );
+                    
+                    if (cartItem) {
+                        setIsAddedToCart(true);
+                        setCartItemId(cartItem.id);
+                    } else {
+                        setIsAddedToCart(false);
+                        setCartItemId(null);
+                    }
+                }
+            } catch (err) {
+                console.error('Error checking cart status:', err);
+            }
+        };
+
+        checkCartStatus();
+    }, [packageId]);
+
+    // Handle Add to Cart
+    const handleAddToCart = async () => {
+        if (!pkg) {
+            setCartMessage({ type: 'error', text: 'Package information not available' });
+            return;
+        }
+
+        // Validate required fields
+        if (!eventType) {
+            setCartMessage({ type: 'error', text: 'Please select an event type' });
+            return;
+        }
+
+        if (!location) {
+            setCartMessage({ type: 'error', text: 'Please select a location' });
+            return;
+        }
+
+        if (!guests || guests <= 0) {
+            setCartMessage({ type: 'error', text: 'Please select number of guests' });
+            return;
+        }
+
+        if (!date) {
+            setCartMessage({ type: 'error', text: 'Please select a date' });
+            return;
+        }
+
+        setAddingToCart(true);
+        setCartMessage(null);
+
+        try {
+            // Format date to ISO string with default time (18:00 local time)
+            // Date input gives YYYY-MM-DD, we'll set it to 18:00:00 local time
+            const dateObj = new Date(date);
+            dateObj.setHours(18, 0, 0, 0); // Set to 6 PM local time
+            const isoDate = dateObj.toISOString();
+
+            // Calculate price based on guests (scale from package price)
+            // If guests = people_count, use original price
+            // If guests = 2x people_count, use 2x price, etc.
+            const priceMultiplier = guests / pkg.people_count;
+            const calculatedPrice = pkg.total_price * priceMultiplier;
+
+            const cartData = {
+                package_id: pkg.id,
+                package_type_id: eventType,
+                location: location,
+                guests: guests,
+                date: isoDate,
+                price_at_time: calculatedPrice,
+            };
+
+            const response = await userApi.createCartItem(cartData);
+
+            if (response.error) {
+                setCartMessage({ type: 'error', text: response.error });
+                setIsAddedToCart(false);
+            } else if (response.data?.success) {
+                setCartMessage({ type: 'success', text: 'Item added to cart successfully!' });
+                setIsAddedToCart(true);
+                // Store cart item ID if available in response
+                if (response.data?.data?.id) {
+                    setCartItemId(response.data.data.id);
+                }
+                // Clear message after 3 seconds
+                setTimeout(() => {
+                    setCartMessage(null);
+                }, 3000);
+            } else {
+                setCartMessage({ type: 'error', text: 'Failed to add item to cart' });
+                setIsAddedToCart(false);
+            }
+        } catch (err) {
+            console.error('Error adding to cart:', err);
+            setCartMessage({ type: 'error', text: 'An error occurred while adding to cart' });
+            setIsAddedToCart(false);
+        } finally {
+            setAddingToCart(false);
+        }
+    };
+
+    // Handle Remove from Cart
+    const handleRemoveFromCart = async () => {
+        if (!cartItemId) {
+            setCartMessage({ type: 'error', text: 'Cart item ID not found' });
+            return;
+        }
+
+        if (!confirm('Are you sure you want to remove this item from your cart?')) {
+            return;
+        }
+
+        setRemovingFromCart(true);
+        setCartMessage(null);
+
+        try {
+            const response = await userApi.deleteCartItem(cartItemId);
+
+            if (response.error) {
+                setCartMessage({ type: 'error', text: response.error });
+            } else {
+                setCartMessage({ type: 'success', text: 'Item removed from cart successfully!' });
+                setIsAddedToCart(false);
+                setCartItemId(null);
+                // Clear message after 3 seconds
+                setTimeout(() => {
+                    setCartMessage(null);
+                }, 3000);
+            }
+        } catch (err) {
+            console.error('Error removing from cart:', err);
+            setCartMessage({ type: 'error', text: 'An error occurred while removing from cart' });
+        } finally {
+            setRemovingFromCart(false);
+        }
+    };
+
+    // Reset added to cart state when form fields change (only if not already in cart)
+    useEffect(() => {
+        // Only reset if the item was just added, not if it was already in cart
+        if (isAddedToCart && !cartItemId) {
+            setIsAddedToCart(false);
+        }
+    }, [eventType, location, guests, date]);
 
     // Group items by category for display
     const groupedItems = pkg ? pkg.items.reduce((acc: any, item) => {
@@ -209,12 +410,16 @@ export default function PackageDetailsPage() {
                                 value={eventType}
                                 onChange={(e) => setEventType(e.target.value)}
                                 className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#268700]"
+                                disabled={loadingTypes}
                             >
-                                <option className="text-black">All</option>
-                                <option className="text-black">Bakery</option>
-                                <option className="text-black">Birthday</option>
-                                <option className="text-black">Wedding</option>
-                                <option className="text-black">Corporate</option>
+                                <option value="" className="text-black">
+                                    {loadingTypes ? 'Loading...' : 'Select Event Type'}
+                                </option>
+                                {packageTypes.map((type) => (
+                                    <option key={type.id} value={type.id} className="text-black">
+                                        {type.name}
+                                    </option>
+                                ))}
                             </select>
                         </div>
 
@@ -228,11 +433,33 @@ export default function PackageDetailsPage() {
                                 onChange={(e) => setLocation(e.target.value)}
                                 className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#268700]"
                             >
-                                <option className="text-black">Dubai</option>
-                                <option className="text-black">Bakery</option>
-                                <option className="text-black">Birthday</option>
-                                <option className="text-black">Wedding</option>
-                                <option className="text-black">Corporate</option>
+                                <option value="" className="text-black">Select Location</option>
+                                <option value="Downtown Dubai" className="text-black">Downtown Dubai</option>
+                                <option value="Dubai Marina" className="text-black">Dubai Marina</option>
+                                <option value="Jumeirah" className="text-black">Jumeirah</option>
+                                <option value="Palm Jumeirah" className="text-black">Palm Jumeirah</option>
+                                <option value="Business Bay" className="text-black">Business Bay</option>
+                                <option value="Dubai International Financial Centre (DIFC)" className="text-black">Dubai International Financial Centre (DIFC)</option>
+                                <option value="Dubai Mall Area" className="text-black">Dubai Mall Area</option>
+                                <option value="Burj Al Arab Area" className="text-black">Burj Al Arab Area</option>
+                                <option value="Dubai Festival City" className="text-black">Dubai Festival City</option>
+                                <option value="Dubai Sports City" className="text-black">Dubai Sports City</option>
+                                <option value="Dubai Media City" className="text-black">Dubai Media City</option>
+                                <option value="Dubai Internet City" className="text-black">Dubai Internet City</option>
+                                <option value="Dubai Knowledge Park" className="text-black">Dubai Knowledge Park</option>
+                                <option value="Dubai Healthcare City" className="text-black">Dubai Healthcare City</option>
+                                <option value="Dubai World Trade Centre" className="text-black">Dubai World Trade Centre</option>
+                                <option value="Dubai Creek" className="text-black">Dubai Creek</option>
+                                <option value="Deira" className="text-black">Deira</option>
+                                <option value="Bur Dubai" className="text-black">Bur Dubai</option>
+                                <option value="Al Barsha" className="text-black">Al Barsha</option>
+                                <option value="Jumeirah Beach Residence (JBR)" className="text-black">Jumeirah Beach Residence (JBR)</option>
+                                <option value="Dubai Hills" className="text-black">Dubai Hills</option>
+                                <option value="Arabian Ranches" className="text-black">Arabian Ranches</option>
+                                <option value="Emirates Hills" className="text-black">Emirates Hills</option>
+                                <option value="Dubai Silicon Oasis" className="text-black">Dubai Silicon Oasis</option>
+                                <option value="Dubai Production City" className="text-black">Dubai Production City</option>
+                                <option value="Dubai Studio City" className="text-black">Dubai Studio City</option>
                             </select>
                         </div>
 
@@ -243,14 +470,22 @@ export default function PackageDetailsPage() {
                             <select
                                 name="guests"
                                 value={guests}
-                                onChange={(e) => setGuests(e.target.value)}
+                                onChange={(e) => setGuests(parseInt(e.target.value, 10))}
                                 className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#268700]"
+                                disabled={!pkg || !pkg.people_count}
                             >
-                                <option className="text-black">120</option>
-                                <option className="text-black">Bakery</option>
-                                <option className="text-black">Birthday</option>
-                                <option className="text-black">Wedding</option>
-                                <option className="text-black">Corporate</option>
+                                {pkg && pkg.people_count ? (
+                                    Array.from({ length: 10 }, (_, i) => {
+                                        const guestCount = pkg.people_count * (i + 1);
+                                        return (
+                                            <option key={guestCount} value={guestCount} className="text-black">
+                                                {guestCount} {guestCount === 1 ? 'guest' : 'guests'}
+                                            </option>
+                                        );
+                                    })
+                                ) : (
+                                    <option value="0" className="text-black">Loading...</option>
+                                )}
                             </select>
                         </div>
 
@@ -273,15 +508,50 @@ export default function PackageDetailsPage() {
                     <div className="mt-4 font-semibold">
                         Total Cost
                         <div className="text-lg">
-                            AED {pkg.total_price.toLocaleString()}
+                            AED {guests > 0 && guests !== pkg.people_count 
+                                ? (pkg.total_price * (guests / pkg.people_count)).toLocaleString(undefined, { maximumFractionDigits: 2 })
+                                : pkg.total_price.toLocaleString()}
                         </div>
                         <div className="text-sm text-gray-500 font-normal">
-                            ({pkg.people_count} people × AED {pkg.price_per_person.toLocaleString()}/person)
+                            ({guests > 0 ? guests : pkg.people_count} {guests === 1 ? 'person' : 'people'} × AED {pkg.price_per_person.toLocaleString()}/person)
                         </div>
                     </div>
 
-                    <button className="mt-4 w-full bg-green-600 text-white py-3 rounded-full hover:opacity-90 cursor-pointer">
-                        Add to Cart
+                    {/* Cart Message */}
+                    {cartMessage && (
+                        <div className={`mt-4 p-3 rounded-lg text-sm ${
+                            cartMessage.type === 'success' 
+                                ? 'bg-green-100 text-green-800 border border-green-300' 
+                                : 'bg-red-100 text-red-800 border border-red-300'
+                        }`}>
+                            {cartMessage.text}
+                        </div>
+                    )}
+
+                    <button 
+                        onClick={isAddedToCart ? handleRemoveFromCart : handleAddToCart}
+                        disabled={
+                            (addingToCart || removingFromCart) || 
+                            (!pkg) || 
+                            (isAddedToCart ? false : (!eventType || !location || !guests || !date))
+                        }
+                        className={`mt-4 w-full py-3 rounded-full text-white font-medium transition-all ${
+                            (addingToCart || removingFromCart) || !pkg
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : isAddedToCart
+                                ? 'bg-green-800 hover:bg-green-900 cursor-pointer'
+                                : (!eventType || !location || !guests || !date)
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : 'bg-green-600 hover:opacity-90 cursor-pointer'
+                        }`}
+                    >
+                        {removingFromCart 
+                            ? 'Removing from Cart...' 
+                            : addingToCart 
+                            ? 'Adding to Cart...' 
+                            : isAddedToCart 
+                            ? 'Remove from Cart' 
+                            : 'Add to Cart'}
                     </button>
                 </aside>
             </div>

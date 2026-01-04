@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 export default function PartnerWithPartyFud() {
   return (
-    <section className="relative bg-gradient-to-br from-[#00241b] via-[#002b20] to-[#001a14] overflow-hidden">
+    <section id="partner" className="relative bg-gradient-to-br from-[#00241b] via-[#002b20] to-[#001a14] overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 py-24">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           
@@ -25,7 +25,7 @@ export default function PartnerWithPartyFud() {
             </p>
 
             <Link
-              href="/partner/signup"
+              href="/signup?type=caterer"
               className="inline-block mt-10 bg-[#1f9d55] text-white px-8 py-3 rounded-full font-medium hover:opacity-90 transition"
             >
               Join as a Caterer

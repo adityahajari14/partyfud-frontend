@@ -279,5 +279,226 @@ export const userApi = {
     );
     return response;
   },
+
+  /**
+   * Get all cart items
+   * GET /api/user/cart/items
+   */
+  getCartItems: async () => {
+    const response = await apiRequest<{ success: boolean; data: any[]; count: number }>(
+      '/api/user/cart/items',
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Create a cart item
+   * POST /api/user/cart/items
+   */
+  createCartItem: async (data: {
+    package_id: string;
+    package_type_id: string;
+    location?: string;
+    guests?: number;
+    date?: string;
+    price_at_time?: number;
+  }) => {
+    const response = await apiRequest<{ success: boolean; data: any }>(
+      '/api/user/cart/items',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Update a cart item
+   * PUT /api/user/cart/items/:cartItemId
+   */
+  updateCartItem: async (cartItemId: string, data: {
+    location?: string;
+    guests?: number;
+    date?: string;
+    price_at_time?: number;
+  }) => {
+    const response = await apiRequest<{ success: boolean; data: any }>(
+      `/api/user/cart/items/${cartItemId}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Delete a cart item
+   * DELETE /api/user/cart/items/:cartItemId
+   */
+  deleteCartItem: async (cartItemId: string) => {
+    const response = await apiRequest<{ success: boolean; message: string }>(
+      `/api/user/cart/items/${cartItemId}`,
+      {
+        method: 'DELETE',
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Get all orders
+   * GET /api/user/orders
+   */
+  getOrders: async () => {
+    const response = await apiRequest<{ success: boolean; data: any[]; count: number }>(
+      '/api/user/orders',
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Get order by ID
+   * GET /api/user/orders/:orderId
+   */
+  getOrderById: async (orderId: string) => {
+    const response = await apiRequest<{ success: boolean; data: any }>(
+      `/api/user/orders/${orderId}`,
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Create an order
+   * POST /api/user/orders
+   */
+  createOrder: async (data: {
+    cart_item_ids?: string[];
+    items?: Array<{
+      package_id: string;
+      package_type_id: string;
+      location?: string;
+      guests?: number;
+      date?: string;
+      price_at_time: number;
+    }>;
+  }) => {
+    const response = await apiRequest<{ success: boolean; data: any }>(
+      '/api/user/orders',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Update an order
+   * PUT /api/user/orders/:orderId
+   */
+  updateOrder: async (orderId: string, data: {
+    status?: string;
+    total_price?: number;
+  }) => {
+    const response = await apiRequest<{ success: boolean; data: any }>(
+      `/api/user/orders/${orderId}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Delete an order
+   * DELETE /api/user/orders/:orderId
+   */
+  deleteOrder: async (orderId: string) => {
+    const response = await apiRequest<{ success: boolean; message: string }>(
+      `/api/user/orders/${orderId}`,
+      {
+        method: 'DELETE',
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Get all dishes by caterer ID
+   * GET /api/user/caterers/:catererId/dishes
+   */
+  getDishesByCatererId: async (catererId: string) => {
+    const response = await apiRequest<{ success: boolean; data: Dish[]; count: number }>(
+      `/api/user/caterers/${catererId}/dishes`,
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Create a proposal
+   * POST /api/user/proposals
+   */
+  createProposal: async (data: {
+    caterer_id: string;
+    event_type?: string;
+    location?: string;
+    dietary_preferences?: string[];
+    budget_per_person?: number | string;
+    event_date?: string;
+    vision?: string;
+    guest_count: number;
+  }) => {
+    const response = await apiRequest<{ success: boolean; data: any; message: string }>(
+      '/api/user/proposals',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Get all proposals
+   * GET /api/user/proposals
+   */
+  getProposals: async () => {
+    const response = await apiRequest<{ success: boolean; data: any[]; count: number }>(
+      '/api/user/proposals',
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Get proposal by ID
+   * GET /api/user/proposals/:proposalId
+   */
+  getProposalById: async (proposalId: string) => {
+    const response = await apiRequest<{ success: boolean; data: any }>(
+      `/api/user/proposals/${proposalId}`,
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
 };
 

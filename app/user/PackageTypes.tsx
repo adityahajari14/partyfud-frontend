@@ -60,10 +60,10 @@ export default function PackageTypesPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-semibold mb-2">
-              Package Types
+              Browser Occasions
             </h2>
             <p className="text-gray-500">
-              Browse packages by type
+              Browse occasions by type
             </p>
           </div>
           <div className="flex justify-center items-center py-12">
@@ -80,10 +80,10 @@ export default function PackageTypesPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-semibold mb-2">
-              Package Types
+              Browser Occasions
             </h2>
             <p className="text-gray-500">
-              Browse packages by type
+              Browse occasions by type
             </p>
           </div>
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-center">
@@ -104,10 +104,10 @@ export default function PackageTypesPage() {
         {/* Heading */}
         <div className="text-center mb-14">
           <h2 className="text-3xl md:text-4xl font-semibold mb-2">
-            Package Types
+            Browser Occasions
           </h2>
           <p className="text-gray-500">
-            Browse packages by type
+            Browse occasions by type
           </p>
         </div>
 

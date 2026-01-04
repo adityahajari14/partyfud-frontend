@@ -1,16 +1,23 @@
-import React from "react";
+'use client';
+
+import React, { useState } from "react";
+import Link from "next/link";
 import {
   Phone,
   MapPin,
   Facebook,
   Instagram,
   Youtube,
+  Mail,
 } from "lucide-react";
 import Image from "next/image";
+import { PartnerForm } from "@/components/PartnerForm";
 
 export const Footer: React.FC = () => {
+  const [isPartnerFormOpen, setIsPartnerFormOpen] = useState(false);
+
   return (
-    <footer className="relative bg-linear-to-b from-[#0b0a2a] to-[#09081f] text-white">
+    <footer className="relative bg-gradient-to-b from-[#0b0a2a] to-[#09081f] text-white">
       <div className="absolute inset-0 flex justify-center pointer-events-none">
         <div className="relative w-90 h-60">
           {/* Top blob */}
@@ -34,8 +41,11 @@ export const Footer: React.FC = () => {
             </p>
           </div>
 
-          <button className="bg-[#1ee87a] text-black font-medium px-6 py-3 rounded-full hover:opacity-90 transition">
-            Book Demo
+          <button 
+            onClick={() => setIsPartnerFormOpen(true)}
+            className="bg-[#1ee87a] text-black font-medium px-6 py-3 rounded-full hover:opacity-90 transition"
+          >
+            Partner with Us
           </button>
         </div>
       </div>
@@ -47,59 +57,134 @@ export const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
         {/* Brand */}
         <div>
-          <div className="flex items-center gap-2 mb-4">
-            <Image src="/logo_partyfud_light.svg" alt="PartyFud Logo" width={100} height={100} />
-          </div>
-          <p className="text-gray-400 text-sm leading-relaxed">
+          <Link href="/" className="flex items-center gap-2 mb-4">
+            <Image src="/logo_partyfud_light.svg" alt="PartyFud Logo" width={120} height={120} />
+          </Link>
+          <p className="text-gray-400 text-sm leading-relaxed mb-4">
             Partyfud.com <br />
             A platform part of D2 Digital LLC
           </p>
+          <p className="text-gray-400 text-xs">
+            Your trusted partner for premium catering services in Dubai and across UAE.
+          </p>
+        </div>
+
+        {/* Quick Links */}
+        <div>
+          <h4 className="font-semibold mb-4 text-white">Quick Links</h4>
+          <ul className="space-y-3 text-gray-400 text-sm">
+            <li>
+              <Link href="/user/dashboard" className="hover:text-white transition-colors">
+                Home
+              </Link>
+            </li>
+            <li>
+              <Link href="/user/menu" className="hover:text-white transition-colors">
+                Menu
+              </Link>
+            </li>
+            <li>
+              <Link href="/user/packages" className="hover:text-white transition-colors">
+                Packages
+              </Link>
+            </li>
+            <li>
+              <Link href="/user/caterers" className="hover:text-white transition-colors">
+                Caterers
+              </Link>
+            </li>
+            <li>
+              <button 
+                onClick={() => setIsPartnerFormOpen(true)}
+                className="hover:text-white transition-colors text-left"
+              >
+                Partner with Us
+              </button>
+            </li>
+          </ul>
         </div>
 
         {/* Company */}
         <div>
-          <h4 className="font-semibold mb-4">Company</h4>
+          <h4 className="font-semibold mb-4 text-white">Company</h4>
           <ul className="space-y-3 text-gray-400 text-sm">
-            <li>Home</li>
-            <li>About us</li>
-            <li>Services</li>
-            <li>Why choose us</li>
-            <li>Careers</li>
-          </ul>
-        </div>
-
-        {/* Legal */}
-        <div>
-          <h4 className="font-semibold mb-4">Legal</h4>
-          <ul className="space-y-3 text-gray-400 text-sm">
-            <li>Terms of Use</li>
-            <li>Privacy Policy</li>
+            <li>
+              <Link href="/user/dashboard" className="hover:text-white transition-colors">
+                About Us
+              </Link>
+            </li>
+            <li>
+              <Link href="/user/caterers" className="hover:text-white transition-colors">
+                Our Caterers
+              </Link>
+            </li>
+            <li>
+              <Link href="/user/packages" className="hover:text-white transition-colors">
+                Our Packages
+              </Link>
+            </li>
+            <li>
+              <Link href="/signup?type=caterer" className="hover:text-white transition-colors">
+                Become a Partner
+              </Link>
+            </li>
+            <li>
+              <Link href="/login" className="hover:text-white transition-colors">
+                Login
+              </Link>
+            </li>
           </ul>
         </div>
 
         {/* Contacts */}
         <div>
-          <h4 className="font-semibold mb-4">Contacts</h4>
+          <h4 className="font-semibold mb-4 text-white">Contact Us</h4>
           <ul className="space-y-4 text-gray-400 text-sm">
             <li className="flex items-center gap-2">
-              <Phone size={16} />
-              555-123-4567
+              <Phone size={16} className="text-[#1ee87a]" />
+              <a href="tel:+971501234567" className="hover:text-white transition-colors">
+                +971 50 123 4567
+              </a>
             </li>
             <li className="flex items-center gap-2">
-              <MapPin size={16} />
-              217 Blake Ave, Austin
+              <Mail size={16} className="text-[#1ee87a]" />
+              <a href="mailto:info@partyfud.ae" className="hover:text-white transition-colors">
+                info@partyfud.ae
+              </a>
+            </li>
+            <li className="flex items-start gap-2">
+              <MapPin size={16} className="text-[#1ee87a] mt-1 flex-shrink-0" />
+              <span>
+                Dubai Marina, Dubai<br />
+                United Arab Emirates
+              </span>
             </li>
           </ul>
 
           {/* Social Icons */}
           <div className="flex gap-4 mt-6">
-            <a className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10 transition">
+            <a 
+              href="https://facebook.com/partyfud" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10 transition hover:text-[#1ee87a]"
+            >
               <Facebook size={18} />
             </a>
-            <a className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10 transition">
+            <a 
+              href="https://instagram.com/partyfud" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10 transition hover:text-[#1ee87a]"
+            >
               <Instagram size={18} />
             </a>
-            <a className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10 transition">
+            <a 
+              href="https://youtube.com/partyfud" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10 transition hover:text-[#1ee87a]"
+            >
               <Youtube size={18} />
             </a>
           </div>
@@ -109,12 +194,22 @@ export const Footer: React.FC = () => {
       {/* Bottom Bar */}
       <div className="h-px bg-white/10" />
       <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col md:flex-row justify-between items-center text-gray-500 text-sm gap-3">
-        <span>© 2025 Company. All rights reserved</span>
+        <span>© 2025 PartyFud. All rights reserved.</span>
         <div className="flex gap-6">
-          <span className="hover:text-white cursor-pointer">Terms of Use</span>
-          <span className="hover:text-white cursor-pointer">Privacy Policy</span>
+          <Link href="/terms" className="hover:text-white transition-colors">
+            Terms of Use
+          </Link>
+          <Link href="/privacy" className="hover:text-white transition-colors">
+            Privacy Policy
+          </Link>
         </div>
       </div>
+
+      {/* Partner Form Modal */}
+      <PartnerForm 
+        isOpen={isPartnerFormOpen} 
+        onClose={() => setIsPartnerFormOpen(false)} 
+      />
     </footer>
   );
 };

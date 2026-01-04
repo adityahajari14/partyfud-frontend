@@ -6,6 +6,40 @@ import { adminApi } from '@/lib/api/admin.api';
 
 type Status = 'PENDING' | 'APPROVED' | 'REJECTED' | 'BLOCKED';
 
+// Custom slider styles
+const sliderStyles = `
+  .slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #268700;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  .slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #268700;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  .slider::-ms-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #268700;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+`;
+
 interface CatererInfo {
   id: string;
   business_name: string;
@@ -22,6 +56,7 @@ interface CatererInfo {
   servers: number | null;
   food_license: string | null;
   Registration: string | null;
+  commission_rate?: number | null;
   caterer_id: string;
   status: Status;
   created_at: string;
@@ -68,6 +103,7 @@ export default function CatererDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [commissionRate, setCommissionRate] = useState<number>(0);
 
   useEffect(() => {
     const fetchCatererInfo = async () => {
@@ -86,7 +122,10 @@ export default function CatererDetailPage() {
         }
 
         if (response.data?.success && response.data.data) {
-          setCatererInfo(response.data.data);
+          const data = response.data.data as any;
+          setCatererInfo(data);
+          // Set initial commission rate from API or default to 0
+          setCommissionRate(data.commission_rate || 0);
         } else {
           setError('Caterer information not found');
         }
@@ -169,6 +208,7 @@ export default function CatererDetailPage() {
 
   return (
     <main className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+      <style>{sliderStyles}</style>
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div className="bg-white rounded-xl shadow-sm p-6">
@@ -378,6 +418,44 @@ export default function CatererDetailPage() {
                 ) : (
                   <p className="text-gray-400 italic">Not provided</p>
                 )}
+              </div>
+            </div>
+          </section>
+
+          {/* Commission */}
+          <section className="border-b border-gray-200 pb-6 last:border-b-0">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+              <span className="w-1 h-6 bg-gray-300 rounded-full"></span>
+              Commission
+            </h2>
+            <div className="space-y-4">
+              <div className="relative">
+                {/* Slider Track */}
+                <div className="relative h-2 bg-gray-200 rounded-full">
+                  {/* Filled portion */}
+                  <div
+                    className="absolute h-2 bg-[#268700] rounded-full transition-all duration-200"
+                    style={{ width: `${(commissionRate / 80) * 100}%` }}
+                  />
+                  {/* Slider Handle */}
+                  <input
+                    type="range"
+                    min="0"
+                    max="80"
+                    value={commissionRate}
+                    onChange={(e) => setCommissionRate(Number(e.target.value))}
+                    className="absolute w-full h-2 bg-transparent appearance-none cursor-pointer slider"
+                    style={{
+                      background: 'transparent',
+                    }}
+                  />
+                </div>
+                {/* Percentage Labels */}
+                <div className="flex justify-between mt-2 text-sm text-gray-600">
+                  <span>0%</span>
+                  <span className="font-semibold text-gray-900">{commissionRate}%</span>
+                  <span>80%</span>
+                </div>
               </div>
             </div>
           </section>

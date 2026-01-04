@@ -386,5 +386,223 @@ export const catererApi = {
   getDashboardStats: async () => {
     return apiRequest<DashboardStats>('/api/caterer/dashboard');
   },
+
+  // Proposals
+  getProposals: async () => {
+    return apiRequest<Array<{
+      id: string;
+      user_id: string;
+      caterer_id: string;
+      status: string;
+      event_type?: string;
+      location?: string;
+      dietary_preferences: string[];
+      budget_per_person?: number;
+      event_date?: string;
+      vision?: string;
+      guest_count: number;
+      user: {
+        id: string;
+        name: string;
+        email: string;
+        phone: string;
+      };
+      created_at: string;
+      updated_at: string;
+    }>>('/api/caterer/proposals');
+  },
+
+  getProposalById: async (proposalId: string) => {
+    return apiRequest<{
+      id: string;
+      user_id: string;
+      caterer_id: string;
+      status: string;
+      event_type?: string;
+      location?: string;
+      dietary_preferences: string[];
+      budget_per_person?: number;
+      event_date?: string;
+      vision?: string;
+      guest_count: number;
+      user: {
+        id: string;
+        name: string;
+        email: string;
+        phone: string;
+      };
+      created_at: string;
+      updated_at: string;
+    }>(`/api/caterer/proposals/${proposalId}`);
+  },
+
+  updateProposalStatus: async (proposalId: string, status: string) => {
+    return apiRequest<{
+      id: string;
+      user_id: string;
+      caterer_id: string;
+      status: string;
+      event_type?: string;
+      location?: string;
+      dietary_preferences: string[];
+      budget_per_person?: number;
+      event_date?: string;
+      vision?: string;
+      guest_count: number;
+      user: {
+        id: string;
+        name: string;
+        email: string;
+        phone: string;
+      };
+      created_at: string;
+      updated_at: string;
+    }>(`/api/caterer/proposals/${proposalId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  // Orders
+  getOrders: async () => {
+    return apiRequest<Array<{
+      id: string;
+      user_id: string;
+      user: {
+        id: string;
+        name: string;
+        email: string;
+        phone: string;
+      };
+      total_price: number;
+      currency: string;
+      status: string;
+      items: Array<{
+        id: string;
+        package: {
+          id: string;
+          name: string;
+          people_count: number;
+          total_price: number;
+          currency: string;
+          cover_image_url?: string | null;
+          package_type: {
+            id: string;
+            name: string;
+          };
+          caterer: {
+            id: string;
+            business_name: string | null;
+          };
+        };
+        package_type: {
+          id: string;
+          name: string;
+        };
+        location: string | null;
+        guests: number | null;
+        date: string | null;
+        price_at_time: number;
+        created_at: string;
+      }>;
+      created_at: string;
+      updated_at: string;
+    }>>('/api/caterer/orders');
+  },
+
+  getOrderById: async (orderId: string) => {
+    return apiRequest<{
+      id: string;
+      user_id: string;
+      user: {
+        id: string;
+        name: string;
+        email: string;
+        phone: string;
+      };
+      total_price: number;
+      currency: string;
+      status: string;
+      items: Array<{
+        id: string;
+        package: {
+          id: string;
+          name: string;
+          people_count: number;
+          total_price: number;
+          currency: string;
+          cover_image_url?: string | null;
+          package_type: {
+            id: string;
+            name: string;
+          };
+          caterer: {
+            id: string;
+            business_name: string | null;
+          };
+        };
+        package_type: {
+          id: string;
+          name: string;
+        };
+        location: string | null;
+        guests: number | null;
+        date: string | null;
+        price_at_time: number;
+        created_at: string;
+      }>;
+      created_at: string;
+      updated_at: string;
+    }>(`/api/caterer/orders/${orderId}`);
+  },
+
+  updateOrderStatus: async (orderId: string, status: string) => {
+    return apiRequest<{
+      id: string;
+      user_id: string;
+      user: {
+        id: string;
+        name: string;
+        email: string;
+        phone: string;
+      };
+      total_price: number;
+      currency: string;
+      status: string;
+      items: Array<{
+        id: string;
+        package: {
+          id: string;
+          name: string;
+          people_count: number;
+          total_price: number;
+          currency: string;
+          cover_image_url?: string | null;
+          package_type: {
+            id: string;
+            name: string;
+          };
+          caterer: {
+            id: string;
+            business_name: string | null;
+          };
+        };
+        package_type: {
+          id: string;
+          name: string;
+        };
+        location: string | null;
+        guests: number | null;
+        date: string | null;
+        price_at_time: number;
+        created_at: string;
+      }>;
+      created_at: string;
+      updated_at: string;
+    }>(`/api/caterer/orders/${orderId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  },
 };
 

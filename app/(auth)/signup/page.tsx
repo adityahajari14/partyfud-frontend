@@ -13,6 +13,17 @@ export default function SignupPage() {
   const [justSignedUp, setJustSignedUp] = useState(false);
   const { signup, user } = useAuth();
   const [userType, setUserType] = useState<'USER' | 'CATERER'>('USER');
+
+  // Read type from URL query parameter on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const type = params.get('type');
+      if (type === 'caterer') {
+        setUserType('CATERER');
+      }
+    }
+  }, []);
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',

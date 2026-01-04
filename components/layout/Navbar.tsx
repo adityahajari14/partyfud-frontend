@@ -1,18 +1,22 @@
 'use client';
 
 import Link from 'next/link';
-import { MapPin, Mail, User } from 'lucide-react';
+import { MapPin, Mail, User, ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
+import { PartnerForm } from '@/components/PartnerForm';
+import { userApi } from '@/lib/api/user.api';
 
 export function Navbar() {
     const { user, logout } = useAuth();
     const router = useRouter();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isPartnerFormOpen, setIsPartnerFormOpen] = useState(false);
+    const [cartItemCount, setCartItemCount] = useState(0);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const handleLogout = async () => {
@@ -48,6 +52,32 @@ export function Navbar() {
         };
     }, [isDropdownOpen]);
 
+    // Fetch cart item count
+    useEffect(() => {
+        const fetchCartCount = async () => {
+            if (!user) {
+                setCartItemCount(0);
+                return;
+            }
+
+            try {
+                const response = await userApi.getCartItems();
+                if (response.data?.data && Array.isArray(response.data.data)) {
+                    setCartItemCount(response.data.data.length);
+                }
+            } catch (err) {
+                console.error('Error fetching cart count:', err);
+            }
+        };
+
+        fetchCartCount();
+        
+        // Refresh cart count periodically (every 5 seconds)
+        const interval = setInterval(fetchCartCount, 5000);
+        
+        return () => clearInterval(interval);
+    }, [user]);
+
     return (
         <header className="w-full">
             {/* Top Promo Bar */}
@@ -64,94 +94,127 @@ export function Navbar() {
             </div>
 
             {/* Main Navbar */}
-            {/* Main Navbar */}
-            <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-                {/* Left */}
-                <div className="flex items-center gap-6">
-                    {/* Logo */}
+            <div className="bg-white border-b border-gray-200 px-8 py-5 flex items-center justify-between relative">
+                {/* Left - Logo */}
+                <div className="flex items-center">
                     <Link href="/" className="flex items-center gap-2">
                         <Image
                             src="/logo_partyfud.svg"
                             alt="PartyFud Logo"
-                            width={100}
-                            height={100}
+                            width={120}
+                            height={120}
                         />
                     </Link>
-
-                    {/* Currency */}
-                    <select className="border border-gray-300 rounded-md px-2 py-1 text-sm">
-                        <option>AED</option>
-                        <option>INR</option>
-                        <option>USD</option>
-                    </select>
                 </div>
 
-                {/* Right Section (Nav + User + Actions) */}
-                <div className="flex items-center gap-8">
-                    {/* Nav Links */}
-                    <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-700">
-                        <Link href="/user/dashboard" className="hover:text-black">
-                            Home
-                        </Link>
-                        <Link href="/user/menu" className="hover:text-black">
-                            Menu
-                        </Link>
-                        <Link href="/user/packages" className="hover:text-black">
-                            Packages
-                        </Link>
-                        <Link href="/user/caterers" className="hover:text-black">
-                            Caterers
-                        </Link>
-                    </nav>
+                {/* Center - Nav Links */}
+                <nav className="hidden md:flex items-center gap-10 absolute left-1/2 transform -translate-x-1/2">
+                    <Link 
+                        href="/user/dashboard" 
+                        className="text-base font-medium text-gray-700 hover:text-[#268700] transition-colors duration-200 py-2"
+                    >
+                        Home
+                    </Link>
+                    <Link 
+                        href="/user/menu" 
+                        className="text-base font-medium text-gray-700 hover:text-[#268700] transition-colors duration-200 py-2"
+                    >
+                        Menu
+                    </Link>
+                    <Link 
+                        href="/user/packages" 
+                        className="text-base font-medium text-gray-700 hover:text-[#268700] transition-colors duration-200 py-2"
+                    >
+                        Packages
+                    </Link>
+                    <Link 
+                        href="/user/caterers" 
+                        className="text-base font-medium text-gray-700 hover:text-[#268700] transition-colors duration-200 py-2"
+                    >
+                        Caterers
+                    </Link>
+                </nav>
 
-                    {/* Icons + User */}
-                    <div className="flex items-center gap-4">
-                        <Mail className="text-gray-600 cursor-pointer" size={20} />
-
-                        {user ? (
-                            <div className="relative" ref={dropdownRef}>
-                                <button
-                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                    className="w-9 h-9 rounded-full bg-[#268700] flex items-center justify-center cursor-pointer hover:opacity-90 transition"
-                                >
-                                    <span className="text-white font-semibold">
-                                        {user.first_name?.[0]?.toUpperCase() || 'U'}
-                                    </span>
-                                </button>
-
-                                {/* Dropdown Menu */}
-                                {isDropdownOpen && (
-                                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                                        <div className="px-4 py-3 border-b border-gray-200">
-                                            <p className="text-sm text-gray-700">
-                                                Hey {user.first_name || 'User'}
-                                            </p>
-                                        </div>
-                                        <div className="px-2 py-1">
-                                            <Button
-                                                onClick={handleLogout}
-                                                variant="primary"
-                                                size="md"
-                                                isLoading={isLoggingOut}
-                                                className="w-full"
-                                            >
-                                                Logout
-                                            </Button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <User className="text-gray-600 cursor-pointer" size={20} />
+                {/* Right Section (Icons + User + Actions) */}
+                <div className="flex items-center gap-5 ml-auto">
+                    <Link 
+                        href="/user/cart"
+                        className="relative text-gray-600 hover:text-[#268700] transition-colors"
+                    >
+                        <ShoppingCart size={22} className="cursor-pointer" />
+                        {cartItemCount > 0 && (
+                            <span className="absolute -top-2 -right-2 bg-[#268700] text-white text-xs font-semibold rounded-full w-5 h-5 flex items-center justify-center">
+                                {cartItemCount > 9 ? '9+' : cartItemCount}
+                            </span>
                         )}
+                    </Link>
+                    {/* <Mail className="text-gray-600 cursor-pointer hover:text-[#268700] transition-colors" size={22} /> */}
 
-                        <button className="bg-[#268700] text-white text-sm font-medium px-4 py-2 rounded-full hover:opacity-90 transition">
-                            Partner with Us
-                        </button>
-                    </div>
+                    {user ? (
+                        <div className="relative" ref={dropdownRef}>
+                            <button
+                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                className="w-10 h-10 rounded-full bg-[#268700] flex items-center justify-center cursor-pointer hover:bg-[#1f6b00] transition-all duration-200 shadow-sm hover:shadow-md"
+                            >
+                                <span className="text-white font-semibold">
+                                    {user.first_name?.[0]?.toUpperCase() || 'U'}
+                                </span>
+                            </button>
+
+                            {/* Dropdown Menu */}
+                            {isDropdownOpen && (
+                                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 py-3 z-50">
+                                    <div className="px-5 py-3 border-b border-gray-200">
+                                        <p className="text-base font-medium text-gray-900">
+                                            Hey {user.first_name || 'User'}
+                                        </p>
+                                    </div>
+                                    <div className="px-3 py-2 space-y-2">
+                                        <Link
+                                            href="/user/orders"
+                                            onClick={() => setIsDropdownOpen(false)}
+                                            className="block w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                                        >
+                                            My Orders
+                                        </Link>
+                                        <Link
+                                            href="/user/proposals"
+                                            onClick={() => setIsDropdownOpen(false)}
+                                            className="block w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                                        >
+                                            My Proposals
+                                        </Link>
+                                        <Button
+                                            onClick={handleLogout}
+                                            variant="primary"
+                                            size="md"
+                                            isLoading={isLoggingOut}
+                                            className="w-full"
+                                        >
+                                            Logout
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <User className="text-gray-600 cursor-pointer" size={20} />
+                    )}
+
+                    <button 
+                        onClick={() => setIsPartnerFormOpen(true)}
+                        className="bg-[#268700] text-white text-sm font-semibold px-6 py-2.5 rounded-full hover:bg-[#1f6b00] transition-all duration-200 shadow-sm hover:shadow-md"
+                    >
+                        Partner with Us
+                    </button>
                 </div>
             </div>
 
+            {/* Partner Form Modal */}
+            <PartnerForm 
+                isOpen={isPartnerFormOpen} 
+                onClose={() => setIsPartnerFormOpen(false)} 
+            />
         </header>
     );
 }

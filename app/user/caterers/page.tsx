@@ -238,7 +238,11 @@ export default function BrowseCaterersPage() {
                             ))}
                           </div>
                           <div className="text-sm text-gray-600 mt-1">
-                            ⭐ {c.packages.length > 0 ? (c.packages[0]?.rating || 'N/A') : 'N/A'}
+                            ⭐ {c.packages.length > 0 && c.packages[0]?.rating 
+                              ? typeof c.packages[0].rating === 'number' 
+                                ? c.packages[0].rating.toFixed(2) 
+                                : parseFloat(String(c.packages[0].rating)).toFixed(2)
+                              : 'N/A'}
                           </div>
                         </div>
                       </div>

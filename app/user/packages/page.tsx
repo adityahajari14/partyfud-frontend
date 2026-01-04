@@ -370,7 +370,7 @@ export default function PackagesPage() {
 
                                             {pkg.rating && (
                                                 <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
-                                                    ⭐ {pkg.rating}
+                                                    ⭐ {Number(pkg.rating).toFixed(1)}
                                                 </div>
                                             )}
                                         </div>
