@@ -33,7 +33,7 @@ export default function CatererMenuPage() {
   const [selectedDishes, setSelectedDishes] = useState<Set<string>>(new Set());
   const [dietaryFilter, setDietaryFilter] = useState<DietaryFilter>(null);
   const [loadingDishes, setLoadingDishes] = useState(false);
-  
+
   // Custom Proposal Form States
   const [proposalGuestCount, setProposalGuestCount] = useState<number>(50);
   const [eventType, setEventType] = useState<string>('');
@@ -48,10 +48,10 @@ export default function CatererMenuPage() {
   useEffect(() => {
     const fetchData = async () => {
       if (!catererId) return;
-      
+
       setLoading(true);
       setError(null);
-      
+
       try {
         // Fetch caterer and packages in parallel
         const [catererResponse, packagesResponse] = await Promise.all([
@@ -116,7 +116,7 @@ export default function CatererMenuPage() {
     // Try to identify items by category name patterns
     const getItemsByPattern = (patterns: string[]) => {
       for (const pattern of patterns) {
-        const category = Object.keys(categories).find(cat => 
+        const category = Object.keys(categories).find(cat =>
           cat.toLowerCase().includes(pattern.toLowerCase())
         );
         if (category && categories[category].length > 0) {
@@ -126,34 +126,34 @@ export default function CatererMenuPage() {
       return null;
     };
 
-    const welcomeDrink = getItemsByPattern(['drink', 'beverage', 'welcome']) || 
-                        categories['Beverages']?.[0] || 
-                        items.find(i => i.name.toLowerCase().includes('drink') || i.name.toLowerCase().includes('lemonade') || i.name.toLowerCase().includes('tea'))?.name || 
-                        'Not specified';
+    const welcomeDrink = getItemsByPattern(['drink', 'beverage', 'welcome']) ||
+      categories['Beverages']?.[0] ||
+      items.find(i => i.name.toLowerCase().includes('drink') || i.name.toLowerCase().includes('lemonade') || i.name.toLowerCase().includes('tea'))?.name ||
+      'Not specified';
 
-    const starter = getItemsByPattern(['starter', 'appetizer', 'mezze']) || 
-                   categories['Starters']?.[0] || 
-                   categories['Appetizers']?.[0] ||
-                   items.find(i => i.name.toLowerCase().includes('starter') || i.name.toLowerCase().includes('mezze') || i.name.toLowerCase().includes('bruschetta'))?.name || 
-                   'Not specified';
+    const starter = getItemsByPattern(['starter', 'appetizer', 'mezze']) ||
+      categories['Starters']?.[0] ||
+      categories['Appetizers']?.[0] ||
+      items.find(i => i.name.toLowerCase().includes('starter') || i.name.toLowerCase().includes('mezze') || i.name.toLowerCase().includes('bruschetta'))?.name ||
+      'Not specified';
 
-    const main = getItemsByPattern(['main', 'entree', 'course']) || 
-                categories['Main Course']?.[0] || 
-                categories['Mains']?.[0] ||
-                items.find(i => !i.name.toLowerCase().includes('drink') && !i.name.toLowerCase().includes('starter') && !i.name.toLowerCase().includes('dessert') && !i.name.toLowerCase().includes('side'))?.name || 
-                'Not specified';
+    const main = getItemsByPattern(['main', 'entree', 'course']) ||
+      categories['Main Course']?.[0] ||
+      categories['Mains']?.[0] ||
+      items.find(i => !i.name.toLowerCase().includes('drink') && !i.name.toLowerCase().includes('starter') && !i.name.toLowerCase().includes('dessert') && !i.name.toLowerCase().includes('side'))?.name ||
+      'Not specified';
 
-    const sides = getItemsByPattern(['side', 'accompaniment']) || 
-                 categories['Sides']?.[0] || 
-                 categories['Accompaniments']?.[0] ||
-                 items.filter(i => i.name.toLowerCase().includes('rice') || i.name.toLowerCase().includes('salad') || i.name.toLowerCase().includes('bread')).map(i => i.name).join(', ') || 
-                 'Not specified';
+    const sides = getItemsByPattern(['side', 'accompaniment']) ||
+      categories['Sides']?.[0] ||
+      categories['Accompaniments']?.[0] ||
+      items.filter(i => i.name.toLowerCase().includes('rice') || i.name.toLowerCase().includes('salad') || i.name.toLowerCase().includes('bread')).map(i => i.name).join(', ') ||
+      'Not specified';
 
-    const dessert = getItemsByPattern(['dessert', 'sweet']) || 
-                   categories['Desserts']?.[0] || 
-                   categories['Sweets']?.[0] ||
-                   items.find(i => i.name.toLowerCase().includes('dessert') || i.name.toLowerCase().includes('tiramisu') || i.name.toLowerCase().includes('baklava') || i.name.toLowerCase().includes('churros'))?.name || 
-                   'Not specified';
+    const dessert = getItemsByPattern(['dessert', 'sweet']) ||
+      categories['Desserts']?.[0] ||
+      categories['Sweets']?.[0] ||
+      items.find(i => i.name.toLowerCase().includes('dessert') || i.name.toLowerCase().includes('tiramisu') || i.name.toLowerCase().includes('baklava') || i.name.toLowerCase().includes('churros'))?.name ||
+      'Not specified';
 
     return { welcomeDrink, starter, main, sides, dessert };
   };
@@ -162,7 +162,7 @@ export default function CatererMenuPage() {
   useEffect(() => {
     const fetchDishes = async () => {
       if (!catererId || activeTab !== 'buildYourOwn') return;
-      
+
       setLoadingDishes(true);
       try {
         const response = await userApi.getDishesByCatererId(catererId);
@@ -184,25 +184,25 @@ export default function CatererMenuPage() {
   // Group dishes by category
   const groupDishesByCategory = (): CategoryGroup[] => {
     const grouped: { [key: string]: Dish[] } = {};
-    
+
     let filteredDishes = dishes;
-    
+
     // Apply dietary filter (simplified - you may need to add dietary info to dishes)
     if (dietaryFilter === 'veg') {
       // Filter vegetarian dishes (you'll need to add this field to your dish model)
       filteredDishes = dishes.filter(d => {
         const name = d.name.toLowerCase();
-        return !name.includes('chicken') && !name.includes('beef') && !name.includes('lamb') && 
-               !name.includes('pork') && !name.includes('fish') && !name.includes('meat');
+        return !name.includes('chicken') && !name.includes('beef') && !name.includes('lamb') &&
+          !name.includes('pork') && !name.includes('fish') && !name.includes('meat');
       });
     } else if (dietaryFilter === 'nonVeg') {
       filteredDishes = dishes.filter(d => {
         const name = d.name.toLowerCase();
-        return name.includes('chicken') || name.includes('beef') || name.includes('lamb') || 
-               name.includes('pork') || name.includes('fish') || name.includes('meat');
+        return name.includes('chicken') || name.includes('beef') || name.includes('lamb') ||
+          name.includes('pork') || name.includes('fish') || name.includes('meat');
       });
     }
-    
+
     filteredDishes.forEach((dish) => {
       const categoryName = dish.category?.name || 'Other';
       if (!grouped[categoryName]) {
@@ -224,7 +224,7 @@ export default function CatererMenuPage() {
   // Toggle dish selection
   const toggleDishSelection = (dishId: string, categoryGroup: CategoryGroup) => {
     const newSelected = new Set(selectedDishes);
-    
+
     // Check if dish is already selected
     if (newSelected.has(dishId)) {
       newSelected.delete(dishId);
@@ -232,7 +232,7 @@ export default function CatererMenuPage() {
       // Allow multiple selections - no limit
       newSelected.add(dishId);
     }
-    
+
     setSelectedDishes(newSelected);
   };
 
@@ -268,7 +268,7 @@ export default function CatererMenuPage() {
   const handleAddToCart = async () => {
     if (activeTab === 'buildYourOwn') {
       if (selectedDishes.size === 0 || !catererId) return;
-      
+
       // Check if user is authenticated
       if (!user) {
         alert('You must be logged in to create a package. Please log in and try again.');
@@ -280,7 +280,7 @@ export default function CatererMenuPage() {
       try {
         // Convert selected dishes Set to array
         const dishIds = Array.from(selectedDishes);
-        
+
         // Create custom package
         const response = await userApi.createCustomPackage({
           dish_ids: dishIds,
@@ -351,8 +351,8 @@ export default function CatererMenuPage() {
   // Get logo info
   const getLogoInfo = (name: string) => {
     const words = name.split(' ');
-    const logoText = words.length > 1 
-      ? words[0].substring(0, 5).toUpperCase() 
+    const logoText = words.length > 1
+      ? words[0].substring(0, 5).toUpperCase()
       : name.substring(0, 5).toUpperCase();
     return { logoText };
   };
@@ -407,9 +407,9 @@ export default function CatererMenuPage() {
                 ))}
               </div>
               <div className="text-sm text-gray-600 mb-2">
-                ⭐ {packages.length > 0 && packages[0]?.rating 
-                  ? typeof packages[0].rating === 'number' 
-                    ? packages[0].rating.toFixed(1) 
+                ⭐ {packages.length > 0 && packages[0]?.rating
+                  ? typeof packages[0].rating === 'number'
+                    ? packages[0].rating.toFixed(1)
                     : parseFloat(String(packages[0].rating)).toFixed(1)
                   : 'N/A'}
               </div>
@@ -424,31 +424,28 @@ export default function CatererMenuPage() {
           <div className="flex gap-2 mb-6 w-full px-4 bg-white">
             <button
               onClick={() => setActiveTab('setMenus')}
-              className={`flex-1 py-3 text-base font-semibold rounded-lg transition ${
-                activeTab === 'setMenus'
+              className={`flex-1 py-3 text-base font-semibold rounded-lg transition ${activeTab === 'setMenus'
                   ? 'bg-[#268700] text-white shadow-md'
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}
+                }`}
             >
               Set Menus
             </button>
             <button
               onClick={() => setActiveTab('buildYourOwn')}
-              className={`flex-1 py-3 text-base font-semibold rounded-lg transition ${
-                activeTab === 'buildYourOwn'
+              className={`flex-1 py-3 text-base font-semibold rounded-lg transition ${activeTab === 'buildYourOwn'
                   ? 'bg-[#268700] text-white shadow-md'
                   : 'bg-white text-gray-700  border-gray-300 hover:bg-gray-50'
-              }`}
+                }`}
             >
               Build Your Own
             </button>
             <button
               onClick={() => setActiveTab('customiseMenu')}
-              className={`flex-1 py-3 text-base font-semibold rounded-lg transition ${
-                activeTab === 'customiseMenu'
+              className={`flex-1 py-3 text-base font-semibold rounded-lg transition ${activeTab === 'customiseMenu'
                   ? 'bg-[#268700] text-white shadow-md'
                   : 'bg-white text-gray-700  border-gray-300 hover:bg-gray-50'
-              }`}
+                }`}
             >
               Customise Menu
             </button>
@@ -491,15 +488,14 @@ export default function CatererMenuPage() {
                       <div
                         key={pkg.id}
                         onClick={() => setSelectedPackage(pkg)}
-                        className={`bg-white border-2 rounded-lg p-3 cursor-pointer transition ${
-                          isSelected
+                        className={`bg-white border-2 rounded-lg p-3 cursor-pointer transition ${isSelected
                             ? 'border-[#268700] bg-green-50 shadow-md'
                             : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                        }`}
+                          }`}
                       >
                         <h3 className="font-semibold text-base text-gray-900 mb-1">{pkg.name}</h3>
                         <p className="text-xs text-gray-600 mb-3">{pkg.package_type?.name || 'Package'}</p>
-                        
+
                         <div className="space-y-1.5 text-xs text-gray-700 mb-3">
                           <div className="line-clamp-1">
                             <span className="font-medium">Welcome Drink:</span> <span className="text-gray-600">{menuItems.welcomeDrink}</span>
@@ -537,7 +533,7 @@ export default function CatererMenuPage() {
 
             {/* Footer with Total and Add to Cart - Only show for Set Menus */}
             {activeTab === 'setMenus' && (
-              <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-4">
+              <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-4 z-50">
                 <div className="max-w-7xl mx-auto flex justify-between items-center">
                   <div>
                     <p className="text-sm text-gray-600">Total Amount</p>
@@ -549,11 +545,10 @@ export default function CatererMenuPage() {
                   <button
                     onClick={handleAddToCart}
                     disabled={!selectedPackage || addingToCart}
-                    className={`px-8 py-3 rounded-full font-semibold transition ${
-                      !selectedPackage || addingToCart
+                    className={`px-8 py-3 rounded-full font-semibold transition ${!selectedPackage || addingToCart
                         ? 'bg-gray-400 cursor-not-allowed text-white'
                         : 'bg-[#268700] text-white hover:bg-[#1f6b00]'
-                    }`}
+                      }`}
                   >
                     {addingToCart ? 'Adding...' : 'Add to Cart'}
                   </button>
@@ -585,53 +580,49 @@ export default function CatererMenuPage() {
             <div className="flex gap-3 mb-6">
               <button
                 onClick={() => setDietaryFilter(dietaryFilter === 'veg' ? null : 'veg')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                  dietaryFilter === 'veg'
+                className={`px-4 py-2 rounded-full text-sm font-medium transition ${dietaryFilter === 'veg'
                     ? 'bg-[#268700] text-white'
                     : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 Veg
               </button>
               <button
                 onClick={() => setDietaryFilter(dietaryFilter === 'glutenFree' ? null : 'glutenFree')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                  dietaryFilter === 'glutenFree'
+                className={`px-4 py-2 rounded-full text-sm font-medium transition ${dietaryFilter === 'glutenFree'
                     ? 'bg-[#268700] text-white'
                     : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 Gluten Free
               </button>
               <button
                 onClick={() => setDietaryFilter(dietaryFilter === 'nonVeg' ? null : 'nonVeg')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                  dietaryFilter === 'nonVeg'
+                className={`px-4 py-2 rounded-full text-sm font-medium transition ${dietaryFilter === 'nonVeg'
                     ? 'bg-[#268700] text-white'
                     : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 Non Veg
               </button>
               <button
                 onClick={() => setDietaryFilter(dietaryFilter === 'sugarFree' ? null : 'sugarFree')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                  dietaryFilter === 'sugarFree'
+                className={`px-4 py-2 rounded-full text-sm font-medium transition ${dietaryFilter === 'sugarFree'
                     ? 'bg-[#268700] text-white'
                     : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 Sugar Free
               </button>
             </div>
 
-             {/* Menu Items Section */}
-             <div className="bg-green-100 text-gray-800 p-4 rounded-lg mb-4 border border-green-200">
-               <h3 className="font-semibold text-lg mb-2 text-gray-900">Menu Items (Customisable)</h3>
-               <p className="text-sm text-gray-700">
-                 {caterer.description || 'Award-winning catering service specializing in Mediterranean and French cuisine. We bring restaurant-quality food to your events with impeccable service.'}
-               </p>
-             </div>
+            {/* Menu Items Section */}
+            <div className="bg-green-100 text-gray-800 p-4 rounded-lg mb-4 border border-green-200">
+              <h3 className="font-semibold text-lg mb-2 text-gray-900">Menu Items (Customisable)</h3>
+              <p className="text-sm text-gray-700">
+                {caterer.description || 'Award-winning catering service specializing in Mediterranean and French cuisine. We bring restaurant-quality food to your events with impeccable service.'}
+              </p>
+            </div>
 
             {/* Loading State */}
             {loadingDishes ? (
@@ -668,11 +659,10 @@ export default function CatererMenuPage() {
                           return (
                             <div
                               key={dish.id}
-                              className={`flex items-center justify-between p-3 rounded-lg border transition cursor-pointer ${
-                                isSelected
+                              className={`flex items-center justify-between p-3 rounded-lg border transition cursor-pointer ${isSelected
                                   ? 'border-[#268700] bg-green-50'
                                   : 'border-gray-200 hover:border-gray-300'
-                              }`}
+                                }`}
                               onClick={() => toggleDishSelection(dish.id, categoryGroup)}
                             >
                               <div className="flex-1">
@@ -711,11 +701,10 @@ export default function CatererMenuPage() {
                 <button
                   onClick={handleAddToCart}
                   disabled={selectedDishes.size === 0 || addingToCart}
-                  className={`px-8 py-3 rounded-full font-semibold transition ${
-                    selectedDishes.size === 0 || addingToCart
+                  className={`px-8 py-3 rounded-full font-semibold transition ${selectedDishes.size === 0 || addingToCart
                       ? 'bg-gray-400 cursor-not-allowed text-white'
                       : 'bg-[#268700] text-white hover:bg-[#1f6b00]'
-                  }`}
+                    }`}
                 >
                   {addingToCart ? 'Creating...' : 'Create Package'}
                 </button>
@@ -823,11 +812,10 @@ export default function CatererMenuPage() {
                           }
                           setSelectedDietaryPreferences(newSet);
                         }}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                          isSelected
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition ${isSelected
                             ? 'bg-green-100 text-green-800 border border-green-300'
                             : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                        }`}
+                          }`}
                       >
                         {pref}
                       </button>
@@ -896,11 +884,10 @@ export default function CatererMenuPage() {
                     }
                   }}
                   disabled={submittingProposal || !catererId}
-                  className={`px-8 py-3 rounded-full font-semibold transition ${
-                    submittingProposal || !catererId
+                  className={`px-8 py-3 rounded-full font-semibold transition ${submittingProposal || !catererId
                       ? 'bg-gray-400 cursor-not-allowed text-white'
                       : 'bg-[#268700] text-white hover:bg-[#1f6b00]'
-                  }`}
+                    }`}
                 >
                   {submittingProposal ? 'Submitting...' : 'Request a Quote'}
                 </button>
@@ -914,11 +901,11 @@ export default function CatererMenuPage() {
       {showProposalSuccessModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Blurred Background */}
-          <div 
+          <div
             className="absolute inset-0 bg-black/30 backdrop-blur-md"
             onClick={() => setShowProposalSuccessModal(false)}
           />
-          
+
           {/* Modal Content */}
           <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 transform transition-all">
             {/* Close Button */}
@@ -945,7 +932,7 @@ export default function CatererMenuPage() {
               <p className="text-gray-600 mb-6">
                 Your proposal request has been submitted successfully. We will get back to you soon with a customized quote.
               </p>
-              
+
               {/* Action Button */}
               <button
                 onClick={() => setShowProposalSuccessModal(false)}
