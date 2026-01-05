@@ -13,37 +13,76 @@ export default function EditPackagePage() {
   const packageId = params.id as string;
 
   const [packageData, setPackageData] = useState<Package | null>(null);
-  const [formData, setFormData] = useState<UpdatePackageRequest>({});
+  const [formData, setFormData] = useState<UpdatePackageRequest>({
+    name: '',
+    people_count: 0,
+    package_type_id: '',
+    cover_image_url: '',
+    total_price: 0,
+    currency: 'AED',
+    is_active: true,
+    is_available: true,
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  // TODO: Fetch package types from API
-  const packageTypes = [
-    { value: '', label: 'Select Package Type' },
-    // Add more options when API is available
-  ];
+  const [packageTypes, setPackageTypes] = useState<Array<{ value: string; label: string }>>([]);
 
   useEffect(() => {
+    fetchPackageTypes();
     fetchPackage();
   }, [packageId]);
 
+  const fetchPackageTypes = async () => {
+    const response = await catererApi.getPackageTypes();
+    console.log('📋 Package types response:', response);
+    
+    // Handle both response structures: direct data or nested data
+    const typesData = (response.data as any)?.data || response.data;
+    
+    if (typesData && Array.isArray(typesData)) {
+      const types = typesData.map((type: any) => ({
+        value: type.id,
+        label: type.name,
+      }));
+      setPackageTypes(types);
+      console.log('✅ Package types loaded:', types.length);
+    } else {
+      console.error('❌ Package types response is not an array:', response);
+    }
+  };
+
   const fetchPackage = async () => {
     setLoading(true);
+    console.log('🔍 Fetching package:', packageId);
     const response = await catererApi.getPackageById(packageId);
+    console.log('📦 Package response:', response);
 
-    if (response.data) {
-      setPackageData(response.data);
-      setFormData({
-        name: response.data.name,
-        people_count: response.data.people_count,
-        package_type_id: response.data.package_type_id,
-        cover_image_url: response.data.cover_image_url,
-        total_price: response.data.total_price,
-        currency: response.data.currency,
-        is_active: response.data.is_active,
-        is_available: response.data.is_available,
-      });
+    // Handle both response structures: direct data or nested data
+    const pkg = (response.data as any)?.data || response.data;
+    
+    if (pkg && pkg.id) {
+      console.log('✅ Package data received:', pkg);
+      setPackageData(pkg);
+      // Initialize form with current package data
+      const initialFormData = {
+        name: pkg.name || '',
+        people_count: pkg.people_count || 0,
+        package_type_id: pkg.package_type_id || '',
+        cover_image_url: pkg.cover_image_url || '',
+        total_price: Number(pkg.total_price) || 0,
+        currency: pkg.currency || 'AED',
+        is_active: pkg.is_active ?? true,
+        is_available: pkg.is_available ?? true,
+      };
+      console.log('📝 Setting form data:', initialFormData);
+      setFormData(initialFormData);
+    } else if (response.error) {
+      console.error('❌ Error loading package:', response.error);
+      setErrors({ general: 'Failed to load package. Please try again.' });
+    } else {
+      console.error('❌ Invalid package response structure:', response);
+      setErrors({ general: 'Failed to load package data.' });
     }
     setLoading(false);
   };
@@ -52,16 +91,54 @@ export default function EditPackagePage() {
     e.preventDefault();
     setErrors({});
 
+    // Validate required fields
+    const newErrors: Record<string, string> = {};
+    if (!formData.name?.trim()) {
+      newErrors.name = 'Package name is required';
+    }
+    if (!formData.people_count || formData.people_count <= 0) {
+      newErrors.people_count = 'Number of people must be greater than 0';
+    }
+    if (!formData.package_type_id) {
+      newErrors.package_type_id = 'Please select a package type';
+    }
+    if (!formData.total_price || formData.total_price <= 0) {
+      newErrors.total_price = 'Price must be greater than 0';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     setIsSubmitting(true);
 
     const response = await catererApi.updatePackage(packageId, formData);
 
     if (response.error) {
-      setErrors({ general: response.error });
+      // Handle specific error cases with user-friendly messages
+      let errorMessage = response.error;
+      
+      if (errorMessage.includes('Foreign key') || errorMessage.includes('constraint')) {
+        if (errorMessage.includes('package_type')) {
+          errorMessage = 'The selected package type is invalid. Please select a valid type from the dropdown.';
+        } else {
+          errorMessage = 'Unable to update package due to invalid data. Please check all fields.';
+        }
+      } else if (errorMessage.includes('not found') || errorMessage.includes('permission')) {
+        errorMessage = 'Package not found or you do not have permission to edit it.';
+      } else if (errorMessage.includes('Invalid package type')) {
+        errorMessage = 'Please select a valid package type from the dropdown.';
+      }
+      
+      setErrors({ general: errorMessage });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       setIsSubmitting(false);
       return;
     }
 
+    // Success - redirect to packages page
     router.push('/caterer/packages');
   };
 

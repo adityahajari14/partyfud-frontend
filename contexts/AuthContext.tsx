@@ -250,6 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Logout error:', error);
       // Even if API call fails, we still want to logout client-side
     } finally {
+      removeAuthToken();
       updateUser(null);
     }
   };

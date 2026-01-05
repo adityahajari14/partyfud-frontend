@@ -2,8 +2,29 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 export default function PartnerWithPartyFud() {
+  const { user, logout } = useAuth();
+  const router = useRouter();
+
+  const handleJoinClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    // If user is logged in, log them out first then redirect to caterer signup
+    if (user) {
+      await logout();
+      // Small delay to ensure logout completes
+      setTimeout(() => {
+        router.push('/signup?type=caterer');
+      }, 100);
+    } else {
+      // If not logged in, go directly to signup page with caterer type
+      router.push('/signup?type=caterer');
+    }
+  };
+
   return (
     <section id="partner" className="relative bg-gradient-to-br from-[#00241b] via-[#002b20] to-[#001a14] overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 py-24">
@@ -24,12 +45,12 @@ export default function PartnerWithPartyFud() {
               vetted registration process.
             </p>
 
-            <Link
-              href="/signup?type=caterer"
-              className="inline-block mt-10 bg-[#1f9d55] text-white px-8 py-3 rounded-full font-medium hover:opacity-90 transition"
+            <button
+              onClick={handleJoinClick}
+              className="inline-block mt-10 bg-[#1f9d55] text-white px-8 py-3 rounded-full font-medium hover:bg-[#17a04b] hover:shadow-lg transition-all duration-200 cursor-pointer"
             >
               Join as a Caterer
-            </Link>
+            </button>
           </div>
 
           {/* STICKY IMAGE - Bottom Left */}
