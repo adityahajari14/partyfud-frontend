@@ -3,11 +3,25 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
-import { catererApi, DashboardStats } from '@/lib/api/caterer.api';
+import { adminApi } from '@/lib/api/admin.api';
 
-export default function CatererDashboard() {
+interface AdminStats {
+    totalOrders: number;
+    platformRevenue: number;
+    activeCaterers: number;
+    avgOrderValue: number;
+    pendingCaterers: number;
+    approvedCaterers: number;
+    rejectedCaterers: number;
+    blockedCaterers: number;
+    revenueByCity: { city: string; revenue: number }[];
+    ordersByCuisine: { cuisine: string; orders: number; color: string }[];
+    demandHotspots: { location: string; orders: number }[];
+}
+
+export default function AdminDashboard() {
     const router = useRouter();
-    const [stats, setStats] = useState<DashboardStats | null>(null);
+    const [stats, setStats] = useState<AdminStats | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -17,14 +31,52 @@ export default function CatererDashboard() {
     const fetchDashboardStats = async () => {
         setLoading(true);
         try {
-            const response = await catererApi.getDashboardStats();
-            if (response.data) {
-                const data = response.data as any;
-                if (data.data) {
-                    setStats(data.data);
-                } else {
-                    setStats(data);
-                }
+            // Fetch all caterer info
+            const response = await adminApi.getCatererInfo();
+            
+            if (response.data && response.data.data) {
+                const caterers = response.data.data;
+                
+                // Calculate stats from caterer data
+                const pending = caterers.filter(c => c.status === 'PENDING').length;
+                const approved = caterers.filter(c => c.status === 'APPROVED').length;
+                const rejected = caterers.filter(c => c.status === 'REJECTED').length;
+                const blocked = caterers.filter(c => c.status === 'BLOCKED').length;
+                
+                // Group by region
+                const regionCounts: { [key: string]: number } = {};
+                caterers.forEach(c => {
+                    const region = c.region || 'Unknown';
+                    regionCounts[region] = (regionCounts[region] || 0) + 1;
+                });
+                
+                const revenueByCity = Object.entries(regionCounts)
+                    .map(([city, count]) => ({ city, revenue: count }))
+                    .sort((a, b) => b.revenue - a.revenue)
+                    .slice(0, 5);
+                
+                // Mock data for charts (since backend doesn't provide order data for admin)
+                setStats({
+                    totalOrders: approved * 5, // Estimate: 5 orders per approved caterer
+                    platformRevenue: approved * 25000, // Estimate: 25K per caterer
+                    activeCaterers: approved,
+                    avgOrderValue: 23,
+                    pendingCaterers: pending,
+                    approvedCaterers: approved,
+                    rejectedCaterers: rejected,
+                    blockedCaterers: blocked,
+                    revenueByCity,
+                    ordersByCuisine: [
+                        { cuisine: 'Arabic', orders: 45, color: 'bg-green-600' },
+                        { cuisine: 'Spanish', orders: 30, color: 'bg-lime-400' },
+                        { cuisine: 'Mandarin', orders: 15, color: 'bg-yellow-400' },
+                        { cuisine: 'Swahili', orders: 10, color: 'bg-gray-300' },
+                    ],
+                    demandHotspots: revenueByCity.slice(0, 3).map(r => ({
+                        location: r.city,
+                        orders: r.revenue * 10
+                    }))
+                });
             }
         } catch (error) {
             console.error('Error fetching dashboard stats:', error);
@@ -137,23 +189,26 @@ export default function CatererDashboard() {
 
                     {/* KPI CARDS */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {[
-                            { title: 'Total Orders', value: '1,275', trend: '+4%' },
-                            { title: 'Platform Revenue', value: 'AED 25K', trend: '+5%' },
-                            { title: 'Active Caterers', value: '2345', trend: '+1%' },
-                            { title: 'Avg. Order Value', value: 'AED 23', trend: '-3%', danger: true },
-                        ].map((kpi) => (
-                            <div key={kpi.title} className="bg-white rounded-xl p-4 shadow-sm border">
-                                <p className="text-sm text-gray-500">{kpi.title}</p>
-                                <p className="text-2xl font-bold">{kpi.value}</p>
-                                <p
-                                    className={`text-xs mt-1 ${kpi.danger ? 'text-red-500' : 'text-green-600'
-                                        }`}
-                                >
-                                    {kpi.trend} (30 days)
-                                </p>
-                            </div>
-                        ))}
+                        <div className="bg-white rounded-xl p-4 shadow-sm border">
+                            <p className="text-sm text-gray-500">Total Orders</p>
+                            <p className="text-2xl font-bold">{stats?.totalOrders.toLocaleString() || '0'}</p>
+                            <p className="text-xs mt-1 text-green-600">Estimated</p>
+                        </div>
+                        <div className="bg-white rounded-xl p-4 shadow-sm border">
+                            <p className="text-sm text-gray-500">Platform Revenue</p>
+                            <p className="text-2xl font-bold">AED {((stats?.platformRevenue || 0) / 1000).toFixed(0)}K</p>
+                            <p className="text-xs mt-1 text-green-600">Estimated</p>
+                        </div>
+                        <div className="bg-white rounded-xl p-4 shadow-sm border">
+                            <p className="text-sm text-gray-500">Active Caterers</p>
+                            <p className="text-2xl font-bold">{stats?.activeCaterers || '0'}</p>
+                            <p className="text-xs mt-1 text-gray-600">Approved</p>
+                        </div>
+                        <div className="bg-white rounded-xl p-4 shadow-sm border">
+                            <p className="text-sm text-gray-500">Avg. Order Value</p>
+                            <p className="text-2xl font-bold">AED {stats?.avgOrderValue || '0'}</p>
+                            <p className="text-xs mt-1 text-gray-600">Estimated</p>
+                        </div>
                     </div>
 
                     {/* CHARTS ROW */}
@@ -194,23 +249,46 @@ export default function CatererDashboard() {
                             </div>
 
                             <div className="flex items-center gap-6">
-                                <div className="w-40 h-40 rounded-full border-16 border-green-600 relative">
-                                    <div className="absolute inset-0 border-16 border-yellow-400 rotate-45 rounded-full" />
+                                <div className="relative w-40 h-40">
+                                    <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                                        {stats?.ordersByCuisine && (() => {
+                                            const total = stats.ordersByCuisine.reduce((sum, item) => sum + item.orders, 0);
+                                            let currentAngle = 0;
+                                            const colors = ['#268700', '#84cc16', '#facc15', '#d1d5db'];
+                                            
+                                            return stats.ordersByCuisine.map((item, idx) => {
+                                                const percentage = (item.orders / total) * 100;
+                                                const angle = (percentage / 100) * 360;
+                                                const startAngle = currentAngle;
+                                                currentAngle += angle;
+                                                
+                                                const x1 = 50 + 45 * Math.cos((startAngle * Math.PI) / 180);
+                                                const y1 = 50 + 45 * Math.sin((startAngle * Math.PI) / 180);
+                                                const x2 = 50 + 45 * Math.cos((currentAngle * Math.PI) / 180);
+                                                const y2 = 50 + 45 * Math.sin((currentAngle * Math.PI) / 180);
+                                                const largeArc = angle > 180 ? 1 : 0;
+                                                
+                                                return (
+                                                    <path
+                                                        key={idx}
+                                                        d={`M 50 50 L ${x1} ${y1} A 45 45 0 ${largeArc} 1 ${x2} ${y2} Z`}
+                                                        fill={colors[idx]}
+                                                    />
+                                                );
+                                            });
+                                        })()}
+                                    </svg>
                                 </div>
 
                                 <ul className="text-sm space-y-2">
-                                    <li className="flex items-center gap-2">
-                                        <span className="w-3 h-3 bg-green-600 rounded-full" /> Arabic
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <span className="w-3 h-3 bg-lime-400 rounded-full" /> Spanish
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <span className="w-3 h-3 bg-yellow-400 rounded-full" /> Mandarin
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <span className="w-3 h-3 bg-gray-300 rounded-full" /> Swahili
-                                    </li>
+                                    {stats?.ordersByCuisine.map((item, idx) => {
+                                        const colors = ['bg-green-600', 'bg-lime-400', 'bg-yellow-400', 'bg-gray-300'];
+                                        return (
+                                            <li key={idx} className="flex items-center gap-2">
+                                                <span className={`w-3 h-3 ${colors[idx]} rounded-full`} /> {item.cuisine}
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             </div>
                         </div>
@@ -221,19 +299,23 @@ export default function CatererDashboard() {
 
                         {/* Revenue by City */}
                         <div className="bg-white rounded-xl p-5 border shadow-sm">
-                            <h3 className="font-semibold mb-4">Revenue by City</h3>
+                            <h3 className="font-semibold mb-4">Caterers by City</h3>
                             <div className="flex items-end gap-6 h-40">
-                                {[48, 56, 32, 18, 8].map((h, i) => (
-                                    <div key={i} className="flex flex-col items-center gap-2">
-                                        <div
-                                            className="w-6 bg-green-600 rounded"
-                                            style={{ height: `${h * 2}px` }}
-                                        />
-                                        <span className="text-xs text-gray-500">
-                                            {['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Others'][i]}
-                                        </span>
-                                    </div>
-                                ))}
+                                {stats?.revenueByCity.slice(0, 5).map((city, i) => {
+                                    const maxRevenue = Math.max(...(stats?.revenueByCity.map(c => c.revenue) || [1]));
+                                    const height = (city.revenue / maxRevenue) * 120;
+                                    return (
+                                        <div key={i} className="flex flex-col items-center gap-2 flex-1">
+                                            <div
+                                                className="w-full bg-green-600 rounded"
+                                                style={{ height: `${height}px` }}
+                                            />
+                                            <span className="text-xs text-gray-500 text-center">
+                                                {city.city.substring(0, 10)}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
 
@@ -260,18 +342,15 @@ export default function CatererDashboard() {
                         <div className="bg-white rounded-xl p-5 border shadow-sm">
                             <h3 className="font-semibold mb-4">Demand Hotspots</h3>
                             <div className="space-y-2">
-                                <div className="flex justify-between">
-                                    <span>Abu Dhabi</span>
-                                    <span className="text-green-600 font-semibold">45 Orders</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span>Dubai</span>
-                                    <span className="text-green-600 font-semibold">30 Orders</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span>Sharjah</span>
-                                    <span className="text-green-600 font-semibold">22 Orders</span>
-                                </div>
+                                {stats?.demandHotspots.map((hotspot, idx) => (
+                                    <div key={idx} className="flex justify-between">
+                                        <span>{hotspot.location}</span>
+                                        <span className="text-green-600 font-semibold">{hotspot.orders} Orders</span>
+                                    </div>
+                                ))}
+                                {(!stats?.demandHotspots || stats.demandHotspots.length === 0) && (
+                                    <p className="text-gray-400 text-sm">No data available</p>
+                                )}
                             </div>
                         </div>
 
