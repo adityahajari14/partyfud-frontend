@@ -156,6 +156,16 @@ export default function PackageDetailsPage() {
 
     // Handle Add to Cart
     const handleAddToCart = async () => {
+        // Check authentication first
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            setCartMessage({ type: 'error', text: 'Please log in to add items to cart' });
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 2000);
+            return;
+        }
+
         if (!pkg) {
             setCartMessage({ type: 'error', text: 'Package information not available' });
             return;
@@ -210,7 +220,21 @@ export default function PackageDetailsPage() {
             const response = await userApi.createCartItem(cartData);
 
             if (response.error) {
-                setCartMessage({ type: 'error', text: response.error });
+                // Handle specific error cases with user-friendly messages
+                let errorMessage = response.error;
+                
+                if (errorMessage.includes('authentication') || errorMessage.includes('Unauthorized') || errorMessage.includes('User account not found')) {
+                    errorMessage = 'Your session has expired. Please log in again.';
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
+                } else if (errorMessage.includes('Foreign key') || errorMessage.includes('constraint')) {
+                    errorMessage = 'Unable to add to cart. Please try logging in again.';
+                } else if (errorMessage.includes('already exists')) {
+                    errorMessage = 'This package is already in your cart.';
+                }
+                
+                setCartMessage({ type: 'error', text: errorMessage });
                 setIsAddedToCart(false);
             } else if (response.data?.success) {
                 setCartMessage({ type: 'success', text: 'Item added to cart successfully!' });

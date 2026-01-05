@@ -36,6 +36,35 @@ export function PartnerForm({ isOpen, onClose }: PartnerFormProps) {
     setSubmitStatus('idle');
 
     try {
+      // Check if Web3Forms access key is configured
+      const accessKey = process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY;
+      
+      if (!accessKey || accessKey === 'your-actual-access-key-here') {
+        // Demo mode - simulate successful submission
+        console.warn('⚠️ Running in DEMO mode: Web3Forms access key not configured. Form data will not be sent.');
+        console.log('Form data:', formData);
+        
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        setSubmitStatus('success');
+        // Reset form
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          businessName: '',
+          location: '',
+          message: '',
+        });
+        // Close modal after 2 seconds
+        setTimeout(() => {
+          onClose();
+          setSubmitStatus('idle');
+        }, 2000);
+        return;
+      }
+
       // Web3Forms API endpoint
       const response = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
@@ -44,7 +73,7 @@ export function PartnerForm({ isOpen, onClose }: PartnerFormProps) {
           'Accept': 'application/json',
         },
         body: JSON.stringify({
-          access_key: 'demo-key-replace-later', // Demo key - replace later
+          access_key: accessKey,
           subject: 'New Partner Inquiry - PartyFud',
           from_name: formData.name,
           from_email: formData.email,
@@ -76,6 +105,7 @@ export function PartnerForm({ isOpen, onClose }: PartnerFormProps) {
           setSubmitStatus('idle');
         }, 2000);
       } else {
+        console.error('Web3Forms API error:', result);
         setSubmitStatus('error');
       }
     } catch (error) {

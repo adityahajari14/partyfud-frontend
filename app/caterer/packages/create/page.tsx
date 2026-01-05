@@ -128,9 +128,7 @@ export default function CreatePackagePage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [packageTypes, setPackageTypes] = useState<Array<{ value: string; label: string }>>([
-    { value: '', label: 'Select Package Type' },
-  ]);
+  const [packageTypes, setPackageTypes] = useState<Array<{ value: string; label: string }>>([]);
   // Store categories with their items
   const [packageItemsByCategory, setPackageItemsByCategory] = useState<Array<{
     category: { id: string; name: string; description?: string | null };
@@ -170,13 +168,12 @@ export default function CreatePackagePage() {
       if (packageTypesResponse.data) {
         const data = packageTypesResponse.data as any;
         const typesList = Array.isArray(data) ? data : (data.data || []);
-        setPackageTypes([
-          { value: '', label: 'Select Package Type' },
-          ...typesList.map((pt: any) => ({
+        setPackageTypes(
+          typesList.map((pt: any) => ({
             value: pt.id || pt.value,
             label: pt.name || pt.label,
-          })),
-        ]);
+          }))
+        );
       }
 
       // Fetch draft package items (items without package_id)
