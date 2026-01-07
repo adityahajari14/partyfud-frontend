@@ -9,10 +9,9 @@ import { Check, Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 // import { Testimonials } from '@/user/Testimonials';
 
-interface PackageType {
+interface Occasion {
     id: string;
     name: string;
-    image_url?: string | null;
     description?: string | null;
 }
 
@@ -28,7 +27,7 @@ export default function PackageDetailsPage() {
     const [guests, setGuests] = useState<number>(0);
     const [date, setDate] = useState('');
     const [pkg, setPkg] = useState<Package | null>(null);
-    const [packageTypes, setPackageTypes] = useState<PackageType[]>([]);
+    const [occasions, setOccasions] = useState<Occasion[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingTypes, setLoadingTypes] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -49,26 +48,26 @@ export default function PackageDetailsPage() {
     const router = useRouter();
     const { user } = useAuth();
 
-    // Fetch package types
+    // Fetch occasions
     useEffect(() => {
-        const fetchPackageTypes = async () => {
+        const fetchOccasions = async () => {
             setLoadingTypes(true);
             try {
-                const response = await userApi.getPackageTypes();
+                const response = await userApi.getOccasions();
                 
                 if (response.error) {
-                    console.error('Failed to fetch package types:', response.error);
+                    console.error('Failed to fetch occasions:', response.error);
                 } else if (response.data?.data) {
-                    setPackageTypes(response.data.data);
+                    setOccasions(response.data.data);
                 }
             } catch (err) {
-                console.error('Error fetching package types:', err);
+                console.error('Error fetching occasions:', err);
             } finally {
                 setLoadingTypes(false);
             }
         };
 
-        fetchPackageTypes();
+        fetchOccasions();
     }, []);
 
     // Fetch package details
@@ -689,9 +688,9 @@ export default function PackageDetailsPage() {
                                 <option value="" className="text-black">
                                     {loadingTypes ? 'Loading...' : 'Select Event Type'}
                                 </option>
-                                {packageTypes.map((type) => (
-                                    <option key={type.id} value={type.id} className="text-black">
-                                        {type.name}
+                                {occasions.map((occasion) => (
+                                    <option key={occasion.id} value={occasion.id} className="text-black">
+                                        {occasion.name}
                                     </option>
                                 ))}
                             </select>

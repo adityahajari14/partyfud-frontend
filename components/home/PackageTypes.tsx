@@ -5,41 +5,40 @@ import Image from 'next/image';
 import { userApi } from '@/lib/api/user.api';
 import { useRouter } from 'next/navigation';
 
-interface PackageType {
+interface Occasion {
   id: string;
   name: string;
-  image_url?: string | null;
   description?: string | null;
 }
 
 export default function PackageTypesPage() {
-  const [packageTypes, setPackageTypes] = useState<PackageType[]>([]);
+  const [occasions, setOccasions] = useState<Occasion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [index, setIndex] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
-    const fetchPackageTypes = async () => {
+    const fetchOccasions = async () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await userApi.getPackageTypes();
+        const response = await userApi.getOccasions();
         
         if (response.data?.data) {
-          setPackageTypes(response.data.data);
+          setOccasions(response.data.data);
         } else if (response.error) {
           setError(response.error);
         }
       } catch (err: any) {
-        console.error('Error fetching package types:', err);
-        setError(err.message || 'Failed to fetch package types');
+        console.error('Error fetching occasions:', err);
+        setError(err.message || 'Failed to fetch occasions');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchPackageTypes();
+    fetchOccasions();
   }, []);
 
   const handlePrev = () => {
@@ -47,11 +46,11 @@ export default function PackageTypesPage() {
   };
 
   const handleNext = () => {
-    setIndex((prev) => Math.min(prev + 1, packageTypes.length - 3));
+    setIndex((prev) => Math.min(prev + 1, occasions.length - 3));
   };
 
-  const handlePackageTypeClick = (packageTypeName: string) => {
-    router.push(`/user/packages?package_type=${encodeURIComponent(packageTypeName)}`);
+  const handleOccasionClick = (occasionName: string) => {
+    router.push(`/user/packages?occasion_name=${encodeURIComponent(occasionName)}`);
   };
 
   if (loading) {
@@ -94,7 +93,7 @@ export default function PackageTypesPage() {
     );
   }
 
-  if (packageTypes.length === 0) {
+  if (occasions.length === 0) {
     return null;
   }
 
@@ -119,29 +118,24 @@ export default function PackageTypesPage() {
               transform: `translateX(-${index * (100 / 3)}%)`,
             }}
           >
-            {packageTypes.map((packageType) => (
+            {occasions.map((occasion) => (
               <div
-                key={packageType.id}
+                key={occasion.id}
                 className="min-w-[calc(33.333%-1.33rem)]"
               >
                 <div 
-                  onClick={() => handlePackageTypeClick(packageType.name)}
+                  onClick={() => handleOccasionClick(occasion.name)}
                   className="relative w-full h-[260px] bg-white border border-gray-200 rounded-2xl overflow-hidden cursor-pointer hover:shadow-md transition"
                 >
                   <Image
-                    src={packageType.image_url || '/user/package1.svg'}
-                    alt={packageType.name}
+                    src={'/user/package1.svg'}
+                    alt={occasion.name}
                     fill
                     className="object-cover"
-                    onError={(e) => {
-                      // Fallback to default image if the image fails to load
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/user/package1.svg';
-                    }}
                   />
                 </div>
                 <p className="mt-4 text-center font-medium text-gray-900">
-                  {packageType.name}
+                  {occasion.name}
                 </p>
               </div>
             ))}
@@ -160,7 +154,7 @@ export default function PackageTypesPage() {
 
           <button
             onClick={handleNext}
-            disabled={index >= packageTypes.length - 3}
+            disabled={index >= occasions.length - 3}
             className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100 disabled:opacity-40"
           >
             ›

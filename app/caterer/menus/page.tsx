@@ -373,7 +373,7 @@ export default function MenusPage() {
             <div className="bg-white rounded-lg shadow p-12 text-center">
               <p className="text-gray-700 mb-4">No dishes found. Create your first dish to get started.</p>
               <Button onClick={() => setIsCreateModalOpen(true)} variant="primary">
-                Create Dish
+                + Add Menu Item
               </Button>
             </div>
           ) : Array.isArray(dishes) && dishes.length > 0 ? (

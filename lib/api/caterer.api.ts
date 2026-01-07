@@ -52,7 +52,6 @@ export interface Package {
   id: string;
   name: string;
   people_count: number;
-  package_type_id: string;
   cover_image_url?: string;
   total_price: number;
   currency: string;
@@ -62,6 +61,7 @@ export interface Package {
   caterer_id: string;
   created_at: string;
   updated_at: string;
+  occasions?: Array<{ occassion?: { id: string; name: string }; id?: string; name?: string }>;
 }
 
 export interface CreatePackageRequest {
@@ -344,11 +344,6 @@ export const catererApi = {
 
   getFreeForms: async () => {
     return apiRequest<Array<{ id: string; name: string; description?: string }>>('/api/caterer/metadata/freeforms');
-  },
-
-  // Package Types
-  getPackageTypes: async () => {
-    return apiRequest<Array<{ id: string; name: string; description?: string }>>('/api/caterer/metadata/package-types');
   },
 
   // Package Items

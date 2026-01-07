@@ -6,10 +6,9 @@ import { useRouter } from 'next/navigation';
 import { Calendar, MapPin, Users, ChevronDown } from 'lucide-react';
 import { userApi } from '@/lib/api/user.api';
 
-interface PackageType {
+interface Occasion {
     id: string;
     name: string;
-    image_url?: string | null;
     description?: string | null;
 }
 
@@ -19,29 +18,29 @@ export default function Hero() {
     const [date, setDate] = useState('');
     const [location, setLocation] = useState('');
     const [guests, setGuests] = useState<number | ''>('');
-    const [packageTypes, setPackageTypes] = useState<PackageType[]>([]);
+    const [occasions, setOccasions] = useState<Occasion[]>([]);
     const [loadingTypes, setLoadingTypes] = useState(true);
 
-    // Fetch package types
+    // Fetch occasions
     useEffect(() => {
-        const fetchPackageTypes = async () => {
+        const fetchOccasions = async () => {
             setLoadingTypes(true);
             try {
-                const response = await userApi.getPackageTypes();
+                const response = await userApi.getOccasions();
                 
                 if (response.error) {
-                    console.error('Failed to fetch package types:', response.error);
+                    console.error('Failed to fetch occasions:', response.error);
                 } else if (response.data?.data) {
-                    setPackageTypes(response.data.data);
+                    setOccasions(response.data.data);
                 }
             } catch (err) {
-                console.error('Error fetching package types:', err);
+                console.error('Error fetching occasions:', err);
             } finally {
                 setLoadingTypes(false);
             }
         };
 
-        fetchPackageTypes();
+        fetchOccasions();
     }, []);
 
     const handlePlanEvent = (e: React.FormEvent) => {
@@ -93,9 +92,9 @@ export default function Hero() {
                                             disabled={loadingTypes}
                                         >
                                             <option value="" className="text-gray-400">Select event</option>
-                                            {packageTypes.map((type) => (
-                                                <option key={type.id} value={type.name} className="text-gray-900">
-                                                    {type.name}
+                                            {occasions.map((occasion) => (
+                                                <option key={occasion.id} value={occasion.name}>
+                                                    {occasion.name}
                                                 </option>
                                             ))}
                                         </select>

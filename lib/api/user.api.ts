@@ -270,20 +270,6 @@ export const userApi = {
   },
 
   /**
-   * Get all package types
-   * GET /api/user/packages/types
-   */
-  getPackageTypes: async () => {
-    const response = await apiRequest<{ success: boolean; data: Array<{ id: string; name: string; image_url?: string | null; description?: string | null; created_at: string; updated_at: string }>; count: number }>(
-      '/api/user/packages/types',
-      {
-        method: 'GET',
-      }
-    );
-    return response;
-  },
-
-  /**
    * Get all occasions
    * GET /api/user/occasions
    */
@@ -317,7 +303,6 @@ export const userApi = {
    */
   createCartItem: async (data: {
     package_id: string;
-    package_type_id: string;
     location?: string;
     guests?: number;
     date?: string;
@@ -403,7 +388,6 @@ export const userApi = {
     cart_item_ids?: string[];
     items?: Array<{
       package_id: string;
-      package_type_id: string;
       location?: string;
       guests?: number;
       date?: string;

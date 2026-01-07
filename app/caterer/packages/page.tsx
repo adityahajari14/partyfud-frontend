@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { catererApi, Package } from '@/lib/api/caterer.api';
+import { userApi } from '@/lib/api/user.api';
 
 // Component for package image with fallback
 const PackageImage: React.FC<{ imageUrl: string | null; packageName: string }> = ({ imageUrl, packageName }) => {
@@ -64,37 +65,31 @@ const PackageImage: React.FC<{ imageUrl: string | null; packageName: string }> =
   );
 };
 
-const DEFAULT_PACKAGE_TYPES = [
-  { value: 'birthday', label: 'Birthday' },
-  { value: 'anniversary', label: 'Anniversary' },
-  { value: 'wedding', label: 'Wedding' },
-  { value: 'corporate', label: 'Corporate Event' },
-  { value: 'house_party', label: 'House Party' },
-];
-
 export default function PackagesPage() {
   const router = useRouter();
   const [packages, setPackages] = useState<Package[]>([]);
   const [allPackages, setAllPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
-  const [packageTypes, setPackageTypes] = useState<Array<{ value: string; label: string }>>([
-    { value: '', label: 'Select Package Type' },
+  const [occasions, setOccasions] = useState<Array<{ value: string; label: string }>>([
+    { value: '', label: 'All Occasions' },
   ]);
-  const [selectedPackageType, setSelectedPackageType] = useState('');
+  const [selectedOccasion, setSelectedOccasion] = useState('');
 
   useEffect(() => {
     fetchPackages();
-    fetchPackageTypes();
+    fetchOccasions();
   }, []);
 
   useEffect(() => {
-    // Filter packages based on selected package type
-    if (selectedPackageType) {
-      setPackages(allPackages.filter(pkg => pkg.package_type_id === selectedPackageType));
+    // Filter packages based on selected occasion
+    if (selectedOccasion) {
+      setPackages(allPackages.filter(pkg => 
+        pkg.occasions && pkg.occasions.some((occ: any) => occ.occassion?.id === selectedOccasion || occ.id === selectedOccasion)
+      ));
     } else {
       setPackages(allPackages);
     }
-  }, [selectedPackageType, allPackages]);
+  }, [selectedOccasion, allPackages]);
 
   const fetchPackages = async () => {
     setLoading(true);
@@ -133,44 +128,27 @@ export default function PackagesPage() {
     }
   };
 
-  const fetchPackageTypes = async () => {
+  const fetchOccasions = async () => {
     try {
-      const packageTypesResponse = await catererApi.getPackageTypes();
+      const occasionsResponse = await userApi.getOccasions();
 
-      let apiTypes: Array<{ value: string; label: string }> = [];
+      let apiOccasions: Array<{ value: string; label: string }> = [];
 
-      if (packageTypesResponse.data) {
-        const data = packageTypesResponse.data as any;
-        const typesList = Array.isArray(data) ? data : (data.data || []);
-
-        apiTypes = typesList.map((pt: any) => ({
-          value: pt.id || pt.value,
-          label: pt.name || pt.label,
+      if (occasionsResponse.data?.data) {
+        apiOccasions = occasionsResponse.data.data.map((occ: any) => ({
+          value: occ.id,
+          label: occ.name,
         }));
       }
 
-      // ✅ Merge default + API types (avoid duplicates)
-      const mergedTypes = [
-        ...DEFAULT_PACKAGE_TYPES,
-        ...apiTypes.filter(
-          apiType =>
-            !DEFAULT_PACKAGE_TYPES.some(
-              defaultType => defaultType.value === apiType.value
-            )
-        ),
-      ];
-
-      setPackageTypes([
-        { value: '', label: 'Select Package Type' },
-        ...mergedTypes,
+      setOccasions([
+        { value: '', label: 'All Occasions' },
+        ...apiOccasions,
       ]);
     } catch (error) {
-      console.error('Error fetching package types:', error);
-
-      // ✅ Even if API fails, user still gets defaults
-      setPackageTypes([
-        { value: '', label: 'Select Package Type' },
-        ...DEFAULT_PACKAGE_TYPES,
+      console.error('Error fetching occasions:', error);
+      setOccasions([
+        { value: '', label: 'All Occasions' },
       ]);
     }
   };
@@ -192,11 +170,11 @@ export default function PackagesPage() {
           {/* Filter */}
           <div className="mb-6">
             <Select
-              label="Package Type"
-              options={packageTypes}
-              value={selectedPackageType}
-              onChange={(e) => setSelectedPackageType(e.target.value)}
-              placeholder="Select Package Type"
+              label="Filter by Occasion"
+              options={occasions}
+              value={selectedOccasion}
+              onChange={(e) => setSelectedOccasion(e.target.value)}
+              placeholder="All Occasions"
             />
           </div>
 
@@ -209,7 +187,7 @@ export default function PackagesPage() {
             <div className="bg-white rounded-lg shadow-sm p-12 text-center">
               <p className="text-gray-700 mb-4">No packages found. Create your first package to get started.</p>
               <Button onClick={() => router.push('/caterer/packages/create')} variant="primary">
-                Create Package
+                + Create a Package
               </Button>
             </div>
           ) : (

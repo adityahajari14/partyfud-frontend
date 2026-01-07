@@ -9,10 +9,9 @@ import { Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 // import { Testimonials } from '@/user/Testimonials';
 
-interface PackageType {
+interface Occasion {
     id: string;
     name: string;
-    image_url?: string | null;
     description?: string | null;
 }
 
@@ -22,7 +21,7 @@ export default function PackageDetailsPage() {
     const [guests, setGuests] = useState<number>(0);
     const [date, setDate] = useState('');
     const [pkg, setPkg] = useState<Package | null>(null);
-    const [packageTypes, setPackageTypes] = useState<PackageType[]>([]);
+    const [occasions, setOccasions] = useState<Occasion[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingTypes, setLoadingTypes] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -46,15 +45,15 @@ export default function PackageDetailsPage() {
         const fetchPackageTypes = async () => {
             setLoadingTypes(true);
             try {
-                const response = await userApi.getPackageTypes();
+                const response = await userApi.getOccasions();
                 
                 if (response.error) {
-                    console.error('Failed to fetch package types:', response.error);
+                    console.error('Failed to fetch occasions:', response.error);
                 } else if (response.data?.data) {
-                    setPackageTypes(response.data.data);
+                    setOccasions(response.data.data);
                 }
             } catch (err) {
-                console.error('Error fetching package types:', err);
+                console.error('Error fetching occasions:', err);
             } finally {
                 setLoadingTypes(false);
             }
@@ -79,10 +78,6 @@ export default function PackageDetailsPage() {
                 } else if (response.data?.data) {
                     const packageData = response.data.data;
                     setPkg(packageData);
-                    // Set default event type to the package's type if available
-                    if (packageData.package_type?.id) {
-                        setEventType(packageData.package_type.id);
-                    }
                     // Set default guests to the package's people_count
                     if (packageData.people_count) {
                         setGuests(packageData.people_count);
@@ -621,9 +616,9 @@ export default function PackageDetailsPage() {
                                 <option value="" className="text-black">
                                     {loadingTypes ? 'Loading...' : 'Select Event Type'}
                                 </option>
-                                {packageTypes.map((type) => (
-                                    <option key={type.id} value={type.id} className="text-black">
-                                        {type.name}
+                                {occasions.map((occasion) => (
+                                    <option key={occasion.id} value={occasion.id} className="text-black">
+                                        {occasion.name}
                                     </option>
                                 ))}
                             </select>
