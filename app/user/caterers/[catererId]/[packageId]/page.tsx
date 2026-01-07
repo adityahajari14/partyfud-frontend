@@ -596,11 +596,12 @@ export default function PackageDetailsPage() {
                         </div>
                     )}
 
-                    <p className="mt-2 font-semibold">
-                        AED {pkg.price_per_person.toLocaleString()}/Person
+                    <p className="mt-2 font-semibold flex items-center gap-1">
+                        <img src="/dirham.svg" alt="AED" className="w-4 h-4" />
+                        {pkg.price_per_person.toLocaleString()}/Person
                     </p>
-                    <p className="text-sm text-gray-500">
-                        Total: AED {pkg.total_price.toLocaleString()} for {pkg.people_count} people
+                    <p className="text-sm text-gray-500 flex items-center gap-1">
+                        Total: <img src="/dirham.svg" alt="AED" className="w-3 h-3" />{pkg.total_price.toLocaleString()} for {pkg.people_count} people
                     </p>
 
                     {/* Controls */}
@@ -712,13 +713,14 @@ export default function PackageDetailsPage() {
 
                     <div className="mt-4 font-semibold">
                         Total Cost
-                        <div className="text-lg">
-                            AED {guests > 0 && guests !== pkg.people_count 
+                        <div className="text-lg flex items-center gap-1">
+                            <img src="/dirham.svg" alt="AED" className="w-5 h-5" />
+                            {guests > 0 && guests !== pkg.people_count 
                                 ? (pkg.total_price * (guests / pkg.people_count)).toLocaleString(undefined, { maximumFractionDigits: 2 })
                                 : pkg.total_price.toLocaleString()}
                         </div>
-                        <div className="text-sm text-gray-500 font-normal">
-                            ({guests > 0 ? guests : pkg.people_count} {guests === 1 ? 'person' : 'people'} × AED {pkg.price_per_person.toLocaleString()}/person)
+                        <div className="text-sm text-gray-500 font-normal flex items-center gap-1">
+                            ({guests > 0 ? guests : pkg.people_count} {guests === 1 ? 'person' : 'people'} × <img src="/dirham.svg" alt="AED" className="w-3 h-3" />{pkg.price_per_person.toLocaleString()}/person)
                         </div>
                     </div>
 

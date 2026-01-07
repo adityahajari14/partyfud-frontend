@@ -48,6 +48,7 @@ interface CatererInfo {
   service_area: string | null;
   minimum_guests: number | null;
   maximum_guests: number | null;
+  preparation_time: number | null;
   region: string | null;
   delivery_only: boolean;
   delivery_plus_setup: boolean;
@@ -301,6 +302,12 @@ export default function CatererDetailPage() {
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Maximum Guests</label>
                 <p className="text-gray-900 font-medium text-lg">{catererInfo.maximum_guests || <span className="text-gray-400">N/A</span>}</p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Preparation Time</label>
+                <p className="text-gray-900 font-medium text-lg">
+                  {catererInfo.preparation_time ? `${catererInfo.preparation_time} hours` : <span className="text-gray-400">N/A</span>}
+                </p>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Staff Count</label>

@@ -197,7 +197,7 @@ export default function DishDetailsPage() {
                             <div className="border-t pt-6 mt-6">
                                 <div className="flex items-baseline justify-between mb-6">
                                     <div>
-                                        <p className="text-sm text-gray-500 mb-1">Price</p>
+                                        <p className="text-sm text-gray-500 mb-1">Price per Person</p>
                                         <p className="text-4xl font-bold text-gray-900">
                                             {currency} {dish.price.toLocaleString()}
                                         </p>

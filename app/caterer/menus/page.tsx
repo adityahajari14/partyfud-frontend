@@ -371,7 +371,10 @@ export default function MenusPage() {
             </div>
           ) : dishes.length === 0 ? (
             <div className="bg-white rounded-lg shadow p-12 text-center">
-              <p className="text-gray-700">No dishes found. Create your first dish to get started.</p>
+              <p className="text-gray-700 mb-4">No dishes found. Create your first dish to get started.</p>
+              <Button onClick={() => setIsCreateModalOpen(true)} variant="primary">
+                Create Dish
+              </Button>
             </div>
           ) : Array.isArray(dishes) && dishes.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
@@ -396,9 +399,10 @@ export default function MenusPage() {
                       >
                         {dish.is_active ? 'Available' : 'Unavailable'}
                       </span>
-                      <div className="text-right">
+                      <div className="text-right flex items-center justify-end gap-1">
+                        <img src="/dirham.svg" alt="AED" className="w-3 h-3 md:w-4 md:h-4" />
                         <p className="text-xs md:text-base font-bold text-gray-900 whitespace-nowrap">
-                          {dish.currency} {typeof dish.price === 'number' ? dish.price.toFixed(2) : parseFloat(dish.price || '0').toFixed(2)}
+                          {typeof dish.price === 'number' ? dish.price.toFixed(2) : parseFloat(dish.price || '0').toFixed(2)}/person
                         </p>
                       </div>
                     </div>
@@ -434,227 +438,260 @@ export default function MenusPage() {
         </div>
       </main>
 
-      {/* Create Modal */}
-      <Modal
-        isOpen={isCreateModalOpen}
-        onClose={() => {
-          setIsCreateModalOpen(false);
-          setCreateFormData({
-            name: '',
-            cuisine_type_id: '',
-            category_id: '',
-            sub_category_id: '',
-            price: 0,
-            currency: 'AED',
-            is_active: true,
-          });
-          setSelectedImage(null);
-          setImagePreview('/default_dish.jpg');
-          setSelectedFreeForms([]);
-          setSubCategories([{ value: '', label: 'Select Sub-Category' }]);
-          setSelectedCategoryHasSubCategories(true);
-          setLoadingSubCategories(false);
-          setCreateFormErrors({});
-        }}
-        title="Create a Item"
-        size="lg"
-      >
-        {createFormErrors.general && (
-          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {createFormErrors.general}
-          </div>
-        )}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Left Side - Image Upload */}
-          <div className="space-y-4">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 aspect-square bg-gray-50">
-              <img
-                src={imagePreview}
-                alt="Dish Preview"
-                className="w-full h-full object-cover rounded-lg"
-              />
-            </div>
-
-            <label className="flex items-center justify-center w-full px-4 py-2 bg-[#268700] text-white rounded-lg cursor-pointer hover:bg-[#1f6b00] transition-colors">
-              <svg
-                className="w-5 h-5 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                />
-              </svg>
-              Upload Image
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-            </label>
-          </div>
-
-          {/* Right Side - Form Fields */}
-          <div className="space-y-4">
-            <Input
-              label="Name of the Dish"
-              value={createFormData.name}
-              onChange={(e) => setCreateFormData({ ...createFormData, name: e.target.value })}
-              placeholder="Enter Name"
-            />
-            <Select
-              label="Cuisine Type"
-              options={cuisineTypes}
-              value={createFormData.cuisine_type_id}
-              onChange={(e) => setCreateFormData({ ...createFormData, cuisine_type_id: e.target.value })}
-              placeholder="Select Cuisine Type"
-            />
-            <Select
-              label="Category"
-              options={categories}
-              value={createFormData.category_id}
-              onChange={(e) => {
+      {/* Create Modal - Full Screen */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
+          {/* Header */}
+          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+            <h2 className="text-2xl font-bold text-gray-900">Create Menu Item</h2>
+            <button
+              onClick={() => {
+                setIsCreateModalOpen(false);
                 setCreateFormData({
-                  ...createFormData,
-                  category_id: e.target.value,
-                  sub_category_id: '', // Reset subcategory when category changes
+                  name: '',
+                  cuisine_type_id: '',
+                  category_id: '',
+                  sub_category_id: '',
+                  price: 0,
+                  currency: 'AED',
+                  is_active: true,
                 });
+                setSelectedImage(null);
+                setImagePreview('/default_dish.jpg');
+                setSelectedFreeForms([]);
+                setSubCategories([{ value: '', label: 'Select Sub-Category' }]);
+                setSelectedCategoryHasSubCategories(true);
+                setLoadingSubCategories(false);
+                setCreateFormErrors({});
               }}
-              placeholder="Select Category"
-            />
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Free Form
-              </label>
-              <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-3">
-                {freeForms.map((freeForm) => (
-                  <label
-                    key={freeForm.id}
-                    className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedFreeForms.includes(freeForm.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedFreeForms([...selectedFreeForms, freeForm.id]);
-                        } else {
-                          setSelectedFreeForms(selectedFreeForms.filter(id => id !== freeForm.id));
-                        }
-                      }}
-                      className="w-4 h-4 text-[#268700] border-gray-300 rounded focus:ring-[#268700]"
-                    />
-                    <span className="text-sm text-gray-800">{freeForm.name}</span>
-                  </label>
-                ))}
-                {freeForms.length === 0 && (
-                  <p className="text-sm text-gray-600 col-span-2">No free forms available</p>
-                )}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="max-w-4xl mx-auto px-6 py-8">
+            {createFormErrors.general && (
+              <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                {createFormErrors.general}
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sub-Category
-                {!selectedCategoryHasSubCategories && (
-                  <span className="ml-2 text-xs text-gray-600 font-normal">
-                    (Optional - This category has no subcategories)
-                  </span>
-                )}
-              </label>
-              {loadingSubCategories ? (
-                <div className="flex items-center gap-2 p-2 border border-gray-300 rounded-lg bg-gray-50">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#268700]"></div>
-                  <span className="text-sm text-gray-700">Loading subcategories...</span>
+            )}
+
+            <div className="space-y-6">
+              {/* Form Fields - Priority */}
+              <div className="space-y-4">
+                <Input
+                  label="Name of the Dish *"
+                  value={createFormData.name}
+                  onChange={(e) => setCreateFormData({ ...createFormData, name: e.target.value })}
+                  placeholder="Enter dish name"
+                />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Select
+                    label="Cuisine Type *"
+                    options={cuisineTypes}
+                    value={createFormData.cuisine_type_id}
+                    onChange={(e) => setCreateFormData({ ...createFormData, cuisine_type_id: e.target.value })}
+                    placeholder="Select Cuisine Type"
+                  />
+                  <Select
+                    label="Category *"
+                    options={categories}
+                    value={createFormData.category_id}
+                    onChange={(e) => {
+                      setCreateFormData({
+                        ...createFormData,
+                        category_id: e.target.value,
+                        sub_category_id: '', // Reset subcategory when category changes
+                      });
+                    }}
+                    placeholder="Select Category"
+                  />
                 </div>
-              ) : (
-                <Select
-                  options={subCategories}
-                  value={createFormData.sub_category_id || ''}
-                  onChange={(e) => setCreateFormData({ ...createFormData, sub_category_id: e.target.value })}
-                  placeholder={selectedCategoryHasSubCategories ? "Select Sub-Category" : "No subcategories"}
-                  disabled={!createFormData.category_id || !selectedCategoryHasSubCategories}
-                />
-              )}
-              {!createFormData.category_id && (
-                <p className="mt-1 text-xs text-gray-600">Please select a category first</p>
-              )}
-              {createFormData.category_id && !selectedCategoryHasSubCategories && (
-                <p className="mt-1 text-xs text-blue-600">
-                  This category doesn't have subcategories. You can proceed without selecting one.
-                </p>
-              )}
-            </div>
-            <Input
-              label="Quantity (gm)"
-              type="number"
-              value={formData.quantity_in_gm || ''}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  quantity_in_gm: e.target.value || undefined, // ✅ STRING
-                })
-              }
-              placeholder="Enter Quantity in gm"
-            />
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Price
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700">AED</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={createFormData.price || ''}
-                  onChange={(e) => setCreateFormData({ ...createFormData, price: parseFloat(e.target.value) || 0 })}
-                  placeholder="Enter Price"
-                  className="w-full pl-12 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#268700]"
-                />
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Sub-Category
+                    {!selectedCategoryHasSubCategories && (
+                      <span className="ml-2 text-xs text-gray-600 font-normal">
+                        (Optional - This category has no subcategories)
+                      </span>
+                    )}
+                  </label>
+                  {loadingSubCategories ? (
+                    <div className="flex items-center gap-2 p-2 border border-gray-300 rounded-lg bg-gray-50">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#268700]"></div>
+                      <span className="text-sm text-gray-700">Loading subcategories...</span>
+                    </div>
+                  ) : (
+                    <Select
+                      options={subCategories}
+                      value={createFormData.sub_category_id || ''}
+                      onChange={(e) => setCreateFormData({ ...createFormData, sub_category_id: e.target.value })}
+                      placeholder={selectedCategoryHasSubCategories ? "Select Sub-Category" : "No subcategories"}
+                      disabled={!createFormData.category_id || !selectedCategoryHasSubCategories}
+                    />
+                  )}
+                  {!createFormData.category_id && (
+                    <p className="mt-1 text-xs text-gray-600">Please select a category first</p>
+                  )}
+                  {createFormData.category_id && !selectedCategoryHasSubCategories && (
+                    <p className="mt-1 text-xs text-blue-600">
+                      This category doesn't have subcategories. You can proceed without selecting one.
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Quantity (gm)"
+                    type="number"
+                    value={createFormData.quantity_in_gm || ''}
+                    onChange={(e) =>
+                      setCreateFormData({
+                        ...createFormData,
+                        quantity_in_gm: e.target.value || undefined,
+                      })
+                    }
+                    placeholder="Enter quantity in grams"
+                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Price *
+                    </label>
+                    <div className="relative">
+                      <img src="/dirham.svg" alt="AED" className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5" />
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={createFormData.price || ''}
+                        onChange={(e) => setCreateFormData({ ...createFormData, price: parseFloat(e.target.value) || 0 })}
+                        placeholder="0.00"
+                        className="w-full pl-12 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#268700]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Dietary Information
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 border border-gray-300 rounded-lg p-4 bg-gray-50">
+                    {freeForms.map((freeForm) => (
+                      <label
+                        key={freeForm.id}
+                        className="flex items-center gap-2 cursor-pointer hover:bg-white p-2 rounded transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedFreeForms.includes(freeForm.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedFreeForms([...selectedFreeForms, freeForm.id]);
+                            } else {
+                              setSelectedFreeForms(selectedFreeForms.filter(id => id !== freeForm.id));
+                            }
+                          }}
+                          className="w-4 h-4 text-[#268700] border-gray-300 rounded focus:ring-[#268700]"
+                        />
+                        <span className="text-sm text-gray-800">{freeForm.name}</span>
+                      </label>
+                    ))}
+                    {freeForms.length === 0 && (
+                      <p className="text-sm text-gray-600 col-span-2">No dietary options available</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Image Upload - Secondary */}
+              <div className="border-t border-gray-200 pt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Dish Image (Optional)
+                </label>
+                <div className="flex items-start gap-4">
+                  <div className="w-48 h-48 border-2 border-dashed border-gray-300 rounded-lg overflow-hidden bg-gray-50 flex-shrink-0">
+                    <img
+                      src={imagePreview}
+                      alt="Dish Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="inline-flex items-center px-4 py-2 bg-[#268700] text-white rounded-lg cursor-pointer hover:bg-[#1f6b00] transition-colors">
+                      <svg
+                        className="w-5 h-5 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
+                      </svg>
+                      Choose Image
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                    </label>
+                    <p className="mt-2 text-sm text-gray-600">
+                      Upload a high-quality image of your dish. Recommended size: 800x600px
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-4 pt-6 border-t border-gray-200 sticky bottom-0 bg-white pb-4">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setIsCreateModalOpen(false);
+                    setCreateFormData({
+                      name: '',
+                      cuisine_type_id: '',
+                      category_id: '',
+                      sub_category_id: '',
+                      price: 0,
+                      currency: 'AED',
+                      is_active: true,
+                    });
+                    setSelectedImage(null);
+                    setImagePreview('/default_dish.jpg');
+                    setSelectedFreeForms([]);
+                    setSubCategories([{ value: '', label: 'Select Sub-Category' }]);
+                    setSelectedCategoryHasSubCategories(true);
+                    setLoadingSubCategories(false);
+                    setCreateFormErrors({});
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  className="flex-1"
+                  onClick={handleCreate}
+                  isLoading={isCreating}
+                >
+                  Create Menu Item
+                </Button>
               </div>
             </div>
           </div>
         </div>
-        <div className="flex gap-4 mt-6">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={() => {
-              setIsCreateModalOpen(false);
-              setCreateFormData({
-                name: '',
-                cuisine_type_id: '',
-                category_id: '',
-                sub_category_id: '',
-                price: 0,
-                currency: 'AED',
-                is_active: true,
-              });
-              setSelectedImage(null);
-              setImagePreview('/default_dish.jpg');
-              setSelectedFreeForms([]);
-              setSubCategories([{ value: '', label: 'Select Sub-Category' }]);
-              setSelectedCategoryHasSubCategories(true);
-              setLoadingSubCategories(false);
-              setCreateFormErrors({});
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            className="flex-1"
-            onClick={handleCreate}
-            isLoading={isCreating}
-          >
-            Upload
-          </Button>
-        </div>
-      </Modal>
+      )}
 
       {/* Edit Modal */}
       <Modal

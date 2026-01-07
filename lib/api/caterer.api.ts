@@ -604,5 +604,56 @@ export const catererApi = {
       body: JSON.stringify({ status }),
     });
   },
-};
 
+  // Get caterer info for the authenticated caterer
+  getCatererInfo: async () => {
+    return apiRequest<{
+      id: string;
+      business_name: string;
+      business_type: string;
+      business_description: string | null;
+      service_area: string | null;
+      minimum_guests: number | null;
+      maximum_guests: number | null;
+      preparation_time: number | null;
+      region: string | null;
+      delivery_only: boolean;
+      delivery_plus_setup: boolean;
+      full_service: boolean;
+      staff: number | null;
+      servers: number | null;
+      food_license: string | null;
+      Registration: string | null;
+      status: string;
+      created_at: string;
+      updated_at: string;
+    }>(`/api/caterer/info`);
+  },
+
+  // Update caterer info for the authenticated caterer
+  updateCatererInfo: async (data: FormData) => {
+    const token = getAuthToken();
+    const response = await fetch(`${API_BASE_URL}/api/auth/caterer-info`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: data,
+    });
+
+    const responseData = await response.json();
+    
+    if (!response.ok) {
+      return {
+        data: null,
+        error: responseData.error?.message || 'Failed to update caterer info',
+        status: response.status,
+      };
+    }
+
+    return {
+      data: responseData,
+      error: null,
+      status: response.status,
+    };
+  },};

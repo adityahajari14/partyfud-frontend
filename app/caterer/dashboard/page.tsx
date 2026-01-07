@@ -208,8 +208,21 @@ export default function CatererDashboard() {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-            <p className="text-gray-600">Welcome to your catering dashboard</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+                <p className="text-gray-600">Welcome to your catering dashboard</p>
+              </div>
+              <button
+                onClick={() => router.push('/caterer/profile')}
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit Profile
+              </button>
+            </div>
           </div>
 
           {/* Stats Grid */}
@@ -254,8 +267,8 @@ export default function CatererDashboard() {
             />
             <StatCard
               title="Revenue Potential"
-              value={`${stats?.financial.currency || 'AED'} ${(stats?.financial.totalRevenuePotential || 0).toLocaleString()}`}
-              subtitle={`Avg: ${stats?.financial.currency || 'AED'} ${(stats?.financial.averagePackagePrice || 0).toFixed(2)}`}
+              value={<span className="flex items-center gap-1"><img src="/dirham.svg" alt="AED" className="w-5 h-5" />{(stats?.financial.totalRevenuePotential || 0).toLocaleString()}</span>}
+              subtitle={<span className="flex items-center gap-1">Avg: <img src="/dirham.svg" alt="AED" className="w-3 h-3" />{(stats?.financial.averagePackagePrice || 0).toFixed(2)}</span>}
               icon={
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -312,8 +325,9 @@ export default function CatererDashboard() {
                   {/* Tooltip */}
                   <g transform="translate(310,100)">
                     <rect width="90" height="26" rx="6" fill="#e8f5e0" />
-                    <text x="8" y="17" fontSize="12" fill="#1a5a00">
-                      AED 12,657
+                    <image x="8" y="8" width="12" height="12" href="/dirham.svg" />
+                    <text x="24" y="17" fontSize="12" fill="#1a5a00">
+                      12,657
                     </text>
                   </g>
                 </svg>

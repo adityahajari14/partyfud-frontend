@@ -306,8 +306,9 @@ export default function CartPage() {
                                 <div className="space-y-4 mb-6">
                                     <div className="flex justify-between text-gray-600">
                                         <span>Subtotal ({cartItems.length} {cartItems.length === 1 ? 'item' : 'items'})</span>
-                                        <span className="font-medium text-gray-900">
-                                            AED {calculateTotal().toLocaleString()}
+                                        <span className="font-medium text-gray-900 flex items-center gap-1">
+                                            <img src="/dirham.svg" alt="AED" className="w-4 h-4" />
+                                            {calculateTotal().toLocaleString()}
                                         </span>
                                     </div>
                                     <div className="flex justify-between text-gray-600">
@@ -316,8 +317,9 @@ export default function CartPage() {
                                     </div>
                                     <div className="border-t border-gray-200 pt-4 flex justify-between">
                                         <span className="text-lg font-semibold text-gray-900">Total</span>
-                                        <span className="text-lg font-bold text-[#268700]">
-                                            AED {calculateTotal().toLocaleString()}
+                                        <span className="text-lg font-bold text-[#268700] flex items-center gap-1">
+                                            <img src="/dirham.svg" alt="AED" className="w-5 h-5" />
+                                            {calculateTotal().toLocaleString()}
                                         </span>
                                     </div>
                                 </div>

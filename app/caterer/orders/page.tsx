@@ -614,7 +614,7 @@ export default function CatererOrdersPage() {
                                 </div>
                                 <div className="text-right">
                                   <p className="text-sm font-medium text-gray-900">
-                                    AED {packageItem.dish.price.toLocaleString()}
+                                    AED {packageItem.dish.price.toLocaleString()}/person
                                   </p>
                                   {packageItem.quantity > 1 && (
                                     <p className="text-xs text-gray-500">

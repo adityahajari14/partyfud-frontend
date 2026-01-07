@@ -156,7 +156,7 @@ export default function BrowseCaterersPage() {
                   onChange={(e) => setBudget(Number(e.target.value))}
                   className="w-full mt-2 accent-[#268700]"
                 />
-                <p className="text-sm text-gray-600 mt-2">AED 100 – AED {budget}</p>
+                <p className="text-sm text-gray-600 mt-2 flex items-center gap-1"><img src="/dirham.svg" alt="AED" className="w-3 h-3" />100 – <img src="/dirham.svg" alt="AED" className="w-3 h-3" />{budget}</p>
               </div>
 
               <div>
