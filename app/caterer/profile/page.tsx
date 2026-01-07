@@ -100,8 +100,9 @@ export default function CatererProfilePage() {
                 return;
             }
 
-            if (response.data?.success && response.data.data) {
-                const info = response.data.data;
+            if (response.data) {
+                const apiResponse = response.data as any;
+                const info = apiResponse.success ? apiResponse.data : apiResponse;
                 setFormData({
                     business_name: info.business_name || '',
                     business_type: info.business_type || '',

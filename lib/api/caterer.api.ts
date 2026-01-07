@@ -67,12 +67,11 @@ export interface Package {
 export interface CreatePackageRequest {
   name: string;
   people_count: number;
-  package_type_id: string;
   cover_image_url?: string;
   total_price: number;
   currency?: string;
   // rating?: number;
-  occassion:string;
+  occassion: string[];
   is_active?: boolean;
   is_available?: boolean;
   package_item_ids?: string[];
@@ -81,7 +80,6 @@ export interface CreatePackageRequest {
 export interface UpdatePackageRequest {
   name?: string;
   people_count?: number;
-  package_type_id?: string;
   cover_image_url?: string;
   total_price?: number;
   currency?: string;
@@ -265,13 +263,12 @@ export const catererApi = {
     // Add other fields
     formData.append('name', data.name);
     formData.append('people_count', data.people_count.toString());
-    formData.append('package_type_id', data.package_type_id);
     formData.append('total_price', data.total_price.toString());
     if (data.currency) {
       formData.append('currency', data.currency);
     }
     if (data.occassion !== undefined) {
-      formData.append('occassion', data.occassion);
+      formData.append('occassion', JSON.stringify(data.occassion));
     }
     if (data.is_active !== undefined) {
       formData.append('is_active', data.is_active.toString());
