@@ -293,7 +293,9 @@ export default function PackagesPage() {
 
                     {/* Price Range */}
                     <div className="mb-4">
-                        <label className="text-sm text-gray-500 mb-2 block">Max Price (AED)</label>
+                        <label className="text-sm text-gray-500 mb-2 block flex items-center gap-1">
+                            Max Price (<img src="/dirham.svg" alt="AED" className="w-3 h-3 inline" />)
+                        </label>
                         <input
                             type="range"
                             min={1000}
@@ -304,14 +306,16 @@ export default function PackagesPage() {
                             className="w-full mt-2"
                         />
                         <div className="flex justify-between text-xs text-gray-500 mt-1">
-                            <span>AED 1,000</span>
-                            <span>AED {maxPrice.toLocaleString()}</span>
+                            <span className="flex items-center gap-1"><img src="/dirham.svg" alt="AED" className="w-3 h-3" />1,000</span>
+                            <span className="flex items-center gap-1"><img src="/dirham.svg" alt="AED" className="w-3 h-3" />{maxPrice.toLocaleString()}</span>
                         </div>
                     </div>
 
                     {/* Min Price */}
                     <div className="mb-4">
-                        <label className="text-sm text-gray-500 mb-2 block">Min Price (AED)</label>
+                        <label className="text-sm text-gray-500 mb-2 block flex items-center gap-1">
+                            Min Price (<img src="/dirham.svg" alt="AED" className="w-3 h-3 inline" />)
+                        </label>
                         <input
                             type="number"
                             value={minPrice}
@@ -517,8 +521,9 @@ export default function PackagesPage() {
 
                                         <h4 className="mt-3 font-medium">{pkg.title}</h4>
                                         <p className="text-sm text-gray-500">{pkg.caterer}</p>
-                                        <p className="mt-2 font-semibold">
-                                            AED {pkg.price.toLocaleString()}
+                                        <p className="mt-2 font-semibold flex items-center gap-1">
+                                            <img src="/dirham.svg" alt="AED" className="w-4 h-4" />
+                                            {pkg.price.toLocaleString()}
                                         </p>
                                     </Link>
                                 ))}

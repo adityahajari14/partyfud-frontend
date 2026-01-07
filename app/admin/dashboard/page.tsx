@@ -14,15 +14,35 @@ interface AdminStats {
     approvedCaterers: number;
     rejectedCaterers: number;
     blockedCaterers: number;
-    revenueByCity: { city: string; revenue: number }[];
-    ordersByCuisine: { cuisine: string; orders: number; color: string }[];
-    demandHotspots: { location: string; orders: number }[];
+    ordersAndGMV: Array<{
+        month: string;
+        year: number;
+        orders: number;
+        gmv: number;
+        estimate: number;
+    }>;
+    ordersByCuisine: Array<{
+        cuisine: string;
+        orders: number;
+        percentage: string;
+        color: string;
+    }>;
+    avgRating: number;
+    cancellationRate: number;
+    refundRate: number;
 }
 
 export default function AdminDashboard() {
     const router = useRouter();
     const [stats, setStats] = useState<AdminStats | null>(null);
     const [loading, setLoading] = useState(true);
+    const [hoveredPoint, setHoveredPoint] = useState<{
+        x: number;
+        y: number;
+        value: number;
+        month: string;
+        type: 'orders' | 'estimate';
+    } | null>(null);
 
     useEffect(() => {
         fetchDashboardStats();
@@ -31,52 +51,10 @@ export default function AdminDashboard() {
     const fetchDashboardStats = async () => {
         setLoading(true);
         try {
-            // Fetch all caterer info
-            const response = await adminApi.getCatererInfo();
+            const response = await adminApi.getDashboardStats();
             
             if (response.data && response.data.data) {
-                const caterers = response.data.data;
-                
-                // Calculate stats from caterer data
-                const pending = caterers.filter(c => c.status === 'PENDING').length;
-                const approved = caterers.filter(c => c.status === 'APPROVED').length;
-                const rejected = caterers.filter(c => c.status === 'REJECTED').length;
-                const blocked = caterers.filter(c => c.status === 'BLOCKED').length;
-                
-                // Group by region
-                const regionCounts: { [key: string]: number } = {};
-                caterers.forEach(c => {
-                    const region = c.region || 'Unknown';
-                    regionCounts[region] = (regionCounts[region] || 0) + 1;
-                });
-                
-                const revenueByCity = Object.entries(regionCounts)
-                    .map(([city, count]) => ({ city, revenue: count }))
-                    .sort((a, b) => b.revenue - a.revenue)
-                    .slice(0, 5);
-                
-                // Mock data for charts (since backend doesn't provide order data for admin)
-                setStats({
-                    totalOrders: approved * 5, // Estimate: 5 orders per approved caterer
-                    platformRevenue: approved * 25000, // Estimate: 25K per caterer
-                    activeCaterers: approved,
-                    avgOrderValue: 23,
-                    pendingCaterers: pending,
-                    approvedCaterers: approved,
-                    rejectedCaterers: rejected,
-                    blockedCaterers: blocked,
-                    revenueByCity,
-                    ordersByCuisine: [
-                        { cuisine: 'Arabic', orders: 45, color: 'bg-green-600' },
-                        { cuisine: 'Spanish', orders: 30, color: 'bg-lime-400' },
-                        { cuisine: 'Mandarin', orders: 15, color: 'bg-yellow-400' },
-                        { cuisine: 'Swahili', orders: 10, color: 'bg-gray-300' },
-                    ],
-                    demandHotspots: revenueByCity.slice(0, 3).map(r => ({
-                        location: r.city,
-                        orders: r.revenue * 10
-                    }))
-                });
+                setStats(response.data.data);
             }
         } catch (error) {
             console.error('Error fetching dashboard stats:', error);
@@ -196,7 +174,10 @@ export default function AdminDashboard() {
                         </div>
                         <div className="bg-white rounded-xl p-4 shadow-sm border">
                             <p className="text-sm text-gray-500">Platform Revenue</p>
-                            <p className="text-2xl font-bold">AED {((stats?.platformRevenue || 0) / 1000).toFixed(0)}K</p>
+                            <p className="text-2xl font-bold flex items-center gap-1">
+                                <img src="/dirham.svg" alt="AED" className="w-5 h-5" />
+                                {((stats?.platformRevenue || 0) / 1000).toFixed(0)}K
+                            </p>
                             <p className="text-xs mt-1 text-green-600">Estimated</p>
                         </div>
                         <div className="bg-white rounded-xl p-4 shadow-sm border">
@@ -206,7 +187,10 @@ export default function AdminDashboard() {
                         </div>
                         <div className="bg-white rounded-xl p-4 shadow-sm border">
                             <p className="text-sm text-gray-500">Avg. Order Value</p>
-                            <p className="text-2xl font-bold">AED {stats?.avgOrderValue || '0'}</p>
+                            <p className="text-2xl font-bold flex items-center gap-1">
+                                <img src="/dirham.svg" alt="AED" className="w-5 h-5" />
+                                {stats?.avgOrderValue || '0'}
+                            </p>
                             <p className="text-xs mt-1 text-gray-600">Estimated</p>
                         </div>
                     </div>
@@ -217,107 +201,439 @@ export default function AdminDashboard() {
                         {/* Orders & GMV */}
                         <div className="bg-white rounded-xl p-5 border shadow-sm">
                             <h3 className="font-semibold mb-3">Orders & GMV Trends</h3>
-                            <svg viewBox="0 0 500 200" className="w-full h-48">
-                                <path
-                                    d="M0,150 C80,90 120,100 180,70 240,40 300,50 360,120 420,150 460,130 500,110"
-                                    fill="none"
-                                    stroke="#268700"
-                                    strokeWidth="3"
-                                />
-                                <circle cx="300" cy="120" r="5" fill="#268700" />
-                                <line
-                                    x1="300"
-                                    y1="0"
-                                    x2="300"
-                                    y2="200"
-                                    stroke="#268700"
-                                    strokeDasharray="4"
-                                />
-                            </svg>
-                            <p className="text-xs text-green-700 bg-green-100 inline-block px-2 py-1 rounded">
-                                AED 12,657
-                            </p>
+                            <div className="relative">
+                                <svg 
+                                    viewBox="0 0 800 280" 
+                                    className="w-full h-64"
+                                    onMouseMove={(e) => {
+                                        const svg = e.currentTarget;
+                                        const rect = svg.getBoundingClientRect();
+                                        const x = ((e.clientX - rect.left) / rect.width) * 800;
+                                        const y = ((e.clientY - rect.top) / rect.height) * 280;
+                                        
+                                        if (!stats?.ordersAndGMV) return;
+                                        
+                                        const ordersAndGMV = stats.ordersAndGMV;
+                                        const maxValue = Math.max(...ordersAndGMV.map(d => d.estimate));
+                                        
+                                        // Find closest data point
+                                        let closestDist = Infinity;
+                                        let closestData: typeof hoveredPoint = null;
+                                        
+                                        ordersAndGMV.forEach((data, i) => {
+                                            const px = 70 + (i * 58);
+                                            const py = 220 - ((data.gmv / maxValue) * 180);
+                                            const dist = Math.sqrt((x - px) ** 2 + (y - py) ** 2);
+                                            
+                                            if (dist < 25 && dist < closestDist) {
+                                                closestDist = dist;
+                                                closestData = {
+                                                    x: px,
+                                                    y: py,
+                                                    value: data.gmv,
+                                                    month: data.month,
+                                                    type: 'orders'
+                                                };
+                                            }
+                                            
+                                            const epy = 220 - ((data.estimate / maxValue) * 180);
+                                            const edist = Math.sqrt((x - px) ** 2 + (y - epy) ** 2);
+                                            
+                                            if (edist < 25 && edist < closestDist) {
+                                                closestDist = edist;
+                                                closestData = {
+                                                    x: px,
+                                                    y: epy,
+                                                    value: data.estimate,
+                                                    month: data.month,
+                                                    type: 'estimate'
+                                                };
+                                            }
+                                        });
+                                        
+                                        setHoveredPoint(closestData);
+                                    }}
+                                    onMouseLeave={() => setHoveredPoint(null)}
+                                >
+                                    {/* Grid lines */}
+                                    {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+                                        <line
+                                            key={i}
+                                            x1="60"
+                                            y1={40 + i * 30}
+                                            x2="780"
+                                            y2={40 + i * 30}
+                                            stroke="#f3f4f6"
+                                            strokeWidth="1"
+                                        />
+                                    ))}
+                                    
+                                    {/* Y-axis labels */}
+                                    <image x="5" y="17" width="16" height="16" href="/dirham.svg" />
+                                    {stats?.ordersAndGMV && (() => {
+                                        const maxValue = Math.max(...stats.ordersAndGMV.map(d => d.estimate));
+                                        return [6, 5, 4, 3, 2, 1, 0].map((i) => (
+                                            <text
+                                                key={i}
+                                                x="40"
+                                                y={45 + (6 - i) * 30}
+                                                fontSize="10"
+                                                fill="#9ca3af"
+                                                textAnchor="end"
+                                            >
+                                                {((maxValue * i) / 6 / 1000).toFixed(0)}K
+                                            </text>
+                                        ));
+                                    })()}
+                                    
+                                    {/* Data lines - 12 months */}
+                                    {stats?.ordersAndGMV && (() => {
+                                        const ordersAndGMV = stats.ordersAndGMV;
+                                        const maxValue = Math.max(...ordersAndGMV.map(d => d.estimate));
+                                        
+                                        const createPoints = (values: number[]) => values.map((val, i) => {
+                                            const x = 70 + (i * 58);
+                                            const y = 220 - ((val / maxValue) * 180);
+                                            return { x, y, val };
+                                        });
+                                        
+                                        const ordersPoints = createPoints(ordersAndGMV.map(d => d.gmv));
+                                        const estimatePoints = createPoints(ordersAndGMV.map(d => d.estimate));
+                                        
+                                        const createSmoothPath = (points: typeof ordersPoints) => {
+                                            return points.map((point, i) => {
+                                                if (i === 0) return `M ${point.x},${point.y}`;
+                                                const prev = points[i - 1];
+                                                const cpx1 = prev.x + (point.x - prev.x) / 2;
+                                                return `C ${cpx1},${prev.y} ${cpx1},${point.y} ${point.x},${point.y}`;
+                                            }).join(' ');
+                                        };
+                                        
+                                        const ordersPath = createSmoothPath(ordersPoints);
+                                        const estimatePath = createSmoothPath(estimatePoints);
+                                        
+                                        // Current month (last month in data)
+                                        const currentMonthIndex = ordersAndGMV.length - 1;
+                                        const currentPoint = ordersPoints[currentMonthIndex];
+                                        
+                                        return (
+                                            <>
+                                                {/* Gradient fills */}
+                                                <defs>
+                                                    <linearGradient id="ordersGradient" x1="0" x2="0" y1="0" y2="1">
+                                                        <stop offset="0%" stopColor="#22c55e" stopOpacity="0.15" />
+                                                        <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
+                                                    </linearGradient>
+                                                    <linearGradient id="estimateGradient" x1="0" x2="0" y1="0" y2="1">
+                                                        <stop offset="0%" stopColor="#86efac" stopOpacity="0.1" />
+                                                        <stop offset="100%" stopColor="#86efac" stopOpacity="0" />
+                                                    </linearGradient>
+                                                </defs>
+                                                
+                                                {/* Estimate line (lighter green, background) */}
+                                                <path
+                                                    d={`${estimatePath} L ${estimatePoints[estimatePoints.length - 1].x},220 L ${estimatePoints[0].x},220 Z`}
+                                                    fill="url(#estimateGradient)"
+                                                />
+                                                <path
+                                                    d={estimatePath}
+                                                    fill="none"
+                                                    stroke="#86efac"
+                                                    strokeWidth="2.5"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                />
+                                                
+                                                {/* Orders line (darker green, foreground) */}
+                                                <path
+                                                    d={`${ordersPath} L ${ordersPoints[ordersPoints.length - 1].x},220 L ${ordersPoints[0].x},220 Z`}
+                                                    fill="url(#ordersGradient)"
+                                                />
+                                                <path
+                                                    d={ordersPath}
+                                                    fill="none"
+                                                    stroke="#22c55e"
+                                                    strokeWidth="2.5"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                />
+                                                
+                                                {/* X-axis labels */}
+                                                {ordersAndGMV.map((data, i) => (
+                                                    <text
+                                                        key={i}
+                                                        x={70 + (i * 58)}
+                                                        y="245"
+                                                        fontSize="10"
+                                                        fill="#9ca3af"
+                                                        textAnchor="middle"
+                                                    >
+                                                        {data.month}
+                                                    </text>
+                                                ))}
+                                                
+                                                {/* Highlight current month with vertical line */}
+                                                <line
+                                                    x1={currentPoint.x}
+                                                    y1="40"
+                                                    x2={currentPoint.x}
+                                                    y2="220"
+                                                    stroke="#9ca3af"
+                                                    strokeWidth="1"
+                                                    strokeDasharray="4 4"
+                                                    opacity="0.5"
+                                                />
+                                                
+                                                {/* Current value indicator */}
+                                                <circle
+                                                    cx={currentPoint.x}
+                                                    cy={currentPoint.y}
+                                                    r="5"
+                                                    fill="#22c55e"
+                                                />
+                                                <circle
+                                                    cx={currentPoint.x}
+                                                    cy={currentPoint.y}
+                                                    r="3"
+                                                    fill="white"
+                                                />
+                                                
+                                                {/* Value label */}
+                                                <rect
+                                                    x={currentPoint.x + 10}
+                                                    y={currentPoint.y - 12}
+                                                    width="90"
+                                                    height="20"
+                                                    rx="3"
+                                                    fill="white"
+                                                    stroke="#e5e7eb"
+                                                />
+                                                <image x={currentPoint.x + 13} y={currentPoint.y - 9} width="14" height="14" href="/dirham.svg" />
+                                                <text
+                                                    x={currentPoint.x + 30}
+                                                    y={currentPoint.y + 2}
+                                                    fontSize="11"
+                                                    fill="#22c55e"
+                                                    fontWeight="600"
+                                                >
+                                                    {(ordersAndGMV[currentMonthIndex].gmv).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </text>
+                                                
+                                                {/* Hover tooltip */}
+                                                {hoveredPoint && (
+                                                    <>
+                                                        <circle
+                                                            cx={hoveredPoint.x}
+                                                            cy={hoveredPoint.y}
+                                                            r="6"
+                                                            fill={hoveredPoint.type === 'orders' ? '#22c55e' : '#86efac'}
+                                                            opacity="0.5"
+                                                        />
+                                                        <circle
+                                                            cx={hoveredPoint.x}
+                                                            cy={hoveredPoint.y}
+                                                            r="4"
+                                                            fill={hoveredPoint.type === 'orders' ? '#22c55e' : '#86efac'}
+                                                        />
+                                                        <rect
+                                                            x={hoveredPoint.x - 60}
+                                                            y={hoveredPoint.y - 40}
+                                                            width="120"
+                                                            height="30"
+                                                            rx="5"
+                                                            fill="rgba(0, 0, 0, 0.8)"
+                                                        />
+                                                        <text
+                                                            x={hoveredPoint.x}
+                                                            y={hoveredPoint.y - 28}
+                                                            fontSize="10"
+                                                            fill="white"
+                                                            textAnchor="middle"
+                                                            fontWeight="600"
+                                                        >
+                                                            {hoveredPoint.month} - {hoveredPoint.type === 'orders' ? 'Orders' : 'Estimate'}
+                                                        </text>
+                                                        <g>
+                                                            <image x={hoveredPoint.x - 24} y={hoveredPoint.y - 23} width="14" height="14" href="/dirham.svg" />
+                                                            <text
+                                                                x={hoveredPoint.x - 6}
+                                                                y={hoveredPoint.y - 15}
+                                                                fontSize="11"
+                                                                fill="white"
+                                                                textAnchor="start"
+                                                                fontWeight="bold"
+                                                            >
+                                                                {hoveredPoint.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                            </text>
+                                                        </g>
+                                                    </>
+                                                )}
+                                            </>
+                                        );
+                                    })()}
+                                    
+                                    {/* X-axis label */}
+                                    <text x="420" y="270" fontSize="11" fill="#9ca3af" textAnchor="middle">Months</text>
+                                </svg>
+                            </div>
+                            
+                            {/* Legend */}
+                            <div className="flex items-center gap-6 mt-2 justify-center">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-4 h-4 bg-[#22c55e] rounded"></div>
+                                    <span className="text-sm text-gray-700">Orders</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-4 h-4 bg-[#86efac] rounded"></div>
+                                    <span className="text-sm text-gray-700">Estimate</span>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Orders by Cuisine */}
                         <div className="bg-white rounded-xl p-5 border shadow-sm">
-                            <div className="flex justify-between mb-4">
-                                <h3 className="font-semibold">Orders by Cuisine</h3>
-                                <select className="text-sm border rounded px-2 py-1">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-semibold text-gray-900">Orders by Cuisine</h3>
+                                <select className="text-sm border border-gray-300 rounded px-3 py-1 text-gray-700">
                                     <option>Monthly</option>
                                 </select>
                             </div>
 
-                            <div className="flex items-center gap-6">
-                                <div className="relative w-40 h-40">
-                                    <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                                        {stats?.ordersByCuisine && (() => {
+                            <div className="flex items-center justify-between gap-8">
+                                <div className="relative flex items-center justify-center flex-1">
+                                    <svg viewBox="0 0 200 200" className="w-64 h-64">
+                                        {stats?.ordersByCuisine && stats.ordersByCuisine.length > 0 && (() => {
                                             const total = stats.ordersByCuisine.reduce((sum, item) => sum + item.orders, 0);
                                             let currentAngle = 0;
-                                            const colors = ['#268700', '#84cc16', '#facc15', '#d1d5db'];
                                             
-                                            return stats.ordersByCuisine.map((item, idx) => {
-                                                const percentage = (item.orders / total) * 100;
-                                                const angle = (percentage / 100) * 360;
-                                                const startAngle = currentAngle;
-                                                currentAngle += angle;
-                                                
-                                                const x1 = 50 + 45 * Math.cos((startAngle * Math.PI) / 180);
-                                                const y1 = 50 + 45 * Math.sin((startAngle * Math.PI) / 180);
-                                                const x2 = 50 + 45 * Math.cos((currentAngle * Math.PI) / 180);
-                                                const y2 = 50 + 45 * Math.sin((currentAngle * Math.PI) / 180);
-                                                const largeArc = angle > 180 ? 1 : 0;
-                                                
-                                                return (
-                                                    <path
-                                                        key={idx}
-                                                        d={`M 50 50 L ${x1} ${y1} A 45 45 0 ${largeArc} 1 ${x2} ${y2} Z`}
-                                                        fill={colors[idx]}
-                                                    />
-                                                );
-                                            });
+                                            return (
+                                                <>
+                                                    {stats.ordersByCuisine.map((item, idx) => {
+                                                        const percentage = (item.orders / total) * 100;
+                                                        const angle = (percentage / 100) * 360;
+                                                        const startAngle = currentAngle;
+                                                        currentAngle += angle;
+                                                        
+                                                        // Outer arc coordinates
+                                                        const outerRadius = 85;
+                                                        const innerRadius = 50;
+                                                        
+                                                        const startRad = (startAngle - 90) * Math.PI / 180;
+                                                        const endRad = (currentAngle - 90) * Math.PI / 180;
+                                                        
+                                                        const x1 = 100 + outerRadius * Math.cos(startRad);
+                                                        const y1 = 100 + outerRadius * Math.sin(startRad);
+                                                        const x2 = 100 + outerRadius * Math.cos(endRad);
+                                                        const y2 = 100 + outerRadius * Math.sin(endRad);
+                                                        
+                                                        const x3 = 100 + innerRadius * Math.cos(endRad);
+                                                        const y3 = 100 + innerRadius * Math.sin(endRad);
+                                                        const x4 = 100 + innerRadius * Math.cos(startRad);
+                                                        const y4 = 100 + innerRadius * Math.sin(startRad);
+                                                        
+                                                        const largeArc = angle > 180 ? 1 : 0;
+                                                        
+                                                        // Calculate label position (middle of the arc)
+                                                        const midAngle = (startAngle + currentAngle) / 2 - 90;
+                                                        const midRad = midAngle * Math.PI / 180;
+                                                        const labelRadius = (outerRadius + innerRadius) / 2;
+                                                        const labelX = 100 + labelRadius * Math.cos(midRad);
+                                                        const labelY = 100 + labelRadius * Math.sin(midRad);
+                                                        
+                                                        return (
+                                                            <g key={idx}>
+                                                                <path
+                                                                    d={`M ${x1} ${y1} A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${x2} ${y2} L ${x3} ${y3} A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${x4} ${y4} Z`}
+                                                                    fill={item.color}
+                                                                />
+                                                                {percentage > 8 && (
+                                                                    <text
+                                                                        x={labelX}
+                                                                        y={labelY}
+                                                                        textAnchor="middle"
+                                                                        dominantBaseline="middle"
+                                                                        className="text-xs font-semibold fill-white"
+                                                                        style={{ fontSize: '10px' }}
+                                                                    >
+                                                                        {percentage.toFixed(1)}%
+                                                                    </text>
+                                                                )}
+                                                            </g>
+                                                        );
+                                                    })}
+                                                    
+                                                    {/* Center text */}
+                                                    <text
+                                                        x="100"
+                                                        y="100"
+                                                        textAnchor="middle"
+                                                        dominantBaseline="middle"
+                                                        className="text-sm font-medium fill-gray-600"
+                                                        style={{ fontSize: '14px' }}
+                                                    >
+                                                        Cuisine
+                                                    </text>
+                                                </>
+                                            );
                                         })()}
+                                        
+                                        {/* Show placeholder if no data */}
+                                        {(!stats?.ordersByCuisine || stats.ordersByCuisine.length === 0) && (
+                                            <>
+                                                <circle
+                                                    cx="100"
+                                                    cy="100"
+                                                    r="85"
+                                                    fill="#22c55e"
+                                                    opacity="0.3"
+                                                />
+                                                <circle
+                                                    cx="100"
+                                                    cy="100"
+                                                    r="50"
+                                                    fill="white"
+                                                />
+                                                <text
+                                                    x="100"
+                                                    y="100"
+                                                    textAnchor="middle"
+                                                    dominantBaseline="middle"
+                                                    className="text-sm font-medium fill-gray-600"
+                                                    style={{ fontSize: '14px' }}
+                                                >
+                                                    Cuisine
+                                                </text>
+                                            </>
+                                        )}
                                     </svg>
                                 </div>
 
-                                <ul className="text-sm space-y-2">
-                                    {stats?.ordersByCuisine.map((item, idx) => {
-                                        const colors = ['bg-green-600', 'bg-lime-400', 'bg-yellow-400', 'bg-gray-300'];
-                                        return (
-                                            <li key={idx} className="flex items-center gap-2">
-                                                <span className={`w-3 h-3 ${colors[idx]} rounded-full`} /> {item.cuisine}
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
+                                <div className="flex flex-col gap-3">
+                                    {stats?.ordersByCuisine && stats.ordersByCuisine.length > 0 ? (
+                                        stats.ordersByCuisine.map((item, idx) => {
+                                            return (
+                                                <div key={idx} className="flex items-center gap-3">
+                                                    <div 
+                                                        className="w-4 h-4 rounded-sm flex-shrink-0" 
+                                                        style={{ backgroundColor: item.color }}
+                                                    />
+                                                    <span className="text-sm text-gray-700 whitespace-nowrap">{item.cuisine}</span>
+                                                </div>
+                                            );
+                                        })
+                                    ) : (
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-4 h-4 rounded-sm flex-shrink-0 bg-green-500" />
+                                            <span className="text-sm text-gray-700 whitespace-nowrap">Standard</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     {/* LOWER GRID */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                        {/* Revenue by City */}
-                        <div className="bg-white rounded-xl p-5 border shadow-sm">
-                            <h3 className="font-semibold mb-4">Caterers by City</h3>
-                            <div className="flex items-end gap-6 h-40">
-                                {stats?.revenueByCity.slice(0, 5).map((city, i) => {
-                                    const maxRevenue = Math.max(...(stats?.revenueByCity.map(c => c.revenue) || [1]));
-                                    const height = (city.revenue / maxRevenue) * 120;
-                                    return (
-                                        <div key={i} className="flex flex-col items-center gap-2 flex-1">
-                                            <div
-                                                className="w-full bg-green-600 rounded"
-                                                style={{ height: `${height}px` }}
-                                            />
-                                            <span className="text-xs text-gray-500 text-center">
-                                                {city.city.substring(0, 10)}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                         {/* Quality & Risk */}
                         <div className="bg-white rounded-xl p-5 border shadow-sm">
@@ -325,32 +641,56 @@ export default function AdminDashboard() {
                             <div className="grid grid-cols-3 gap-4 text-center">
                                 <div>
                                     <p className="text-xs text-gray-500">Avg Rating</p>
-                                    <p className="text-xl font-bold text-green-600">4.6</p>
+                                    <p className={`text-xl font-bold ${
+                                        (stats?.avgRating || 0) >= 4.0 ? 'text-green-600' :
+                                        (stats?.avgRating || 0) >= 3.0 ? 'text-orange-500' :
+                                        'text-red-500'
+                                    }`}>
+                                        {stats?.avgRating ? stats.avgRating.toFixed(1) : '0.0'}
+                                    </p>
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-500">Cancellation</p>
-                                    <p className="text-xl font-bold text-orange-500">1.2%</p>
+                                    <p className={`text-xl font-bold ${
+                                        (stats?.cancellationRate || 0) <= 2.0 ? 'text-green-600' :
+                                        (stats?.cancellationRate || 0) <= 5.0 ? 'text-orange-500' :
+                                        'text-red-500'
+                                    }`}>
+                                        {stats?.cancellationRate ? stats.cancellationRate.toFixed(1) : '0.0'}%
+                                    </p>
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-500">Refund</p>
-                                    <p className="text-xl font-bold text-red-500">1.2%</p>
+                                    <p className={`text-xl font-bold ${
+                                        (stats?.refundRate || 0) <= 2.0 ? 'text-green-600' :
+                                        (stats?.refundRate || 0) <= 5.0 ? 'text-orange-500' :
+                                        'text-red-500'
+                                    }`}>
+                                        {stats?.refundRate ? stats.refundRate.toFixed(1) : '0.0'}%
+                                    </p>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Demand Hotspots */}
+                        {/* Platform Statistics */}
                         <div className="bg-white rounded-xl p-5 border shadow-sm">
-                            <h3 className="font-semibold mb-4">Demand Hotspots</h3>
-                            <div className="space-y-2">
-                                {stats?.demandHotspots.map((hotspot, idx) => (
-                                    <div key={idx} className="flex justify-between">
-                                        <span>{hotspot.location}</span>
-                                        <span className="text-green-600 font-semibold">{hotspot.orders} Orders</span>
-                                    </div>
-                                ))}
-                                {(!stats?.demandHotspots || stats.demandHotspots.length === 0) && (
-                                    <p className="text-gray-400 text-sm">No data available</p>
-                                )}
+                            <h3 className="font-semibold mb-4">Platform Overview</h3>
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-gray-600">Total Orders</span>
+                                    <span className="font-semibold text-gray-900">{stats?.totalOrders || 0}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-gray-600">Avg Order Value</span>
+                                    <span className="font-semibold text-green-600 flex items-center gap-1">
+                                        <img src="/dirham.svg" alt="AED" className="w-4 h-4" />
+                                        {(stats?.avgOrderValue || 0).toFixed(2)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-gray-600">Active Caterers</span>
+                                    <span className="font-semibold text-gray-900">{stats?.activeCaterers || 0}</span>
+                                </div>
                             </div>
                         </div>
 

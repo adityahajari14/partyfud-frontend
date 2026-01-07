@@ -17,6 +17,7 @@ interface FormData {
     service_area: string;
     minimum_guests: string;
     maximum_guests: string;
+    preparation_time: string;
     region: string;
     delivery_only: boolean;
     delivery_plus_setup: boolean;
@@ -41,6 +42,7 @@ export default function CatererDetailsPage() {
         service_area: '',
         minimum_guests: '',
         maximum_guests: '',
+        preparation_time: '',
         region: '',
         delivery_only: false,
         delivery_plus_setup: false,
@@ -82,7 +84,7 @@ export default function CatererDetailsPage() {
     // Validation functions for each step
     const isProfileStepComplete = () => {
         return !!(formData.business_name && formData.business_type && formData.business_description &&
-            formData.service_area && formData.minimum_guests && formData.maximum_guests);
+            formData.service_area && formData.minimum_guests && formData.maximum_guests && formData.preparation_time);
     };
 
     const isAvailabilityStepComplete = () => {
@@ -121,7 +123,7 @@ export default function CatererDetailsPage() {
             console.log('🟢 [FRONTEND] Validating required fields...');
             if (!formData.business_name || !formData.business_type || !formData.business_description ||
                 !formData.service_area || !formData.minimum_guests || !formData.maximum_guests ||
-                !formData.region || !formData.food_license || !formData.registration) {
+                !formData.preparation_time || !formData.region || !formData.food_license || !formData.registration) {
                 console.log('❌ [FRONTEND] Validation failed - missing required fields');
                 setSubmitError('Please fill in all required fields');
                 setIsSubmitting(false);
@@ -148,6 +150,7 @@ export default function CatererDetailsPage() {
             submitFormData.append('service_area', formData.service_area);
             submitFormData.append('minimum_guests', formData.minimum_guests);
             submitFormData.append('maximum_guests', formData.maximum_guests);
+            submitFormData.append('preparation_time', formData.preparation_time);
             submitFormData.append('region', formData.region);
             submitFormData.append('delivery_only', formData.delivery_only.toString());
             submitFormData.append('delivery_plus_setup', formData.delivery_plus_setup.toString());
@@ -351,7 +354,7 @@ export function ProfileStep({
     const handleNext = () => {
         // Validate required fields before proceeding
         if (!formData.business_name || !formData.business_type || !formData.business_description ||
-            !formData.service_area || !formData.minimum_guests || !formData.maximum_guests) {
+            !formData.service_area || !formData.minimum_guests || !formData.maximum_guests || !formData.preparation_time) {
             alert('Please fill in all required fields');
             return;
         }
@@ -424,6 +427,27 @@ export function ProfileStep({
                     value={formData.maximum_guests}
                     onChange={(e) => setFormData({ ...formData, maximum_guests: e.target.value })}
                 />
+            </div>
+
+            {/* Preparation Time */}
+            <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700">
+                    Preparation Time (Hours) *
+                </label>
+                <select 
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#268700]"
+                    value={formData.preparation_time}
+                    onChange={(e) => setFormData({ ...formData, preparation_time: e.target.value })}
+                >
+                    <option value="">Select preparation time needed before delivery</option>
+                    <option value="12">12 hours</option>
+                    <option value="24">24 hours (1 day)</option>
+                    <option value="48">48 hours (2 days)</option>
+                    <option value="72">72 hours (3 days)</option>
+                    <option value="96">96 hours (4 days)</option>
+                    <option value="120">120 hours (5 days)</option>
+                    <option value="168">168 hours (1 week)</option>
+                </select>
             </div>
 
             {/* Actions */}

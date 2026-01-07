@@ -9,6 +9,7 @@ interface Caterer {
   name: string;
   type: string;
   city: string;
+  cuisines: string[];
   email: string;
   phone: string;
   registered: string;
@@ -37,15 +38,21 @@ export default function CaterersPage() {
         }
 
         if (response.data?.success && response.data.data) {
-          const caterers: Caterer[] = response.data.data.map((item) => ({
-            id: item.id,
-            name: item.business_name,
-            type: item.business_type,
-            city: item.region || item.service_area || 'N/A',
-            email: item.caterer.email,
-            phone: item.caterer.phone,
-            registered: new Date(item.created_at).toLocaleDateString(),
-          }));
+          console.log('Raw API response data:', response.data.data.slice(0, 2));
+          const caterers: Caterer[] = response.data.data.map((item) => {
+            console.log(`Mapping ${item.business_name}: cuisines =`, item.cuisines);
+            return {
+              id: item.id,
+              name: item.business_name,
+              type: item.business_type,
+              city: item.region || item.service_area || 'N/A',
+              cuisines: item.cuisines || [],
+              email: item.caterer.email,
+              phone: item.caterer.phone,
+              registered: new Date(item.created_at).toLocaleDateString(),
+            };
+          });
+          console.log('Mapped caterers:', caterers.slice(0, 2));
           setItems(caterers);
         }
       } catch (err) {
@@ -152,6 +159,28 @@ export default function CaterersPage() {
                         Approved
                       </span>
                     </div>
+
+                    {/* Cuisines */}
+                    {c.cuisines && c.cuisines.length > 0 && (
+                      <div className="pt-3">
+                        <p className="text-xs font-medium text-gray-600 mb-2">Cuisines</p>
+                        <div className="flex flex-wrap gap-2">
+                          {c.cuisines.slice(0, 3).map((cuisine, idx) => (
+                            <span
+                              key={idx}
+                              className="text-xs font-medium bg-green-100 text-green-700 px-2.5 py-1 rounded-full border border-green-200"
+                            >
+                              {cuisine}
+                            </span>
+                          ))}
+                          {c.cuisines.length > 3 && (
+                            <span className="text-xs font-medium bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full border border-gray-200">
+                              +{c.cuisines.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Info */}
                     <div className="space-y-2 pt-3 border-t border-gray-100">

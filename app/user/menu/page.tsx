@@ -191,7 +191,9 @@ export default function MenuPage() {
 
                     {/* Price Range */}
                     <div className="mb-4">
-                        <label className="text-sm text-gray-500 mb-2 block">Max Price (AED)</label>
+                        <label className="text-sm text-gray-500 mb-2 block flex items-center gap-1">
+                            Max Price (<img src="/dirham.svg" alt="AED" className="w-3 h-3 inline" />)
+                        </label>
                         <input
                             type="range"
                             min={10}
@@ -202,14 +204,16 @@ export default function MenuPage() {
                             className="w-full mt-2"
                         />
                         <div className="flex justify-between text-xs text-gray-500 mt-1">
-                            <span>AED 10</span>
-                            <span>AED {maxPrice.toLocaleString()}</span>
+                            <span className="flex items-center gap-1"><img src="/dirham.svg" alt="AED" className="w-3 h-3" />10</span>
+                            <span className="flex items-center gap-1"><img src="/dirham.svg" alt="AED" className="w-3 h-3" />{maxPrice.toLocaleString()}</span>
                         </div>
                     </div>
 
                     {/* Min Price */}
                     <div className="mb-4">
-                        <label className="text-sm text-gray-500 mb-2 block">Min Price (AED)</label>
+                        <label className="text-sm text-gray-500 mb-2 block flex items-center gap-1">
+                            Min Price (<img src="/dirham.svg" alt="AED" className="w-3 h-3 inline" />)
+                        </label>
                         <input
                             type="number"
                             value={minPrice}
@@ -328,8 +332,9 @@ export default function MenuPage() {
                                                             <p className="text-sm text-gray-500">{dish.caterer}</p>
                                                             <div className="flex items-center justify-between mt-2">
                                                                 <span className="text-xs text-gray-400">{dish.cuisineType}</span>
-                                                                <p className="font-semibold">
-                                                                    AED {dish.price.toLocaleString()}
+                                                                <p className="font-semibold flex items-center gap-1">
+                                                                    <img src="/dirham.svg" alt="AED" className="w-4 h-4" />
+                                                                    {dish.price.toLocaleString()}
                                                                 </p>
                                                             </div>
                                                         </Link>
@@ -360,8 +365,9 @@ export default function MenuPage() {
                                             <p className="text-sm text-gray-500">{dish.caterer}</p>
                                             <div className="flex items-center justify-between mt-2">
                                                 <span className="text-xs text-gray-400">{dish.cuisineType} • {dish.category}</span>
-                                                <p className="font-semibold">
-                                                    AED {dish.price.toLocaleString()}
+                                                <p className="font-semibold flex items-center gap-1">
+                                                    <img src="/dirham.svg" alt="AED" className="w-4 h-4" />
+                                                    {dish.price.toLocaleString()}/person/person
                                                 </p>
                                             </div>
                                         </Link>

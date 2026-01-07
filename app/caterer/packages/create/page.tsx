@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { catererApi, CreatePackageRequest, Dish } from '@/lib/api/caterer.api';
+import { userApi } from '@/lib/api/user.api';
 
 // Component for package item card with image
 interface PackageItemCardProps {
@@ -116,20 +117,18 @@ export default function CreatePackagePage() {
   const [formData, setFormData] = useState<CreatePackageRequest>({
     name: '',
     people_count: 0,
-    package_type_id: '',
     cover_image_url: '',
     total_price: 0,
     currency: 'AED',
     // rating: undefined,
-    occassion: '',
+    occassion: [] as string[],
     is_active: true,
     is_available: true,
     package_item_ids: [],
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [packageTypes, setPackageTypes] = useState<Array<{ value: string; label: string }>>([]);
-  // Store categories with their items
+  const [occasions, setOccasions] = useState<Array<{ id: string; name: string }>>([]);  // Store categories with their items
   const [packageItemsByCategory, setPackageItemsByCategory] = useState<Array<{
     category: { id: string; name: string; description?: string | null };
     items: Array<{ id: string; dish: { name: string; image_url?: string | null }; people_count: number; quantity: string }>;
@@ -145,6 +144,7 @@ export default function CreatePackagePage() {
     dishes: Dish[];
   }>>([]);
   const [loadingDishes, setLoadingDishes] = useState(false);
+  const [selectedDishes, setSelectedDishes] = useState<Set<string>>(new Set());
   const [createItemFormData, setCreateItemFormData] = useState({
     dish_id: '',
     people_count: formData.people_count || 0,
@@ -163,17 +163,13 @@ export default function CreatePackagePage() {
   const fetchMetadata = async () => {
     setLoadingMetadata(true);
     try {
-      // Fetch package types
-      const packageTypesResponse = await (catererApi as any).getPackageTypes();
-      if (packageTypesResponse.data) {
-        const data = packageTypesResponse.data as any;
-        const typesList = Array.isArray(data) ? data : (data.data || []);
-        setPackageTypes(
-          typesList.map((pt: any) => ({
-            value: pt.id || pt.value,
-            label: pt.name || pt.label,
-          }))
-        );
+      // Fetch occasions
+      const occasionsResponse = await userApi.getOccasions();
+      if (occasionsResponse.data?.data) {
+        setOccasions(occasionsResponse.data.data.map((occ: any) => ({
+          id: occ.id,
+          name: occ.name,
+        })));
       }
 
       // Fetch draft package items (items without package_id)
@@ -317,6 +313,7 @@ export default function CreatePackagePage() {
 
 
   const handleOpenCreateItemModal = () => {
+    setSelectedDishes(new Set());
     setCreateItemFormData({
       dish_id: '',
       people_count: formData.people_count || 0,
@@ -335,8 +332,8 @@ export default function CreatePackagePage() {
     setCreateItemErrors({});
 
     // Validation
-    if (!createItemFormData.dish_id) {
-      setCreateItemErrors({ dish_id: 'Please select a dish' });
+    if (selectedDishes.size === 0) {
+      setCreateItemErrors({ dish_id: 'Please select at least one dish' });
       setIsCreatingItem(false);
       return;
     }
@@ -347,10 +344,28 @@ export default function CreatePackagePage() {
     }
 
     try {
-      const response = await (catererApi as any).createPackageItem(createItemFormData);
+      // Create package items for all selected dishes
+      const promises = Array.from(selectedDishes).map(dishId => {
+        const dish = dishesByCategory
+          .flatMap(cat => cat.dishes)
+          .find(d => d.id === dishId);
+        
+        return (catererApi as any).createPackageItem({
+          dish_id: dishId,
+          people_count: createItemFormData.people_count,
+          quantity: createItemFormData.quantity,
+          price_at_time: dish?.price || undefined,
+          is_optional: createItemFormData.is_optional,
+          is_addon: createItemFormData.is_addon,
+        });
+      });
 
-      if (response.error) {
-        setCreateItemErrors({ general: response.error });
+      const responses = await Promise.all(promises);
+      
+      // Check if any failed
+      const failed = responses.find(r => r.error);
+      if (failed) {
+        setCreateItemErrors({ general: failed.error });
         setIsCreatingItem(false);
         return;
       }
@@ -358,6 +373,7 @@ export default function CreatePackagePage() {
       // Refresh package items list
       await fetchPackageItems();
       setIsCreateItemModalOpen(false);
+      setSelectedDishes(new Set());
       setCreateItemFormData({
         dish_id: '',
         people_count: formData.people_count || 0,
@@ -384,10 +400,6 @@ export default function CreatePackagePage() {
     }
     if (!formData.people_count || formData.people_count <= 0) {
       setErrors({ people_count: 'People count must be greater than 0' });
-      return;
-    }
-    if (!formData.package_type_id) {
-      setErrors({ package_type_id: 'Package type is required' });
       return;
     }
     if (!formData.total_price || formData.total_price <= 0) {
@@ -466,22 +478,44 @@ export default function CreatePackagePage() {
                     error={errors.people_count}
                   />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Select
-                    label="Package Type"
-                    options={packageTypes}
-                    value={formData.package_type_id}
-                    onChange={(e) => setFormData({ ...formData, package_type_id: e.target.value })}
-                    placeholder="Select Package Type"
-                    error={errors.package_type_id}
-                  />
-                  <Input
-                    label="Occassion"
-                    value={formData.occassion}
-                    onChange={(e) => setFormData({ ...formData, occassion: e.target.value })}
-                    placeholder="Enter occassion name"
-                    error={errors.occassion}
-                  />
+                <div>
+                  {/* Occasions - Multiple Selection with Checkboxes */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Occasions <span className="text-gray-500 text-xs">(Select all that apply)</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      {occasions.length === 0 ? (
+                        <p className="col-span-2 text-sm text-gray-500">Loading occasions...</p>
+                      ) : (
+                        occasions.map((occasion) => (
+                          <label
+                            key={occasion.id}
+                            className="flex items-center gap-2 cursor-pointer hover:bg-white p-2 rounded transition"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={Array.isArray(formData.occassion) && formData.occassion.includes(occasion.id)}
+                              onChange={(e) => {
+                                const currentOccasions = Array.isArray(formData.occassion) ? formData.occassion : [];
+                                if (e.target.checked) {
+                                  setFormData({ ...formData, occassion: [...currentOccasions, occasion.id] });
+                                } else {
+                                  setFormData({ ...formData, occassion: currentOccasions.filter(id => id !== occasion.id) });
+                                }
+                              }}
+                              className="w-4 h-4 text-[#268700] border-gray-300 rounded focus:ring-[#268700]"
+                            />
+                            <span className="text-sm text-gray-700">{occasion.name}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                    {errors.occassion && (
+                      <p className="mt-1 text-sm text-red-600">{errors.occassion}</p>
+                    )}
+                  </div>
+                  
                   {/* <Input
                     label="Rating (Optional)"
                     type="number"
@@ -679,7 +713,7 @@ export default function CreatePackagePage() {
                   Total Price
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 font-medium">AED</span>
+                  <img src="/dirham.svg" alt="AED" className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2" />
                   <Input
                     type="number"
                     step="0.01"
@@ -767,39 +801,47 @@ export default function CreatePackagePage() {
                               )}
                             </div>
                             
-                            {/* Dishes Grid for this Category */}
+                            {/* Dishes List for this Category */}
                             {categoryGroup.dishes.length === 0 ? (
                               <div className="text-center py-4 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50">
                                 <p className="text-xs text-gray-400">No dishes in this category</p>
                               </div>
                             ) : (
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              <div className="space-y-2">
                                 {categoryGroup.dishes.map((dish) => (
                                   <label
                                     key={dish.id}
-                                    className={`flex flex-col p-3 border-2 rounded-lg cursor-pointer transition-colors ${createItemFormData.dish_id === dish.id
+                                    className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${
+                                      selectedDishes.has(dish.id)
                                         ? 'border-[#268700] bg-[#e8f5e0]'
-                                        : 'border-gray-200 hover:border-gray-300'
-                                      }`}
+                                        : 'border-gray-200'
+                                    }`}
                                   >
                                     <input
-                                      type="radio"
-                                      name="dish_selection"
-                                      checked={createItemFormData.dish_id === dish.id}
-                                      onChange={() => {
-                                        setCreateItemFormData({
-                                          ...createItemFormData,
-                                          dish_id: dish.id,
-                                          price_at_time: dish.price || undefined,
-                                        });
+                                      type="checkbox"
+                                      checked={selectedDishes.has(dish.id)}
+                                      onChange={(e) => {
+                                        const newSelected = new Set(selectedDishes);
+                                        if (e.target.checked) {
+                                          newSelected.add(dish.id);
+                                        } else {
+                                          newSelected.delete(dish.id);
+                                        }
+                                        setSelectedDishes(newSelected);
                                       }}
-                                      className="sr-only"
+                                      className="w-4 h-4 text-[#268700] border-gray-300 rounded focus:ring-[#268700]"
                                     />
-                                    <DishImageInModal imageUrl={dish.image_url} dishName={dish.name} />
-                                    <p className="font-medium text-gray-900">{dish.name}</p>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                      AED {typeof dish.price === 'number' ? dish.price.toFixed(2) : parseFloat(String(dish.price || '0')).toFixed(2)}
-                                    </p>
+                                    <div className="flex-1">
+                                      <p className="font-medium text-gray-900">{dish.name}</p>
+                                      <p className="text-xs text-gray-500 mt-0.5">
+                                        AED {typeof dish.price === 'number' ? dish.price.toFixed(2) : parseFloat(String(dish.price || '0')).toFixed(2)}/person
+                                      </p>
+                                    </div>
+                                    {selectedDishes.has(dish.id) && (
+                                      <span className="text-xs bg-[#268700] text-white px-2 py-1 rounded-full">
+                                        ✓ Selected
+                                      </span>
+                                    )}
                                   </label>
                                 ))}
                               </div>
@@ -813,8 +855,13 @@ export default function CreatePackagePage() {
                     <p className="mt-1 text-sm text-red-600">{createItemErrors.dish_id}</p>
                   )}
                 </div>
-                {createItemFormData.dish_id && (
+                {selectedDishes.size > 0 && (
                   <div className="border-t pt-4 space-y-4">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                      <p className="text-sm text-blue-800">
+                        <span className="font-semibold">{selectedDishes.size}</span> {selectedDishes.size === 1 ? 'dish' : 'dishes'} selected
+                      </p>
+                    </div>
                     <Input
                       label="People Count"
                       type="number"
@@ -838,7 +885,7 @@ export default function CreatePackagePage() {
                       }
                       placeholder="Enter quantity"
                     />
-                    <Input
+                    {/* <Input
                       label="Total Price "
                       type="number"
                       step="0.01"
@@ -848,7 +895,7 @@ export default function CreatePackagePage() {
                         price_at_time: e.target.value ? parseFloat(e.target.value) : undefined,
                       })}
                       placeholder="Enter price (defaults to dish price)"
-                    />
+                    /> */}
                     {/* <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
                         <input

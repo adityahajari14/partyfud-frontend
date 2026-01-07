@@ -322,7 +322,10 @@ export default function CatererProposalsPage() {
                           <DollarSign size={18} className="text-gray-400 mt-0.5" />
                           <div>
                             <p className="text-xs text-gray-500">Budget per Person</p>
-                            <p className="text-sm font-medium text-gray-900">AED {proposal.budget_per_person}</p>
+                            <p className="text-sm font-medium text-gray-900 flex items-center gap-1">
+                              <img src="/dirham.svg" alt="AED" className="w-4 h-4" />
+                              {proposal.budget_per_person}
+                            </p>
                           </div>
                         </div>
                       )}
@@ -411,7 +414,10 @@ export default function CatererProposalsPage() {
                 {selectedProposal.budget_per_person && (
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Budget per Person</p>
-                    <p className="text-base font-medium text-gray-900">AED {selectedProposal.budget_per_person}</p>
+                    <p className="text-base font-medium text-gray-900 flex items-center gap-1">
+                      <img src="/dirham.svg" alt="AED" className="w-4 h-4" />
+                      {selectedProposal.budget_per_person}
+                    </p>
                   </div>
                 )}
               </div>

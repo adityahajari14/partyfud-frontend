@@ -16,7 +16,6 @@ export default function EditPackagePage() {
   const [formData, setFormData] = useState<UpdatePackageRequest>({
     name: '',
     people_count: 0,
-    package_type_id: '',
     cover_image_url: '',
     total_price: 0,
     currency: 'AED',
@@ -26,31 +25,10 @@ export default function EditPackagePage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [packageTypes, setPackageTypes] = useState<Array<{ value: string; label: string }>>([]);
 
   useEffect(() => {
-    fetchPackageTypes();
     fetchPackage();
   }, [packageId]);
-
-  const fetchPackageTypes = async () => {
-    const response = await catererApi.getPackageTypes();
-    console.log('📋 Package types response:', response);
-    
-    // Handle both response structures: direct data or nested data
-    const typesData = (response.data as any)?.data || response.data;
-    
-    if (typesData && Array.isArray(typesData)) {
-      const types = typesData.map((type: any) => ({
-        value: type.id,
-        label: type.name,
-      }));
-      setPackageTypes(types);
-      console.log('✅ Package types loaded:', types.length);
-    } else {
-      console.error('❌ Package types response is not an array:', response);
-    }
-  };
 
   const fetchPackage = async () => {
     setLoading(true);
@@ -68,7 +46,6 @@ export default function EditPackagePage() {
       const initialFormData = {
         name: pkg.name || '',
         people_count: pkg.people_count || 0,
-        package_type_id: pkg.package_type_id || '',
         cover_image_url: pkg.cover_image_url || '',
         total_price: Number(pkg.total_price) || 0,
         currency: pkg.currency || 'AED',
@@ -99,9 +76,6 @@ export default function EditPackagePage() {
     if (!formData.people_count || formData.people_count <= 0) {
       newErrors.people_count = 'Number of people must be greater than 0';
     }
-    if (!formData.package_type_id) {
-      newErrors.package_type_id = 'Please select a package type';
-    }
     if (!formData.total_price || formData.total_price <= 0) {
       newErrors.total_price = 'Price must be greater than 0';
     }
@@ -121,15 +95,9 @@ export default function EditPackagePage() {
       let errorMessage = response.error;
       
       if (errorMessage.includes('Foreign key') || errorMessage.includes('constraint')) {
-        if (errorMessage.includes('package_type')) {
-          errorMessage = 'The selected package type is invalid. Please select a valid type from the dropdown.';
-        } else {
-          errorMessage = 'Unable to update package due to invalid data. Please check all fields.';
-        }
+        errorMessage = 'Unable to update package due to invalid data. Please check all fields.';
       } else if (errorMessage.includes('not found') || errorMessage.includes('permission')) {
         errorMessage = 'Package not found or you do not have permission to edit it.';
-      } else if (errorMessage.includes('Invalid package type')) {
-        errorMessage = 'Please select a valid package type from the dropdown.';
       }
       
       setErrors({ general: errorMessage });
@@ -208,14 +176,6 @@ export default function EditPackagePage() {
                 placeholder="Enter number of people"
                 error={errors.people_count}
               />
-              <Select
-                label="Type"
-                options={packageTypes}
-                value={formData.package_type_id || ''}
-                onChange={(e) => setFormData({ ...formData, package_type_id: e.target.value })}
-                placeholder="Select Package Type"
-                error={errors.package_type_id}
-              />
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Cover image
@@ -239,7 +199,7 @@ export default function EditPackagePage() {
                   Price
                 </label>
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-700 font-medium">AED</span>
+                  <img src="/dirham.svg" alt="AED" className="w-5 h-5" />
                   <Input
                     type="number"
                     step="0.01"
@@ -284,8 +244,9 @@ export default function EditPackagePage() {
           <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between">
             <div>
               <span className="text-gray-700">Total Price: </span>
-              <span className="text-xl font-bold text-gray-900">
-                AED {formData.total_price !== undefined
+              <span className="text-xl font-bold text-gray-900 inline-flex items-center gap-1">
+                <img src="/dirham.svg" alt="AED" className="w-5 h-5" />
+                {formData.total_price !== undefined
                   ? (typeof formData.total_price === 'number' ? formData.total_price.toFixed(2) : parseFloat(String(formData.total_price || '0')).toFixed(2))
                   : (packageData?.total_price ? (typeof packageData.total_price === 'number' ? packageData.total_price.toFixed(2) : parseFloat(String(packageData.total_price || '0')).toFixed(2)) : '0.00')}
               </span>

@@ -9,6 +9,41 @@ export const adminApi = {
   },
 
   /**
+   * Get dashboard statistics including orders, GMV trends, and cuisine data
+   */
+  getDashboardStats: async () => {
+    return apiRequest<{
+      success: boolean;
+      data: {
+        totalOrders: number;
+        platformRevenue: number;
+        activeCaterers: number;
+        avgOrderValue: number;
+        pendingCaterers: number;
+        approvedCaterers: number;
+        rejectedCaterers: number;
+        blockedCaterers: number;
+        ordersAndGMV: Array<{
+          month: string;
+          year: number;
+          orders: number;
+          gmv: number;
+          estimate: number;
+        }>;
+        ordersByCuisine: Array<{
+          cuisine: string;
+          orders: number;
+          percentage: string;
+          color: string;
+        }>;
+        avgRating: number;
+        cancellationRate: number;
+        refundRate: number;
+      };
+    }>('/api/admin/dashboard/stats');
+  },
+
+  /**
    * Get all caterer info with optional status filter
    * @param status - Optional status filter: 'PENDING' | 'APPROVED' | 'REJECTED' | 'BLOCKED'
    */
@@ -25,6 +60,7 @@ export const adminApi = {
         minimum_guests: number | null;
         maximum_guests: number | null;
         region: string | null;
+        cuisines: string[];
         delivery_only: boolean;
         delivery_plus_setup: boolean;
         full_service: boolean;
@@ -69,6 +105,7 @@ export const adminApi = {
         minimum_guests: number | null;
         maximum_guests: number | null;
         region: string | null;
+        cuisines: string[];
         delivery_only: boolean;
         delivery_plus_setup: boolean;
         full_service: boolean;
