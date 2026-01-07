@@ -112,8 +112,8 @@ export default function CatererDashboard() {
 
   const StatCard: React.FC<{
     title: string;
-    value: number | string;
-    subtitle?: string;
+    value: number | string | React.ReactNode;
+    subtitle?: string | React.ReactNode;
     icon: React.ReactNode;
     color: string;
     bgColor: string;
