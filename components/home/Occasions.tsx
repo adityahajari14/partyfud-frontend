@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { userApi } from '@/lib/api/user.api';
+import { occasionNameToSlug } from '@/lib/data/occasion-content';
 
 interface Occasion {
   id: string;
@@ -50,9 +51,10 @@ export default function BrowseOccasionsPage() {
     setIndex((prev) => Math.min(prev + 1, occasions.length - 3));
   };
 
-  const handleOccasionClick = (occasionId: string) => {
-    // Navigate to packages filtered by occasion ID
-    router.push(`/user/packages?occasion_id=${encodeURIComponent(occasionId)}`);
+  const handleOccasionClick = (occasion: Occasion) => {
+    // Navigate to occasion landing page
+    const slug = occasionNameToSlug(occasion.name);
+    router.push(`/occasions/${slug}`);
   };
 
   if (loading) {
@@ -126,7 +128,7 @@ export default function BrowseOccasionsPage() {
                 className="min-w-[calc(33.333%-1.33rem)]"
               >
                 <div 
-                  onClick={() => handleOccasionClick(occasion.id)}
+                  onClick={() => handleOccasionClick(occasion)}
                   className="relative w-full h-[260px] bg-white border border-gray-200 rounded-2xl overflow-hidden cursor-pointer hover:shadow-md transition"
                 >
                   <Image
