@@ -45,6 +45,7 @@ export interface UpdateDishRequest {
   price?: number;
   currency?: string;
   is_active?: boolean;
+  freeform_ids?: string[];
 }
 
 // Package Types
@@ -229,11 +230,40 @@ export const catererApi = {
     return { data: responseData.data || responseData };
   },
 
-  updateDish: async (id: string, data: UpdateDishRequest) => {
-    return apiRequest<Dish>(`/api/caterer/dishes/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
+  updateDish: async (id: string, data: UpdateDishRequest, imageFile?: File) => {
+    if (imageFile) {
+      // Use FormData for file upload
+      const formData = new FormData();
+      
+      // Add all dish data fields
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && key !== 'freeform_ids') {
+          formData.append(key, value.toString());
+        }
+      });
+      
+      // Add freeform_ids as array
+      if (data.freeform_ids && data.freeform_ids.length > 0) {
+        data.freeform_ids.forEach((id) => {
+          formData.append('freeform_ids', id);
+        });
+      }
+      
+      // Add image file
+      formData.append('image', imageFile);
+      
+      return apiRequest<Dish>(`/api/caterer/dishes/${id}`, {
+        method: 'PUT',
+        body: formData,
+        isFormData: true,
+      });
+    } else {
+      // Regular JSON request without image
+      return apiRequest<Dish>(`/api/caterer/dishes/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    }
   },
 
   deleteDish: async (id: string) => {
