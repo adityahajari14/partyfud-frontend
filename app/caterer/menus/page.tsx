@@ -63,8 +63,6 @@ export default function MenusPage() {
     category_id: '',
   });
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingDish, setEditingDish] = useState<Dish | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [createFormData, setCreateFormData] = useState<CreateDishRequest>({
     name: '',
@@ -79,9 +77,6 @@ export default function MenusPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [imagePreview, setImagePreview] = useState<string>('/default_dish.jpg');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [formData, setFormData] = useState<UpdateDishRequest>({});
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [cuisineTypes, setCuisineTypes] = useState<Array<{ value: string; label: string }>>([
     { value: '', label: 'Select Cuisine Type' },
   ]);
@@ -229,35 +224,7 @@ export default function MenusPage() {
   };
 
   const handleEdit = (dish: Dish) => {
-    setEditingDish(dish);
-    setFormData({
-      name: dish.name,
-      price: dish.price,
-      is_active: dish.is_active,
-      quantity_in_gm: dish.quantity_in_gm,
-      pieces: dish.pieces,
-    });
-    setIsEditModalOpen(true);
-  };
-
-  const handleUpdate = async () => {
-    if (!editingDish) return;
-
-    setIsSubmitting(true);
-    setFormErrors({});
-
-    const response = await catererApi.updateDish(editingDish.id, formData);
-
-    if (response.error) {
-      setFormErrors({ general: response.error });
-      setIsSubmitting(false);
-      return;
-    }
-
-    setIsEditModalOpen(false);
-    setEditingDish(null);
-    fetchDishes();
-    setIsSubmitting(false);
+    router.push(`/caterer/menus/edit/${dish.id}`);
   };
 
   const handleDelete = async (id: string) => {
@@ -285,13 +252,6 @@ export default function MenusPage() {
     // Validate required fields
     if (!createFormData.name || !createFormData.cuisine_type_id || !createFormData.category_id || !createFormData.price) {
       setCreateFormErrors({ general: 'Please fill in all required fields' });
-      setIsCreating(false);
-      return;
-    }
-
-    // Validate subcategory only if category has subcategories
-    if (selectedCategoryHasSubCategories && !createFormData.sub_category_id) {
-      setCreateFormErrors({ general: 'Please select a sub-category' });
       setIsCreating(false);
       return;
     }
@@ -692,86 +652,6 @@ export default function MenusPage() {
           </div>
         </div>
       )}
-
-      {/* Edit Modal */}
-      <Modal
-        isOpen={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setEditingDish(null);
-          setFormData({});
-        }}
-        title="Edit Item"
-        size="md"
-      >
-        {formErrors.general && (
-          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {formErrors.general}
-          </div>
-        )}
-        <div className="space-y-4">
-          <Input
-            label="Name of the Dish"
-            value={formData.name || ''}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="Enter Name"
-          />
-          <Input
-            label="Price"
-            type="number"
-            step="0.01"
-            value={formData.price?.toString() || ''}
-            onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
-            placeholder="Enter Price"
-          />
-          <Input
-            label="Quantity (gm)"
-            type="number"
-            value={formData.quantity_in_gm || ''}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                quantity_in_gm: e.target.value || undefined, // ✅ STRING
-              })
-            }
-            placeholder="Enter Quantity in gm"
-          />
-
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="is_active"
-              checked={formData.is_active ?? true}
-              onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-              className="w-4 h-4 text-[#268700] border-gray-300 rounded focus:ring-[#268700]"
-            />
-            <label htmlFor="is_active" className="text-sm text-gray-700">
-              Available
-            </label>
-          </div>
-        </div>
-        <div className="flex gap-4 mt-6">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={() => {
-              setIsEditModalOpen(false);
-              setEditingDish(null);
-              setFormData({});
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            className="flex-1"
-            onClick={handleUpdate}
-            isLoading={isSubmitting}
-          >
-            Update
-          </Button>
-        </div>
-      </Modal>
 
       {/* Delete Confirmation Modal */}
       <Modal
