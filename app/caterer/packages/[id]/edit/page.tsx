@@ -336,7 +336,7 @@ export default function EditPackagePage() {
     if (currentIds.includes(itemId)) {
       setFormData({
         ...formData,
-        package_item_ids: currentIds.filter(id => id !== itemId),
+        package_item_ids: currentIds.filter((id: string) => id !== itemId),
       });
     } else {
       setFormData({
@@ -348,13 +348,13 @@ export default function EditPackagePage() {
 
   const handleCategorySelectionChange = (categoryId: string, numDishesToSelect: number | null) => {
     const currentSelections = formData.category_selections || [];
-    const existingIndex = currentSelections.findIndex(cs => cs.category_id === categoryId);
+    const existingIndex = currentSelections.findIndex((cs: { category_id: string; num_dishes_to_select: number | null }) => cs.category_id === categoryId);
     
     let newSelections: Array<{ category_id: string; num_dishes_to_select: number | null }>;
     
     if (numDishesToSelect === null && existingIndex >= 0) {
       // Remove selection if setting to null
-      newSelections = currentSelections.filter(cs => cs.category_id !== categoryId);
+      newSelections = currentSelections.filter((cs: { category_id: string; num_dishes_to_select: number | null }) => cs.category_id !== categoryId);
     } else if (existingIndex >= 0) {
       // Update existing
       newSelections = [...currentSelections];
@@ -371,7 +371,7 @@ export default function EditPackagePage() {
   };
 
   const getCategorySelectionLimit = (categoryId: string): number | null => {
-    const selection = formData.category_selections?.find(cs => cs.category_id === categoryId);
+    const selection = formData.category_selections?.find((cs: { category_id: string; num_dishes_to_select: number | null }) => cs.category_id === categoryId);
     return selection?.num_dishes_to_select ?? null;
   };
 
@@ -540,7 +540,7 @@ export default function EditPackagePage() {
                                 if (e.target.checked) {
                                   setFormData({ ...formData, occassion: [...currentOccasions, occasion.id] });
                                 } else {
-                                  setFormData({ ...formData, occassion: currentOccasions.filter(id => id !== occasion.id) });
+                                  setFormData({ ...formData, occassion: currentOccasions.filter((id: string) => id !== occasion.id) });
                                 }
                               }}
                               className="w-4 h-4 text-[#268700] border-gray-300 rounded focus:ring-[#268700]"
@@ -707,7 +707,7 @@ export default function EditPackagePage() {
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {getAllItems()
-                    .filter(item => formData.package_item_ids?.includes(item.id))
+                    .filter((item: { id: string; dish: { name: string; image_url?: string | null }; people_count: number; quantity: string }) => formData.package_item_ids?.includes(item.id))
                     .map((item) => (
                       <span
                         key={item.id}
