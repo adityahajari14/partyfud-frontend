@@ -6,7 +6,7 @@ import { adminApi } from '@/lib/api/admin.api';
 
 type Status = 'PENDING' | 'APPROVED' | 'REJECTED' | 'BLOCKED';
 
-// Custom slider styles
+// Custom slider styles 
 const sliderStyles = `
   .slider::-webkit-slider-thumb {
     appearance: none;
