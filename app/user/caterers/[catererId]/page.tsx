@@ -1,1190 +1,559 @@
 'use client';
 
-import Image from 'next/image';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { userApi, type Caterer, type Package, type Dish } from '@/lib/api/user.api';
-import { Check, Plus, X } from 'lucide-react';
+import {
+  Star,
+  Users,
+  Truck,
+  Clock,
+  Check,
+  ChevronRight,
+  MapPin,
+  Settings2,
+  Calendar,
+  X,
+  Info
+} from 'lucide-react';
+import { userApi, type Package, type Occasion } from '@/lib/api/user.api';
 import { useAuth } from '@/contexts/AuthContext';
 
-type TabType = 'setMenus' | 'buildYourOwn' | 'customiseMenu';
-type DietaryFilter = 'veg' | 'glutenFree' | 'nonVeg' | 'sugarFree' | null;
-
-interface CategoryGroup {
-  categoryName: string;
-  dishes: Dish[];
-  maxSelections?: number;
-}
-
-export default function CatererMenuPage() {
-  const { catererId } = useParams<{ catererId: string }>();
-  const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
-  const [caterer, setCaterer] = useState<Caterer | null>(null);
+function CatererMenuContent() {
+  const [activeTab, setActiveTab] = useState('setMenus');
+  const [caterer, setCaterer] = useState<any>(null);
   const [packages, setPackages] = useState<Package[]>([]);
-  const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('setMenus');
+  const [occasions, setOccasions] = useState<Occasion[]>([]);
+
+  // Event Details State
+  const [selectedEventType, setSelectedEventType] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState('');
+  const [guestCount, setGuestCount] = useState<number>(20);
+  const [eventDate, setEventDate] = useState('');
+
+  // Menu Selection State
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
-  const [guestCount, setGuestCount] = useState<number>(50);
+  const [selectedDishIds, setSelectedDishIds] = useState<Set<string>>(new Set());
   const [addingToCart, setAddingToCart] = useState(false);
-  const [selectedDishes, setSelectedDishes] = useState<Set<string>>(new Set());
-  const [dietaryFilter, setDietaryFilter] = useState<DietaryFilter>(null);
-  const [loadingDishes, setLoadingDishes] = useState(false);
+  const [cartMessage, setCartMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Event details form states (for Set Menus tab)
-  const [eventType, setEventType] = useState<string>('');
-  const [location, setLocation] = useState<string>('');
-  const [eventDate, setEventDate] = useState<string>('');
-  const [occasions, setOccasions] = useState<Array<{ id: string; name: string }>>([]);
-  const [loadingOccasions, setLoadingOccasions] = useState(false);
+  const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { user } = useAuth();
+  const catererId = params.catererId as string;
 
-  // Custom Proposal Form States
-  const [proposalGuestCount, setProposalGuestCount] = useState<number>(50);
-  const [proposalEventType, setProposalEventType] = useState<string>('');
-  const [proposalLocation, setProposalLocation] = useState<string>('12/345 Business Bay');
-  const [selectedDietaryPreferences, setSelectedDietaryPreferences] = useState<Set<string>>(new Set(['Gluten Free', 'Sugar Free']));
-  const [budgetPerPerson, setBudgetPerPerson] = useState<string>('AED 12');
-  const [proposalEventDate, setProposalEventDate] = useState<string>('2024-12-12');
-  const [vision, setVision] = useState<string>('');
-  const [submittingProposal, setSubmittingProposal] = useState(false);
-  const [showProposalSuccessModal, setShowProposalSuccessModal] = useState(false);
-
-  // Fetch occasions
+  // Initial Data Fetch
   useEffect(() => {
-    const fetchOccasions = async () => {
-      setLoadingOccasions(true);
+    const fetchCatererData = async () => {
       try {
-        const response = await userApi.getOccasions();
-        if (response.data?.data) {
-          setOccasions(response.data.data);
-        }
-      } catch (err) {
-        console.error('Error fetching occasions:', err);
-      } finally {
-        setLoadingOccasions(false);
-      }
-    };
-    fetchOccasions();
-  }, []);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!catererId) return;
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        // Fetch caterer and packages in parallel
-        const [catererResponse, packagesResponse] = await Promise.all([
+        setLoading(true);
+        const [catererRes, occasionsRes] = await Promise.all([
           userApi.getCatererById(catererId),
-          userApi.getPackagesByCatererId(catererId),
+          userApi.getAllOccasions()
         ]);
 
-        if (catererResponse.error) {
-          setError(catererResponse.error);
-        } else if (catererResponse.data?.data) {
-          setCaterer(catererResponse.data.data);
+        if (catererRes.data?.data) {
+          setCaterer(catererRes.data.data);
+          setPackages(catererRes.data.data.packages || []);
         }
-
-        if (packagesResponse.error) {
-          console.error('Error fetching packages:', packagesResponse.error);
-        } else if (packagesResponse.data?.data) {
-          const fetchedPackages = packagesResponse.data.data;
-          setPackages(fetchedPackages);
-          // Auto-select first package if available
-          if (fetchedPackages.length > 0) {
-            setSelectedPackage(fetchedPackages[0]);
-            setGuestCount(fetchedPackages[0].people_count);
-          }
+        if (occasionsRes.data?.data) {
+          setOccasions(occasionsRes.data.data);
         }
       } catch (err) {
-        setError('Failed to fetch data');
+        setError('Failed to fetch caterer details');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    fetchCatererData();
   }, [catererId]);
 
-  // Format menu items for display
-  const formatMenuItems = (pkg: Package) => {
-    if (!pkg.items || pkg.items.length === 0) {
-      return {
-        welcomeDrink: 'Not specified',
-        starter: 'Not specified',
-        main: 'Not specified',
-        sides: 'Not specified',
-        dessert: 'Not specified',
-      };
-    }
-
-    const items = pkg.items.map((item: any) => ({
-      name: item.dish?.name || 'Unknown',
-      category: item.dish?.category?.name || item.dish?.category || 'Other',
-      isOptional: item.is_optional,
-    }));
-
-    // Group by category and find typical items
-    const categories: { [key: string]: string[] } = {};
-    items.forEach((item) => {
-      if (!categories[item.category]) {
-        categories[item.category] = [];
-      }
-      categories[item.category].push(item.name);
-    });
-
-    // Try to identify items by category name patterns
-    const getItemsByPattern = (patterns: string[]) => {
-      for (const pattern of patterns) {
-        const category = Object.keys(categories).find(cat =>
-          cat.toLowerCase().includes(pattern.toLowerCase())
-        );
-        if (category && categories[category].length > 0) {
-          return categories[category].join(', ');
-        }
-      }
-      return null;
-    };
-
-    const welcomeDrink = getItemsByPattern(['drink', 'beverage', 'welcome']) ||
-      categories['Beverages']?.[0] ||
-      items.find(i => i.name.toLowerCase().includes('drink') || i.name.toLowerCase().includes('lemonade') || i.name.toLowerCase().includes('tea'))?.name ||
-      'Not specified';
-
-    const starter = getItemsByPattern(['starter', 'appetizer', 'mezze']) ||
-      categories['Starters']?.[0] ||
-      categories['Appetizers']?.[0] ||
-      items.find(i => i.name.toLowerCase().includes('starter') || i.name.toLowerCase().includes('mezze') || i.name.toLowerCase().includes('bruschetta'))?.name ||
-      'Not specified';
-
-    const main = getItemsByPattern(['main', 'entree', 'course']) ||
-      categories['Main Course']?.[0] ||
-      categories['Mains']?.[0] ||
-      items.find(i => !i.name.toLowerCase().includes('drink') && !i.name.toLowerCase().includes('starter') && !i.name.toLowerCase().includes('dessert') && !i.name.toLowerCase().includes('side'))?.name ||
-      'Not specified';
-
-    const sides = getItemsByPattern(['side', 'accompaniment']) ||
-      categories['Sides']?.[0] ||
-      categories['Accompaniments']?.[0] ||
-      items.filter(i => i.name.toLowerCase().includes('rice') || i.name.toLowerCase().includes('salad') || i.name.toLowerCase().includes('bread')).map(i => i.name).join(', ') ||
-      'Not specified';
-
-    const dessert = getItemsByPattern(['dessert', 'sweet']) ||
-      categories['Desserts']?.[0] ||
-      categories['Sweets']?.[0] ||
-      items.find(i => i.name.toLowerCase().includes('dessert') || i.name.toLowerCase().includes('tiramisu') || i.name.toLowerCase().includes('baklava') || i.name.toLowerCase().includes('churros'))?.name ||
-      'Not specified';
-
-    return { welcomeDrink, starter, main, sides, dessert };
-  };
-
-  // Fetch dishes when Build Your Own tab is active
+  // Read query params
   useEffect(() => {
-    const fetchDishes = async () => {
-      if (!catererId || activeTab !== 'buildYourOwn') return;
+    const guests = searchParams.get('guests');
+    const eventType = searchParams.get('eventType');
+    const location = searchParams.get('location');
+    const date = searchParams.get('date');
 
-      setLoadingDishes(true);
-      try {
-        const response = await userApi.getDishesByCatererId(catererId);
-        if (response.error) {
-          console.error('Error fetching dishes:', response.error);
-        } else if (response.data?.data) {
-          setDishes(response.data.data);
-        }
-      } catch (err) {
-        console.error('Error fetching dishes:', err);
-      } finally {
-        setLoadingDishes(false);
-      }
-    };
+    if (guests) setGuestCount(parseInt(guests));
+    if (eventType) setSelectedEventType(eventType);
+    if (location) setSelectedLocation(location);
+    if (date) setEventDate(date);
+  }, [searchParams]);
 
-    fetchDishes();
-  }, [catererId, activeTab]);
+  const handlePackageSelect = (pkg: Package) => {
+    setSelectedPackage(pkg);
+    // Pre-select all items by default for non-customizable packages
+    const allDishIds = new Set(pkg.items.map(i => i.dish?.id).filter(Boolean));
+    setSelectedDishIds(allDishIds);
 
-  // Group dishes by category
-  const groupDishesByCategory = (): CategoryGroup[] => {
-    const grouped: { [key: string]: Dish[] } = {};
-
-    let filteredDishes = dishes;
-
-    // Apply dietary filter (simplified - you may need to add dietary info to dishes)
-    if (dietaryFilter === 'veg') {
-      // Filter vegetarian dishes (you'll need to add this field to your dish model)
-      filteredDishes = dishes.filter(d => {
-        const name = d.name.toLowerCase();
-        return !name.includes('chicken') && !name.includes('beef') && !name.includes('lamb') &&
-          !name.includes('pork') && !name.includes('fish') && !name.includes('meat');
-      });
-    } else if (dietaryFilter === 'nonVeg') {
-      filteredDishes = dishes.filter(d => {
-        const name = d.name.toLowerCase();
-        return name.includes('chicken') || name.includes('beef') || name.includes('lamb') ||
-          name.includes('pork') || name.includes('fish') || name.includes('meat');
-      });
-    }
-
-    filteredDishes.forEach((dish) => {
-      const categoryName = dish.category?.name || 'Other';
-      if (!grouped[categoryName]) {
-        grouped[categoryName] = [];
-      }
-      grouped[categoryName].push(dish);
-    });
-
-    // Convert to array - allow multiple selections
-    return Object.entries(grouped).map(([categoryName, categoryDishes]) => {
-      return {
-        categoryName,
-        dishes: categoryDishes,
-        maxSelections: undefined, // No limit - allow multiple selections
-      };
-    });
+    // Smooth scroll to menu section
+    setTimeout(() => {
+      document.getElementById('menu-items-scroll-target')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
-  // Toggle dish selection
-  const toggleDishSelection = (dishId: string, categoryGroup: CategoryGroup) => {
-    const newSelected = new Set(selectedDishes);
+  const toggleDishSelection = (dishId: string, categoryName: string) => {
+    if (!selectedPackage) return;
 
-    // Check if dish is already selected
+    const isCustomizable = selectedPackage.customisation_type?.includes('CUSTOM');
+    const isFixedWithLimits = selectedPackage.customisation_type === 'FIXED' && (selectedPackage.category_selections?.length || 0) > 0;
+
+    if (!isCustomizable && !isFixedWithLimits) return;
+
+    const newSelected = new Set(selectedDishIds);
     if (newSelected.has(dishId)) {
       newSelected.delete(dishId);
     } else {
-      // Allow multiple selections - no limit
-      newSelected.add(dishId);
-    }
+      if (isFixedWithLimits) {
+        const selection = selectedPackage.category_selections?.find(
+          cs => (cs.category?.name || cs.category).toLowerCase() === categoryName.toLowerCase()
+        );
+        const limit = selection?.num_dishes_to_select;
 
-    setSelectedDishes(newSelected);
-  };
+        if (limit) {
+          const currentCount = Array.from(newSelected).filter(id => {
+            const item = selectedPackage.items.find(i => i.dish?.id === id);
+            return (item?.dish?.category?.name || item?.dish?.category)?.toLowerCase() === categoryName.toLowerCase();
+          }).length;
 
-  // Check if dish is selected
-  const isDishSelected = (dishId: string) => {
-    return selectedDishes.has(dishId);
-  };
-
-  // Calculate total price for Build Your Own
-  const calculateBuildYourOwnTotal = () => {
-    let total = 0;
-    selectedDishes.forEach((dishId) => {
-      const dish = dishes.find(d => d.id === dishId);
-      if (dish) {
-        // Assuming dish.price is per person, multiply by guest count
-        total += Number(dish.price) * guestCount;
-      }
-    });
-    return total;
-  };
-
-  // Calculate total price
-  const calculateTotal = () => {
-    if (activeTab === 'buildYourOwn') {
-      return calculateBuildYourOwnTotal();
-    }
-    if (!selectedPackage) return 0;
-    const pricePerPerson = selectedPackage.price_per_person;
-    return pricePerPerson * guestCount;
-  };
-
-  // Handle add to cart
-  const handleAddToCart = async () => {
-    if (activeTab === 'buildYourOwn') {
-      if (selectedDishes.size === 0 || !catererId) return;
-
-      // Check if user is authenticated
-      if (!user) {
-        alert('You must be logged in to create a package. Please log in and try again.');
-        router.push('/login');
-        return;
-      }
-
-      setAddingToCart(true);
-      try {
-        // Convert selected dishes Set to array
-        const dishIds = Array.from(selectedDishes);
-
-        // Create custom package
-        const response = await userApi.createCustomPackage({
-          dish_ids: dishIds,
-          people_count: guestCount,
-        });
-
-        if (response.error) {
-          // Check if it's an authentication error
-          if (response.status === 401 || response.error.includes('Unauthorized') || response.error.includes('401')) {
-            alert('Your session has expired. Please log in again.');
-            router.push('/login');
+          if (currentCount >= limit) {
+            setCartMessage({ type: 'error', text: `You can only select ${limit} items from ${categoryName}` });
+            setTimeout(() => setCartMessage(null), 3000);
             return;
           }
-          alert(response.error || 'Failed to create custom package. Please try again.');
-          return;
         }
-
-        if (response.data?.success && response.data?.data) {
-          // Show success message and redirect to package details page
-          const newPackageId = response.data?.data?.id;
-          if (newPackageId) {
-            alert('Package created successfully! Redirecting to package details...');
-            router.push(`/user/mypackages/${newPackageId}`);
-          } else {
-            alert('Package created successfully! Go to My packages!');
-            router.push('/user/mypackages');
-          }
-        } else if (response.data?.data) {
-          // Handle case where success might not be in response but data exists
-          const newPackageId = response.data?.data?.id;
-          if (newPackageId) {
-            alert('Package created successfully! Redirecting to package details...');
-            router.push(`/user/mypackages/${newPackageId}`);
-          } else {
-            alert('Package created successfully! Go to My packages!');
-            router.push('/user/mypackages');
-          }
-        } else {
-          alert('Failed to create custom package. Please try again.');
-        }
-      } catch (err: any) {
-        console.error('Error creating custom package:', err);
-        // Check if it's an authentication error
-        if (err?.message?.includes('401') || err?.message?.includes('Unauthorized')) {
-          alert('Your session has expired. Please log in again.');
-          router.push('/login');
-        } else {
-          alert(err?.message || 'Failed to create custom package. Please try again.');
-        }
-      } finally {
-        setAddingToCart(false);
       }
-    } else {
-      if (!selectedPackage || !catererId) return;
+      newSelected.add(dishId);
+    }
+    setSelectedDishIds(newSelected);
+  };
 
-      // Validate required fields
-      if (!eventType || !location || !eventDate) {
-        alert('Please fill in all event details (Event Type, Location, and Date) before proceeding.');
-        return;
-      }
+  const handleAddToCart = async () => {
+    if (!user) {
+      router.push(`/login?redirect=/user/caterers/${catererId}`);
+      return;
+    }
 
-      setAddingToCart(true);
-      try {
-        // Navigate to package details page with all form data as query params
-        const params = new URLSearchParams({
-          guests: guestCount.toString(),
-          eventType: eventType,
-          location: location,
-          date: eventDate,
-        });
-        router.push(`/user/caterers/${catererId}/${selectedPackage.id}?${params.toString()}`);
-      } catch (err) {
-        console.error('Error navigating to package:', err);
-      } finally {
-        setAddingToCart(false);
+    if (!selectedPackage || !selectedLocation || !eventDate || !guestCount) {
+      setCartMessage({ type: 'error', text: 'Please complete event details and select a package' });
+      return;
+    }
+
+    setAddingToCart(true);
+    try {
+      const response = await userApi.createCartItem({
+        package_id: selectedPackage.id,
+        package_type_id: selectedEventType || selectedPackage.package_type?.id,
+        location: selectedLocation,
+        guests: guestCount,
+        date: new Date(eventDate).toISOString(),
+        price_at_time: (selectedPackage.total_price / selectedPackage.people_count) * guestCount,
+      });
+
+      if (response.data?.success) {
+        setCartMessage({ type: 'success', text: 'Success! Redirecting to cart...' });
+        setTimeout(() => router.push('/user/cart'), 1500);
+      } else {
+        setCartMessage({ type: 'error', text: response.error || 'Failed to add to cart' });
       }
+    } catch (err) {
+      setCartMessage({ type: 'error', text: 'An unexpected error occurred' });
+    } finally {
+      setAddingToCart(false);
     }
   };
 
-  // Get logo info
-  const getLogoInfo = (name: string) => {
-    const words = name.split(' ');
-    const logoText = words.length > 1
-      ? words[0].substring(0, 5).toUpperCase()
-      : name.substring(0, 5).toUpperCase();
-    return { logoText };
-  };
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-medium text-gray-500">Loading caterer info...</div>;
+  if (!caterer) return <div className="min-h-screen flex items-center justify-center font-medium text-gray-500 underline"><Link href="/user/packages">Caterer not found. Go back.</Link></div>;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#268700] mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !caterer) {
-    return (
-      <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center">
-        <p className="text-gray-500">{error || 'Caterer not found.'}</p>
-      </div>
-    );
-  }
-
-  const { logoText } = getLogoInfo(caterer.name);
+  const logoText = caterer.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 5);
 
   return (
-    <section className="bg-[#fafafa] min-h-screen">
-      <div className="max-w-7xl mx-auto px-6 py-10">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 text-sm text-gray-600 mb-6">
-            <Link href="/user/caterers" className="underline cursor-pointer">Menu</Link>
-            <span>/</span>
-            <span>Package Details</span>
-          </div>
+    <div className="bg-[#FAF9F6] min-h-screen pb-32">
+      <div className="max-w-7xl mx-auto px-4 pt-8">
+        {/* Navigation */}
+        <div className="flex items-center gap-2 text-sm text-gray-400 mb-8">
+          <Link href="/user/packages" className="hover:text-gray-900 transition-colors">Menu</Link>
+          <ChevronRight className="w-4 h-4" />
+          <span className="text-gray-900 font-semibold tracking-tight">Package Details</span>
+        </div>
 
-          {/* Caterer Header */}
-          <div className="flex items-start gap-6 mb-6">
-            <div className="bg-blue-600 text-white text-center py-8 px-6 rounded-lg font-bold text-xl min-w-[120px]">
-              {logoText}
+        {/* Premium Header */}
+        <div className="flex flex-col md:flex-row items-start gap-8 mb-12">
+          <div className="bg-[#2B63FF] text-white flex items-center justify-center rounded-2xl font-black text-3xl w-32 h-32 md:w-36 md:h-36 flex-shrink-0 shadow-[0_8px_30px_rgb(43,99,255,0.2)]">
+            {logoText}
+          </div>
+          <div className="flex-1 pt-1">
+            <h1 className="text-4xl font-black text-gray-900 mb-3 tracking-tight">{caterer.name}</h1>
+
+            <div className="flex gap-2 mb-6">
+              {caterer.cuisines?.map((cuisine: string) => (
+                <span key={cuisine} className="text-[10px] bg-white border border-gray-100 text-gray-500 px-3 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm">
+                  {cuisine}
+                </span>
+              ))}
             </div>
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">{caterer.name}</h1>
-              <div className="flex gap-2 mb-2 flex-wrap">
-                {caterer.cuisines.map((cuisine) => (
-                  <span
-                    key={cuisine}
-                    className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full"
-                  >
-                    {cuisine}
-                  </span>
-                ))}
+
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-4 text-sm text-gray-500">
+              <div className="flex items-center gap-2">
+                <Star className="w-4 h-4 text-[#FFB800] fill-[#FFB800]" />
+                <span className="font-bold text-gray-900">4.8</span>
+                <span className="text-gray-300">(89 reviews)</span>
               </div>
-              <div className="flex flex-wrap items-center gap-4 mb-2">
-                <div className="text-sm text-gray-600">
-                  ⭐ {packages.length > 0 && packages[0]?.rating
-                    ? typeof packages[0].rating === 'number'
-                      ? packages[0].rating.toFixed(1)
-                      : parseFloat(String(packages[0].rating)).toFixed(1)
-                    : 'N/A'}
-                </div>
 
-                {/* Capacity & Service Details - Inline with Rating */}
-                {(caterer as any).minimum_guests && (
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs text-gray-500">Min:</span>
-                    <span className="text-sm font-semibold text-[#268700]">{(caterer as any).minimum_guests}</span>
-                    <span className="text-xs text-gray-500">guests</span>
-                  </div>
-                )}
-                {(caterer as any).maximum_guests && (
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs text-gray-500">Max:</span>
-                    <span className="text-sm font-semibold text-[#268700]">{(caterer as any).maximum_guests}</span>
-                    <span className="text-xs text-gray-500">guests</span>
-                  </div>
-                )}
-                {(caterer as any).staff && (
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs text-gray-500">Staff:</span>
-                    <span className="text-sm font-semibold text-[#268700]">{(caterer as any).staff}</span>
-                  </div>
-                )}
-                {(caterer as any).servers && (
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs text-gray-500">Servers:</span>
-                    <span className="text-sm font-semibold text-[#268700]">{(caterer as any).servers}</span>
-                  </div>
-                )}
-                {((caterer as any).delivery_only || (caterer as any).delivery_plus_setup || (caterer as any).full_service) && (
-                  <>
-                    {(caterer as any).delivery_only && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                        Delivery
-                      </span>
-                    )}
-                    {(caterer as any).delivery_plus_setup && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                        Setup
-                      </span>
-                    )}
-                    {(caterer as any).full_service && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                        Full Service
-                      </span>
-                    )}
-                  </>
-                )}
-              </div>  <p className="text-sm text-gray-600 mb-2">
-                {caterer.description || 'Award-winning catering service specializing in Mediterranean and French cuisine. We bring restaurant-quality food to your events with impeccable service.'}
-              </p>
-              <p className="font-semibold text-gray-900">{caterer.priceRange}</p>
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-gray-400" />
+                <span className="font-medium text-gray-700">{(caterer as any).minimum_guests || 10} - {(caterer as any).maximum_guests || 300} guests</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Truck className="w-4 h-4 text-gray-400" />
+                <span className="font-medium text-gray-700">
+                  {(caterer as any).full_service ? 'Full service including staff' :
+                    (caterer as any).delivery_plus_setup ? 'Delivery & Setup' : 'Delivery only'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-gray-400" />
+                <span className="font-medium text-gray-700">Responds &lt; 4 hours</span>
+              </div>
             </div>
-          </div>
-
-          {/* Tabs */}
-          <div className="flex gap-2 mb-6 w-full px-4 bg-white">
-            <button
-              onClick={() => setActiveTab('setMenus')}
-              className={`flex-1 py-3 text-base font-semibold rounded-lg transition ${activeTab === 'setMenus'
-                ? 'bg-[#268700] text-white shadow-md'
-                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                }`}
-            >
-              Set Menus
-            </button>
-            <button
-              onClick={() => setActiveTab('buildYourOwn')}
-              className={`flex-1 py-3 text-base font-semibold rounded-lg transition ${activeTab === 'buildYourOwn'
-                ? 'bg-[#268700] text-white shadow-md'
-                : 'bg-white text-gray-700  border-gray-300 hover:bg-gray-50'
-                }`}
-            >
-              Build Your Own
-            </button>
-            <button
-              onClick={() => setActiveTab('customiseMenu')}
-              className={`flex-1 py-3 text-base font-semibold rounded-lg transition ${activeTab === 'customiseMenu'
-                ? 'bg-[#268700] text-white shadow-md'
-                : 'bg-white text-gray-700  border-gray-300 hover:bg-gray-50'
-                }`}
-            >
-              Customise Menu
-            </button>
           </div>
         </div>
 
-        {/* Tab Content */}
-        {activeTab === 'setMenus' && (
-          <div className="pb-32">
-            <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
-              {/* Left Column - Packages */}
-              <div className="bg-white rounded-xl p-6 border border-gray-200">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">Select Package</h2>
-                </div>
+        {/* Tabs Bar */}
+        <div className="flex items-center bg-white rounded-2xl p-1.5 shadow-sm border border-gray-100 mb-10 w-fit">
+          {['setMenus', 'buildYourOwn', 'customiseMenu'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-8 py-3 text-sm font-bold rounded-xl transition-all ${activeTab === tab
+                  ? 'bg-[#268700] text-white shadow-md'
+                  : 'text-gray-400 hover:text-gray-600'
+                }`}
+            >
+              {tab === 'setMenus' ? 'Set Menus' : tab === 'buildYourOwn' ? 'Build Your Own' : 'Customise Menu'}
+            </button>
+          ))}
+        </div>
 
-                {/* Group packages by customisation_type */}
-                {(() => {
-                  const fixedPackages = packages.filter(
-                    (pkg) => !pkg.customisation_type || pkg.customisation_type === 'FIXED'
-                  );
-                  const customisablePackages = packages.filter(
-                    (pkg) => pkg.customisation_type === 'CUSTOMISABLE' || pkg.customisation_type === 'CUSTOMIZABLE'
-                  );
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+          {/* Main List */}
+          <div className="lg:col-span-2 space-y-10">
+            <div className="bg-white rounded-[2rem] p-10 shadow-sm border border-gray-100">
+              <h2 className="text-2xl font-black text-gray-900 mb-8 tracking-tight">Select Package</h2>
 
-                  const renderPackageCard = (pkg: Package) => {
-                    const isSelected = selectedPackage?.id === pkg.id;
-                    const menuItems = formatMenuItems(pkg);
-                    const totalPrice = pkg.price_per_person * guestCount;
-
-                    return (
-                      <div
-                        key={pkg.id}
-                        onClick={() => setSelectedPackage(pkg)}
-                        className={`bg-white border-2 rounded-lg p-3 cursor-pointer transition ${isSelected
-                          ? 'border-[#268700] bg-green-50 shadow-md'
-                          : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                          }`}
-                      >
-                        <h3 className="font-semibold text-base text-gray-900 mb-1">{pkg.name}</h3>
-                        <p className="text-xs text-gray-600 mb-3">{pkg.package_type?.name || 'Package'}</p>
-
-                        <div className="space-y-1.5 text-xs text-gray-700 mb-3">
-                          <div className="line-clamp-1">
-                            <span className="font-medium">Welcome Drink:</span> <span className="text-gray-600">{menuItems.welcomeDrink}</span>
-                          </div>
-                          <div className="line-clamp-1">
-                            <span className="font-medium">Starter:</span> <span className="text-gray-600">{menuItems.starter}</span>
-                          </div>
-                          <div className="line-clamp-1">
-                            <span className="font-medium">Main:</span> <span className="text-gray-600">{menuItems.main}</span>
-                          </div>
-                          <div className="line-clamp-1">
-                            <span className="font-medium">Sides:</span> <span className="text-gray-600">{menuItems.sides}</span>
-                          </div>
-                          <div className="line-clamp-1">
-                            <span className="font-medium">Dessert:</span> <span className="text-gray-600">{menuItems.dessert}</span>
-                          </div>
-                        </div>
-
-                        <div className="border-t border-gray-200 pt-3">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="font-semibold text-sm text-gray-900 flex items-center gap-1">
-                              <img src="/dirham.svg" alt="AED" className="w-4 h-4" />
-                              {pkg.price_per_person.toLocaleString()}/person
-                            </span>
-                          </div>
-                          <div className="text-xs text-gray-600 flex items-center gap-1">
-                            Total for {guestCount} guests: <span className="font-semibold text-gray-900 flex items-center gap-1"><img src="/dirham.svg" alt="AED" className="w-3 h-3" />{totalPrice.toLocaleString()}</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  };
-
-                  if (packages.length === 0) {
-                    return (
-                      <div className="text-center py-10">
-                        <p className="text-gray-500">No packages available for this caterer.</p>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div className="space-y-8">
-                      {/* Fixed Packages Section */}
-                      {fixedPackages.length > 0 && (
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900 mb-4">Fixed Packages</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {fixedPackages.map(renderPackageCard)}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Customisable Packages Section */}
-                      {customisablePackages.length > 0 && (
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900 mb-4">Customisable Packages</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {customisablePackages.map(renderPackageCard)}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Right Column - Event Details Form */}
-              <aside className="bg-white border border-gray-200 rounded-xl p-5 h-fit">
-                <h3 className="font-semibold text-lg mb-4">Event Details</h3>
-
-                {/* Event Type */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Event Type <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="eventType"
-                    value={eventType}
-                    onChange={(e) => setEventType(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#268700]"
-                    disabled={loadingOccasions}
-                  >
-                    <option value="" className="text-black">
-                      {loadingOccasions ? 'Loading...' : 'Select Event Type'}
-                    </option>
-                    {occasions.map((occasion) => (
-                      <option key={occasion.id} value={occasion.id} className="text-black">
-                        {occasion.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Location */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Location <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="location"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#268700]"
-                  >
-                    <option value="" className="text-black">Select Location</option>
-                    <option value="Downtown Dubai" className="text-black">Downtown Dubai</option>
-                    <option value="Dubai Marina" className="text-black">Dubai Marina</option>
-                    <option value="Jumeirah" className="text-black">Jumeirah</option>
-                    <option value="Palm Jumeirah" className="text-black">Palm Jumeirah</option>
-                    <option value="Business Bay" className="text-black">Business Bay</option>
-                    <option value="Dubai International Financial Centre (DIFC)" className="text-black">Dubai International Financial Centre (DIFC)</option>
-                    <option value="Dubai Mall Area" className="text-black">Dubai Mall Area</option>
-                    <option value="Burj Al Arab Area" className="text-black">Burj Al Arab Area</option>
-                    <option value="Dubai Festival City" className="text-black">Dubai Festival City</option>
-                    <option value="Dubai Sports City" className="text-black">Dubai Sports City</option>
-                    <option value="Dubai Media City" className="text-black">Dubai Media City</option>
-                    <option value="Dubai Internet City" className="text-black">Dubai Internet City</option>
-                    <option value="Dubai Knowledge Park" className="text-black">Dubai Knowledge Park</option>
-                    <option value="Dubai Healthcare City" className="text-black">Dubai Healthcare City</option>
-                    <option value="Dubai World Trade Centre" className="text-black">Dubai World Trade Centre</option>
-                    <option value="Dubai Creek" className="text-black">Dubai Creek</option>
-                    <option value="Deira" className="text-black">Deira</option>
-                    <option value="Bur Dubai" className="text-black">Bur Dubai</option>
-                    <option value="Al Barsha" className="text-black">Al Barsha</option>
-                    <option value="Jumeirah Beach Residence (JBR)" className="text-black">Jumeirah Beach Residence (JBR)</option>
-                    <option value="Dubai Hills" className="text-black">Dubai Hills</option>
-                    <option value="Arabian Ranches" className="text-black">Arabian Ranches</option>
-                    <option value="Emirates Hills" className="text-black">Emirates Hills</option>
-                    <option value="Dubai Silicon Oasis" className="text-black">Dubai Silicon Oasis</option>
-                    <option value="Dubai Production City" className="text-black">Dubai Production City</option>
-                    <option value="Dubai Studio City" className="text-black">Dubai Studio City</option>
-                  </select>
-                </div>
-
-                {/* Guests */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Number of Guests <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={guestCount}
-                    onChange={(e) => {
-                      const value = Number(e.target.value);
-                      if (value > 0) {
-                        setGuestCount(value);
-                      }
-                    }}
-                    className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#268700]"
-                    placeholder="50"
-                  />
-                </div>
-
-                {/* Date */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Event Date <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    name="date"
-                    value={eventDate}
-                    onChange={(e) => setEventDate(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#268700]"
-                  />
-                </div>
-
-                {/* Total Cost Preview */}
-                {selectedPackage && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <div className="font-semibold text-sm text-gray-700 mb-1">Estimated Total</div>
-                    <div className="text-lg font-bold text-gray-900 flex items-center gap-1">
-                      <img src="/dirham.svg" alt="AED" className="w-5 h-5" />
-                      {calculateTotal().toLocaleString()}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {guestCount} {guestCount === 1 ? 'guest' : 'guests'}
-                    </div>
-                  </div>
-                )}
-              </aside>
-            </div>
-
-            {/* Footer with Total and Add to Cart - Only show for Set Menus */}
-            {activeTab === 'setMenus' && (
-              <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-4 z-50">
-                <div className="max-w-7xl mx-auto flex justify-between items-center">
-                  <div>
-                    <p className="text-sm text-gray-600">Total Amount</p>
-                    <p className="text-2xl font-bold text-gray-900 flex items-center gap-1">
-                      <img src="/dirham.svg" alt="AED" className="w-6 h-6" />
-                      {calculateTotal().toLocaleString()}
-                    </p>
-                    <p className="text-sm text-gray-500">{guestCount} guests</p>
-                  </div>
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={!selectedPackage || addingToCart || !eventType || !location || !eventDate}
-                    className={`px-8 py-3 rounded-full font-semibold transition ${!selectedPackage || addingToCart || !eventType || !location || !eventDate
-                      ? 'bg-gray-400 cursor-not-allowed text-white'
-                      : 'bg-[#268700] text-white hover:bg-[#1f6b00]'
-                      }`}
-                  >
-                    {addingToCart ? 'Proceeding...' : 'Continue to Package'}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'buildYourOwn' && (
-          <div className="pb-32">
-            {/* Header Section */}
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Build Your Own Menu</h2>
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-700">Number of Guests:</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={guestCount}
-                  onChange={(e) => {
-                    const value = Number(e.target.value);
-                    if (value > 0) {
-                      setGuestCount(value);
-                    }
-                  }}
-                  className="bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm w-24 focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-transparent"
-                  placeholder="50"
-                />
-              </div>
-            </div>
-
-            {/* Dietary Filters */}
-            <div className="flex gap-3 mb-6">
-              <button
-                onClick={() => setDietaryFilter(dietaryFilter === 'veg' ? null : 'veg')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition ${dietaryFilter === 'veg'
-                  ? 'bg-[#268700] text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                  }`}
-              >
-                Veg
-              </button>
-              <button
-                onClick={() => setDietaryFilter(dietaryFilter === 'glutenFree' ? null : 'glutenFree')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition ${dietaryFilter === 'glutenFree'
-                  ? 'bg-[#268700] text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                  }`}
-              >
-                Gluten Free
-              </button>
-              <button
-                onClick={() => setDietaryFilter(dietaryFilter === 'nonVeg' ? null : 'nonVeg')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition ${dietaryFilter === 'nonVeg'
-                  ? 'bg-[#268700] text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                  }`}
-              >
-                Non Veg
-              </button>
-              <button
-                onClick={() => setDietaryFilter(dietaryFilter === 'sugarFree' ? null : 'sugarFree')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition ${dietaryFilter === 'sugarFree'
-                  ? 'bg-[#268700] text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                  }`}
-              >
-                Sugar Free
-              </button>
-            </div>
-
-            {/* Menu Items Section */}
-            <div className="bg-green-100 text-gray-800 p-4 rounded-lg mb-4 border border-green-200">
-              <h3 className="font-semibold text-lg mb-2 text-gray-900">Menu Items (Customisable)</h3>
-              <p className="text-sm text-gray-700">
-                {caterer.description || 'Award-winning catering service specializing in Mediterranean and French cuisine. We bring restaurant-quality food to your events with impeccable service.'}
-              </p>
-            </div>
-
-            {/* Loading State */}
-            {loadingDishes ? (
-              <div className="text-center py-10">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#268700] mx-auto mb-4"></div>
-                <p className="text-gray-500">Loading dishes...</p>
-              </div>
-            ) : dishes.length === 0 ? (
-              <div className="text-center py-10">
-                <p className="text-gray-500">No dishes available for this caterer.</p>
-              </div>
-            ) : (
               <div className="space-y-6">
-                {groupDishesByCategory().map((categoryGroup) => {
-                  const selectedInCategory = Array.from(selectedDishes).filter(id => {
-                    const dish = dishes.find(d => d.id === id);
-                    return dish?.category?.name === categoryGroup.categoryName;
-                  }).length;
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">Fixed Packages</h3>
+                </div>
 
-                  return (
-                    <div key={categoryGroup.categoryName} className="bg-white border border-gray-200 rounded-lg p-4">
-                      <h4 className="font-semibold text-lg text-gray-900 mb-4">
-                        {categoryGroup.categoryName}
-                        {selectedInCategory > 0 && (
-                          <span className="text-sm text-gray-500 ml-2">
-                            ({selectedInCategory} selected)
-                          </span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {packages.map((pkg) => (
+                    <div
+                      key={pkg.id}
+                      onClick={() => handlePackageSelect(pkg)}
+                      className={`group relative p-8 rounded-3xl border-2 transition-all cursor-pointer hover:shadow-xl hover:-translate-y-1 ${selectedPackage?.id === pkg.id
+                          ? 'border-[#268700] bg-green-50/5'
+                          : 'border-gray-50 bg-white'
+                        }`}
+                    >
+                      {selectedPackage?.id === pkg.id && (
+                        <div className="absolute top-6 right-6 bg-[#268700] rounded-full p-1.5 shadow-lg shadow-green-200">
+                          <Check className="w-4 h-4 text-white" />
+                        </div>
+                      )}
+
+                      <h4 className="text-lg font-black text-gray-900 mb-2 pr-8 leading-tight">{pkg.name}</h4>
+                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-6">{pkg.package_type}</div>
+
+                      <div className="space-y-3 mb-8">
+                        {pkg.items.slice(0, 3).map((item, idx) => (
+                          <div key={idx} className="flex gap-2 text-xs">
+                            <span className="font-bold text-gray-900 shrink-0">
+                              {item.dish?.category?.name || item.dish?.category}:
+                            </span>
+                            <span className="text-gray-500 truncate">{item.dish?.name}</span>
+                          </div>
+                        ))}
+                        {pkg.items.length > 3 && (
+                          <div className="flex items-center gap-1 text-[10px] font-black text-[#268700] uppercase pt-1 tracking-widest">
+                            <Plus className="w-3 h-3" /> {pkg.items.length - 3} more items
+                          </div>
                         )}
-                      </h4>
-                      <div className="space-y-2">
-                        {categoryGroup.dishes.map((dish) => {
-                          const isSelected = isDishSelected(dish.id);
+                      </div>
 
-                          return (
-                            <div
-                              key={dish.id}
-                              className={`flex items-center justify-between p-3 rounded-lg border transition cursor-pointer ${isSelected
-                                ? 'border-[#268700] bg-green-50'
-                                : 'border-gray-200 hover:border-gray-300'
-                                }`}
-                              onClick={() => toggleDishSelection(dish.id, categoryGroup)}
-                            >
-                              <div className="flex-1">
-                                <p className="font-medium text-gray-900">{dish.name}</p>
-                                <p className="text-sm text-gray-600 flex items-center gap-1">
-                                  {dish.cuisine_type?.name || 'Cuisine'} • <img src="/dirham.svg" alt="AED" className="w-3 h-3" />{Number(dish.price).toLocaleString()}/person
-                                </p>
-                              </div>
-                              <div className="ml-4">
-                                {isSelected ? (
-                                  <Check className="w-5 h-5 text-[#268700]" />
+                      <div className="flex flex-col pt-6 border-t border-gray-50">
+                        <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-1">Price per person</span>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-black text-gray-900 tracking-tighter">AED {pkg.price_per_person}</span>
+                          <span className="text-xs text-gray-400">/person</span>
+                        </div>
+                        <div className="text-[10px] font-bold text-gray-400 mt-2">Total for {pkg.people_count} guests: <span className="text-gray-900 font-black">AED {pkg.total_price.toLocaleString()}</span></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Inline Menu Selection */}
+            {selectedPackage && (
+              <div id="menu-items-scroll-target" className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
+                <div className="p-10 border-b border-gray-50 bg-[#F9FAFB]/50 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-black text-gray-900 tracking-tight">Menu Items</h2>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="px-2 py-0.5 rounded bg-gray-900 text-[10px] text-white font-black uppercase tracking-wider">{selectedPackage.items.length} dishes</span>
+                      <span className="text-xs text-gray-400 font-medium">for {selectedPackage.people_count} people</span>
+                    </div>
+                  </div>
+                  <div className="text-right flex flex-col items-end">
+                    <Settings2 className="w-6 h-6 text-gray-300 mb-2" />
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{selectedPackage.customisation_type?.includes('CUSTOM') ? 'Customizable' : 'Fixed Menu'}</span>
+                  </div>
+                </div>
+
+                <div className="divide-y divide-gray-50">
+                  {Object.entries(
+                    selectedPackage.items.reduce((acc: any, item) => {
+                      const cat = item.dish?.category?.name || item.dish?.category || 'Other';
+                      if (!acc[cat]) acc[cat] = [];
+                      acc[cat].push(item);
+                      return acc;
+                    }, {})
+                  ).map(([category, items]: [string, any], catIdx) => {
+                    const isCustomizable = selectedPackage.customisation_type?.includes('CUSTOM');
+                    const isFixedWithLimits = selectedPackage.customisation_type === 'FIXED' && (selectedPackage.category_selections?.length || 0) > 0;
+
+                    return (
+                      <div key={category} className={catIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50/20'}>
+                        <div className="px-10 py-5 flex items-center justify-between sticky top-0 bg-inherit/90 backdrop-blur-sm z-10">
+                          <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">{category}</h3>
+                          {isFixedWithLimits && (
+                            <div className="flex items-center gap-2 px-3 py-1 bg-[#268700]/10 rounded-full">
+                              <Info className="w-3 h-3 text-[#268700]" />
+                              <span className="text-[10px] font-black text-[#268700] uppercase tracking-wider">
+                                Choose {selectedPackage.category_selections?.find(s => (s.category?.name || s.category).toLowerCase() === category.toLowerCase())?.num_dishes_to_select || 'Items'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="divide-y divide-gray-50 px-6 pb-6">
+                          {items.map((item: any) => {
+                            const isSelected = selectedDishIds.has(item.dish?.id);
+                            const selectable = isCustomizable || isFixedWithLimits;
+
+                            return (
+                              <div
+                                key={item.id}
+                                onClick={() => selectable && toggleDishSelection(item.dish?.id, category)}
+                                className={`px-4 py-5 rounded-2xl flex items-center justify-between transition-all ${selectable ? 'cursor-pointer hover:bg-white hover:shadow-md' : 'cursor-default'
+                                  } ${isSelected ? 'bg-white shadow-sm ring-1 ring-green-100' : ''}`}
+                              >
+                                <div className="flex items-center gap-5">
+                                  <div className={`w-12 h-12 rounded-xl bg-gray-100 flex-shrink-0 flex items-center justify-center text-gray-400 font-black text-xs overflow-hidden`}>
+                                    {item.dish?.image_url ? (
+                                      <img src={item.dish.image_url} alt="" className="w-full h-full object-cover" />
+                                    ) : item.dish?.name?.charAt(0)}
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-bold text-gray-900">{item.dish?.name}</span>
+                                    {item.dish?.description && <span className="text-xs text-gray-400 mt-1 max-w-sm leading-relaxed">{item.dish.description}</span>}
+                                  </div>
+                                </div>
+                                {selectable ? (
+                                  <div className={`w-7 h-7 rounded-xl border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-[#268700] border-[#268700] rotate-0 scale-100 shadow-lg shadow-green-100' : 'border-gray-100 rotate-90 scale-95 hover:border-gray-200'
+                                    }`}>
+                                    {isSelected && <Check className="w-4 h-4 text-white" />}
+                                  </div>
                                 ) : (
-                                  <Plus className="w-5 h-5 text-gray-400" />
+                                  <div className="px-2 py-1 rounded bg-green-50 text-[10px] font-black text-[#268700] uppercase tracking-tighter">Included</div>
                                 )}
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Footer with Total and Create Package */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-4">
-              <div className="max-w-7xl mx-auto flex justify-between items-center">
-                <div>
-                  <p className="text-sm text-gray-600">Total Amount</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    AED {calculateTotal().toLocaleString()}
-                  </p>
-                  <p className="text-sm text-gray-500">{guestCount} guests</p>
-                </div>
-                <button
-                  onClick={handleAddToCart}
-                  disabled={selectedDishes.size === 0 || addingToCart}
-                  className={`px-8 py-3 rounded-full font-semibold transition ${selectedDishes.size === 0 || addingToCart
-                    ? 'bg-gray-400 cursor-not-allowed text-white'
-                    : 'bg-[#268700] text-white hover:bg-[#1f6b00]'
-                    }`}
-                >
-                  {addingToCart ? 'Creating...' : 'Create Package'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'customiseMenu' && (
-          <div className="pb-10">
-            {/* Request a Custom Proposal Section */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">Request a Custom Proposal</h2>
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-gray-700">Number of Guests:</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={proposalGuestCount}
-                    onChange={(e) => {
-                      const value = Number(e.target.value);
-                      if (value > 0) {
-                        setProposalGuestCount(value);
-                      }
-                    }}
-                    className="bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm w-24 focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-transparent"
-                    placeholder="50"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Event Type */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Event Type
-                  </label>
-                  <input
-                    type="text"
-                    value={proposalEventType}
-                    onChange={(e) => setProposalEventType(e.target.value)}
-                    placeholder="e.g., Wedding, Corporate Event, Birthday"
-                    className="w-full bg-white border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#268700]"
-                  />
-                </div>
-
-                {/* Budget per Person */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Budget per Person
-                  </label>
-                  <input
-                    type="text"
-                    value={budgetPerPerson}
-                    onChange={(e) => setBudgetPerPerson(e.target.value)}
-                    placeholder="0"
-                    className="w-full bg-white border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#268700] pl-10"
-                  />
-                  <img src="/dirham.svg" alt="AED" className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                </div>
-
-                {/* Event Date */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Event Date
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      value={proposalEventDate}
-                      onChange={(e) => setProposalEventDate(e.target.value)}
-                      className="w-full bg-white border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#268700]"
-                    />
-                  </div>
-                </div>
-
-                {/* Location */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Location
-                  </label>
-                  <input
-                    type="text"
-                    value={proposalLocation}
-                    onChange={(e) => setProposalLocation(e.target.value)}
-                    placeholder="Enter event location"
-                    className="w-full bg-white border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#268700]"
-                  />
-                </div>
-              </div>
-
-              {/* Dietary Preferences */}
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Dietary Preferences
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {['Veg', 'Non Veg', 'Gluten Free', 'Sugar Free', 'Vegan', 'Halal', 'Kosher'].map((pref) => {
-                    const isSelected = selectedDietaryPreferences.has(pref);
-                    return (
-                      <button
-                        key={pref}
-                        type="button"
-                        onClick={() => {
-                          const newSet = new Set(selectedDietaryPreferences);
-                          if (isSelected) {
-                            newSet.delete(pref);
-                          } else {
-                            newSet.add(pref);
-                          }
-                          setSelectedDietaryPreferences(newSet);
-                        }}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition ${isSelected
-                          ? 'bg-green-100 text-green-800 border border-green-300'
-                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                          }`}
-                      >
-                        {pref}
-                      </button>
                     );
                   })}
                 </div>
               </div>
-
-              {/* Tell us about your vision */}
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tell us about your vision
-                </label>
-                <textarea
-                  value={vision}
-                  onChange={(e) => setVision(e.target.value)}
-                  placeholder="Describe your event, special requirements, theme, or any other details..."
-                  rows={4}
-                  className="w-full bg-white border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#268700] resize-none"
-                />
-              </div>
-
-              {/* Submit Button */}
-              <div className="flex justify-end mt-6">
-                <button
-                  onClick={async () => {
-                    if (!catererId) {
-                      alert('Caterer ID is missing. Please try again.');
-                      return;
-                    }
-
-                    setSubmittingProposal(true);
-                    try {
-                      const response = await userApi.createProposal({
-                        caterer_id: catererId,
-                        event_type: proposalEventType || undefined,
-                        location: proposalLocation || undefined,
-                        dietary_preferences: Array.from(selectedDietaryPreferences),
-                        budget_per_person: budgetPerPerson || undefined,
-                        event_date: proposalEventDate || undefined,
-                        vision: vision || undefined,
-                        guest_count: proposalGuestCount,
-                      });
-
-                      if (response.error) {
-                        alert(response.error);
-                      } else if (response.data?.success) {
-                        // Reset form
-                        setProposalEventType('');
-                        setProposalLocation('12/345 Business Bay');
-                        setSelectedDietaryPreferences(new Set(['Gluten Free', 'Sugar Free']));
-                        setBudgetPerPerson('AED 12');
-                        setProposalEventDate('2024-12-12');
-                        setVision('');
-                        setProposalGuestCount(50);
-                        // Show success modal
-                        setShowProposalSuccessModal(true);
-                      } else {
-                        alert('Failed to submit proposal. Please try again.');
-                      }
-                    } catch (err: any) {
-                      console.error('Error submitting proposal:', err);
-                      alert(err?.message || 'Failed to submit proposal. Please try again.');
-                    } finally {
-                      setSubmittingProposal(false);
-                    }
-                  }}
-                  disabled={submittingProposal || !catererId}
-                  className={`px-8 py-3 rounded-full font-semibold transition ${submittingProposal || !catererId
-                    ? 'bg-gray-400 cursor-not-allowed text-white'
-                    : 'bg-[#268700] text-white hover:bg-[#1f6b00]'
-                    }`}
-                >
-                  {submittingProposal ? 'Submitting...' : 'Request a Quote'}
-                </button>
-              </div>
-            </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Proposal Success Modal */}
-      {
-        showProposalSuccessModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Blurred Background */}
-            <div
-              className="absolute inset-0 bg-black/30 backdrop-blur-md"
-              onClick={() => setShowProposalSuccessModal(false)}
-            />
+          {/* Right Column: Sidebar Form */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-[2rem] p-10 shadow-xl border border-gray-100 sticky top-10">
+              <h2 className="text-xl font-black text-gray-900 mb-8 tracking-tight">Event Details</h2>
 
-            {/* Modal Content */}
-            <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 transform transition-all">
-              {/* Close Button */}
-              <button
-                onClick={() => setShowProposalSuccessModal(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-                aria-label="Close"
-              >
-                <X size={24} />
-              </button>
+              <div className="space-y-8">
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Event Type *</label>
+                  <div className="relative">
+                    <select
+                      value={selectedEventType}
+                      onChange={(e) => setSelectedEventType(e.target.value)}
+                      className="w-full appearance-none pl-6 pr-10 py-4 rounded-2xl bg-gray-50 border border-gray-50 focus:bg-white focus:ring-4 focus:ring-[#268700]/5 focus:border-[#268700] transition-all text-sm font-bold text-gray-700"
+                    >
+                      <option value="">Select Event Type</option>
+                      {occasions.map((occ) => (
+                        <option key={occ.id} value={occ.id}>{occ.name}</option>
+                      ))}
+                    </select>
+                    <Settings2 className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none" />
+                  </div>
+                </div>
 
-              {/* Success Icon */}
-              <div className="flex justify-center mb-6">
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
-                  <Check className="w-12 h-12 text-[#268700]" strokeWidth={3} />
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Location *</label>
+                  <div className="relative">
+                    <select
+                      value={selectedLocation}
+                      onChange={(e) => setSelectedLocation(e.target.value)}
+                      className="w-full appearance-none pl-6 pr-10 py-4 rounded-2xl bg-gray-50 border border-gray-50 focus:bg-white focus:ring-4 focus:ring-[#268700]/5 focus:border-[#268700] transition-all text-sm font-bold text-gray-700"
+                    >
+                      <option value="">Select Location</option>
+                      <option value="Dubai Marina">Dubai Marina</option>
+                      <option value="Downtown Dubai">Downtown Dubai</option>
+                      <option value="JLT">JLT</option>
+                      <option value="Palm Jumeirah">Palm Jumeirah</option>
+                      <option value="Business Bay">Business Bay</option>
+                    </select>
+                    <MapPin className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Guests *</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="1"
+                        value={guestCount}
+                        onChange={(e) => setGuestCount(parseInt(e.target.value))}
+                        className="w-full pl-6 pr-4 py-4 rounded-2xl bg-gray-50 border border-gray-50 focus:bg-white focus:ring-4 focus:ring-[#268700]/5 focus:border-[#268700] transition-all text-sm font-black text-gray-900"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Date *</label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={eventDate}
+                        onChange={(e) => setEventDate(e.target.value)}
+                        className="w-full px-4 py-4 rounded-2xl bg-gray-50 border border-gray-50 focus:bg-white focus:ring-4 focus:ring-[#268700]/5 focus:border-[#268700] transition-all text-xs font-bold text-gray-700"
+                      />
+                      <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none md:hidden" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-8 border-t border-gray-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em]">Estimated Total</span>
+                    <span className="text-2xl font-black text-gray-900 tracking-tighter">
+                      AED {(selectedPackage ? (selectedPackage.total_price / selectedPackage.people_count) * guestCount : 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-gray-400 font-bold">{guestCount} guests x AED {(selectedPackage ? (selectedPackage.total_price / selectedPackage.people_count) : 0).toLocaleString()}</span>
+                    <div className="px-2 py-0.5 rounded bg-blue-50 text-[10px] text-blue-600 font-black uppercase tracking-widest">Calculated</div>
+                  </div>
                 </div>
               </div>
-
-              {/* Success Message */}
-              <div className="text-center">
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                  Proposal Submitted!
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Your proposal request has been submitted successfully. We will get back to you soon with a customized quote.
-                </p>
-
-                {/* Action Button */}
-                <button
-                  onClick={() => setShowProposalSuccessModal(false)}
-                  className="w-full bg-[#268700] text-white py-3 px-6 rounded-full font-semibold hover:bg-[#1f6b00] transition-colors"
-                >
-                  Close
-                </button>
-              </div>
             </div>
           </div>
-        )
-      }
-    </section >
+        </div>
+      </div>
+
+      {/* Modern Bottom Bar */}
+      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-full max-w-5xl px-6 z-[100]">
+        <div className="bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-4 pr-5 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center justify-between text-white overflow-hidden relative">
+          {/* Shine effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-[-20deg] animate-[shine_3s_infinite]" />
+
+          <div className="flex items-center gap-8 pl-6 relative">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-1">Total Amount</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-black tracking-tighter leading-none">
+                  AED {(selectedPackage ? (selectedPackage.total_price / selectedPackage.people_count) * guestCount : 0).toLocaleString()}
+                </span>
+                <span className="text-xs text-gray-500 font-bold uppercase tracking-widest">{guestCount} guests</span>
+              </div>
+            </div>
+
+            {selectedPackage && (
+              <div className="hidden md:flex flex-col border-l border-white/10 pl-8">
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-1">Selected Package</span>
+                <span className="text-xs font-bold text-green-400 truncate max-w-[120px]">{selectedPackage.name}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-6 relative">
+            {cartMessage && (
+              <div className={`px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-widest animate-in slide-in-from-bottom-2 ${cartMessage.type === 'success' ? 'bg-green-500/20 text-green-400 border border-green-500/20' : 'bg-red-500/20 text-red-400 border border-red-500/20'
+                }`}>
+                {cartMessage.text}
+              </div>
+            )}
+            <button
+              onClick={handleAddToCart}
+              disabled={!selectedPackage || addingToCart}
+              className={`group flex items-center gap-3 px-10 py-5 rounded-[1.75rem] font-black text-sm uppercase tracking-[0.15em] transition-all shadow-[0_10px_20px_rgba(38,135,0,0.2)] active:scale-95 ${!selectedPackage || addingToCart
+                  ? 'bg-white/5 text-white/30 cursor-not-allowed border border-white/10'
+                  : 'bg-[#268700] text-white hover:bg-[#1f6b00] hover:shadow-[0_15px_30px_rgba(38,135,0,0.4)]'
+                }`}
+            >
+              {addingToCart ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : (
+                <>
+                  {selectedPackage ? 'Add to Cart' : 'Pick a Package'}
+                  <ChevronRight className={`w-4 h-4 transition-transform ${selectedPackage ? 'group-hover:translate-x-1' : ''}`} />
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <style jsx global>{`
+        @keyframes shine {
+          0% { transform: translateX(-150%) skewX(-20deg); }
+          50% { transform: translateX(150%) skewX(-20deg); }
+          100% { transform: translateX(150%) skewX(-20deg); }
+        }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function Plus(props: any) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12h14" /><path d="M12 5v14" />
+    </svg>
+  );
+}
+
+export default function CatererMenuPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <CatererMenuContent />
+    </Suspense>
   );
 }
