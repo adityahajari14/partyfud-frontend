@@ -8,7 +8,7 @@ import { Select } from '@/components/ui/Select';
 import { catererApi, UpdatePackageRequest, Package } from '@/lib/api/caterer.api';
 import { userApi } from '@/lib/api/user.api';
 
-// Component for package item card with image
+// Component for package item card with images
 interface PackageItemCardProps {
   item: { id: string; dish: { name: string; image_url?: string | null }; people_count: number; quantity: string };
   isSelected: boolean;
