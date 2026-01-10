@@ -109,203 +109,195 @@ export default function DishDetailsPage() {
     const currency = dish.currency || 'AED';
 
     return (
-        <section className="bg-[#FAFAFA] flex flex-col relative pb-2">
-            {/* Header - Balanced */}
-            <div className="max-w-[1000px] w-full mx-auto px-6 pt-2 pb-1">
+        <section className="bg-[#FAFAFA] min-h-screen flex flex-col relative pb-32">
+            {/* Header - Simple & Clean */}
+            <div className="max-w-[800px] w-full mx-auto px-6 py-6 pb-4">
                 <button
                     onClick={() => router.back()}
-                    className="flex items-center gap-2 text-gray-400 hover:text-gray-900 transition-colors group font-black text-[10px] uppercase tracking-[0.25em]"
+                    className="flex items-center gap-2 text-gray-400 hover:text-gray-900 transition-colors group font-black text-[11px] uppercase tracking-[0.2em]"
                 >
-                    <ChevronLeft className="w-4 h-4 transform group-hover:-translate-x-1 transition-transform" />
+                    <ChevronLeft className="w-5 h-5 transition-transform group-hover:-translate-x-1" />
                     <span>Back to Menu</span>
                 </button>
             </div>
 
-            {/* Main Content Area - Content Driven Height */}
-            <div className="px-6 py-0">
-                <div className="max-w-[1000px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+            {/* Main Content Area - Vertical Stack */}
+            <div className="max-w-[800px] w-full mx-auto px-6 flex flex-col gap-8">
 
-                    {/* Left Column: Image and Menu Details (Significantly Narrower) */}
-                    <div className="lg:col-span-5 flex flex-col gap-4">
-                        {/* Image Section - Balanced height */}
-                        <div className="relative h-[200px] w-full bg-white rounded-[1.5rem] overflow-hidden shadow-md border border-white/50 shrink-0">
-                            <Image
-                                src={dish.image_url || '/default_dish.jpg'}
-                                alt={dish.name}
-                                fill
-                                className="object-cover"
-                                priority
-                            />
-                            {/* Status Badge */}
-                            <div className="absolute top-3 right-3">
-                                <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-2xl backdrop-blur-md ${dish.is_active
-                                    ? 'bg-[#268700]/95 text-white'
-                                    : 'bg-red-500/95 text-white'
-                                    }`}>
-                                    {dish.is_active ? 'Available' : 'Unavailable'}
-                                </span>
+                {/* 1. Image Row */}
+                <div className="relative h-[350px] w-full bg-white rounded-[2rem] overflow-hidden shadow-xl border border-white/50">
+                    <Image
+                        src={dish.image_url || '/default_dish.jpg'}
+                        alt={dish.name}
+                        fill
+                        className="object-cover"
+                        priority
+                    />
+                    <div className="absolute top-6 right-6">
+                        <span className={`px-5 py-2 rounded-full text-[11px] font-black uppercase tracking-widest shadow-2xl backdrop-blur-md ${dish.is_active
+                                ? 'bg-[#268700]/95 text-white'
+                                : 'bg-red-500/95 text-white'
+                            }`}>
+                            {dish.is_active ? 'Available' : 'Unavailable'}
+                        </span>
+                    </div>
+                </div>
+
+                {/* 2. Dish Details Row */}
+                <div className="bg-white rounded-[2rem] p-10 shadow-sm border border-gray-100 flex flex-col gap-8">
+                    <div>
+                        <div className="flex flex-wrap gap-2 text-[10px] mb-4">
+                            <span className="px-5 py-2 bg-blue-50 text-blue-600 rounded-full font-black uppercase tracking-widest border border-blue-100 italic">
+                                {dish.cuisine_type.name}
+                            </span>
+                            <span className="px-5 py-2 bg-green-50 text-green-600 rounded-full font-black uppercase tracking-widest border border-green-100 italic">
+                                {dish.category.name}
+                            </span>
+                        </div>
+
+                        <h1 className="text-4xl font-black text-gray-900 mb-4 leading-tight tracking-tight">
+                            {dish.name}
+                        </h1>
+
+                        {dish.category.description && (
+                            <p className="text-gray-500 text-lg leading-relaxed font-medium">
+                                {dish.category.description}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Metrics Row */}
+                    <div className="flex flex-wrap gap-4">
+                        <div className="flex-1 min-w-[140px] px-6 py-5 bg-gray-50/50 rounded-2xl border border-gray-100 text-center">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Pieces</p>
+                            <p className="text-3xl font-black text-gray-900 leading-none">{dish.pieces}</p>
+                        </div>
+                        {dish.quantity_in_gm && (
+                            <div className="flex-1 min-w-[160px] px-6 py-5 bg-gray-50/50 rounded-2xl border border-gray-100 text-center">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Weight</p>
+                                <div className="flex items-baseline justify-center gap-1.5">
+                                    <p className="text-3xl font-black text-gray-900 leading-none">{dish.quantity_in_gm}</p>
+                                    <span className="text-sm font-black text-gray-400 uppercase">g</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Caterer Row */}
+                    {dish.caterer && (
+                        <div className="p-6 bg-white rounded-[1.5rem] border border-gray-100 flex items-center justify-between group cursor-pointer hover:bg-gray-50 transition-all shadow-sm"
+                            onClick={() => router.push(`/user/caterers/${dish.caterer?.id}`)}>
+                            <div className="flex items-center gap-5">
+                                <div className="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center shrink-0">
+                                    <MapPin className="w-7 h-7 text-[#268700]" />
+                                </div>
+                                <div>
+                                    <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.1em] leading-none mb-1.5">Prepared by</p>
+                                    <p className="text-xl font-black text-gray-900">{dish.caterer.name}</p>
+                                </div>
+                            </div>
+                            <ChevronRight className="w-6 h-6 text-gray-300 group-hover:text-[#268700] transition-transform group-hover:translate-x-1" />
+                        </div>
+                    )}
+                </div>
+
+                {/* 3. Event Details Form Row */}
+                <div className="bg-white rounded-[2rem] p-10 shadow-sm border border-gray-100">
+                    <h2 className="text-2xl font-black text-gray-900 mb-8 flex items-center gap-3 underline decoration-green-500/30 underline-offset-8">
+                        <Calendar className="w-7 h-7 text-[#268700]" />
+                        Event Details
+                    </h2>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <label className="block text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-3 px-1 text-center md:text-left">Event Type *</label>
+                            <select
+                                value={selectedEventType}
+                                onChange={(e) => setSelectedEventType(e.target.value)}
+                                className="w-full px-6 py-4 rounded-2xl bg-gray-50 border border-transparent text-base font-black focus:outline-none focus:border-[#268700] focus:bg-white transition-all appearance-none cursor-pointer"
+                            >
+                                <option value="">Select Event Type</option>
+                                {occasions.map((occ) => (
+                                    <option key={occ.id} value={occ.id}>{occ.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-3 px-1 text-center md:text-left">Location *</label>
+                            <div className="relative">
+                                <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <select
+                                    value={selectedLocation}
+                                    onChange={(e) => setSelectedLocation(e.target.value)}
+                                    className="w-full pl-14 pr-6 py-4 rounded-2xl bg-gray-50 border border-transparent text-base font-black focus:outline-none focus:border-[#268700] focus:bg-white transition-all appearance-none cursor-pointer"
+                                >
+                                    <option value="">Select Location</option>
+                                    <option value="Dubai Marina">Dubai Marina</option>
+                                    <option value="Downtown Dubai">Downtown Dubai</option>
+                                    <option value="JLT">JLT</option>
+                                    <option value="Palm Jumeirah">Palm Jumeirah</option>
+                                    <option value="All over UAE">All over UAE</option>
+                                </select>
                             </div>
                         </div>
 
-                        {/* Menu Details Card - Compact & Clean */}
-                        <div className="bg-white rounded-[1.5rem] p-6 shadow-sm border border-gray-100 flex flex-col gap-5">
-                            <div>
-                                <h1 className="text-2xl font-black text-gray-900 mb-2 leading-tight tracking-tight">
-                                    {dish.name}
-                                </h1>
-
-                                <div className="flex flex-wrap gap-2 text-[9px] mb-3">
-                                    <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full font-black uppercase tracking-widest border border-blue-100">
-                                        {dish.cuisine_type.name}
-                                    </span>
-                                    <span className="px-3 py-1 bg-green-50 text-green-600 rounded-full font-black uppercase tracking-widest border border-green-100">
-                                        {dish.category.name}
-                                    </span>
-                                </div>
-
-                                {dish.category.description && (
-                                    <p className="text-gray-400 text-xs leading-relaxed italic font-medium">
-                                        "{dish.category.description}"
-                                    </p>
-                                )}
+                        <div>
+                            <label className="block text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-3 px-1 text-center md:text-left">Guests *</label>
+                            <div className="relative">
+                                <Users className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <input
+                                    type="number"
+                                    value={guestCount}
+                                    onChange={(e) => setGuestCount(parseInt(e.target.value))}
+                                    min="1"
+                                    className="w-full pl-14 pr-6 py-4 rounded-2xl bg-gray-50 border border-transparent text-base font-black focus:outline-none focus:border-[#268700] focus:bg-white transition-all text-center md:text-left"
+                                />
                             </div>
+                        </div>
 
-                            {/* Details Grid - Balanced Metrics */}
-                            <div className="flex flex-wrap gap-2.5">
-                                <div className="min-w-[75px] px-2.5 py-2.5 bg-gray-50/50 rounded-xl border border-gray-100 text-center">
-                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.1em] mb-1">Pieces</p>
-                                    <p className="text-2xl font-black text-gray-900 leading-none tracking-tighter">{dish.pieces}</p>
-                                </div>
-                                {dish.quantity_in_gm && (
-                                    <div className="min-w-[90px] px-3 py-2.5 bg-gray-50/50 rounded-xl border border-gray-100 text-center">
-                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.1em] mb-1">Weight</p>
-                                        <div className="flex items-baseline justify-center gap-0.5">
-                                            <p className="text-2xl font-black text-gray-900 leading-none tracking-tighter">{dish.quantity_in_gm}</p>
-                                            <span className="text-[9px] font-black text-gray-400 uppercase">g</span>
-                                        </div>
-                                    </div>
-                                )}
+                        <div>
+                            <label className="block text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-3 px-1 text-center md:text-left">Date *</label>
+                            <div className="relative">
+                                <Calendar className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <input
+                                    type="date"
+                                    value={eventDate}
+                                    onChange={(e) => setEventDate(e.target.value)}
+                                    className="w-full pl-14 pr-4 py-4 rounded-2xl bg-gray-50 border border-transparent text-base font-black focus:outline-none focus:border-[#268700] focus:bg-white transition-all text-center md:text-left"
+                                />
                             </div>
-
-                            {/* Caterer Info - Compact Section */}
-                            {dish.caterer && (
-                                <div className="p-3 bg-white rounded-xl border border-gray-100 flex items-center justify-between group cursor-pointer hover:bg-gray-50 transition-all shadow-sm"
-                                    onClick={() => router.push(`/user/caterers/${dish.caterer?.id}`)}>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center shrink-0">
-                                            <MapPin className="w-4 h-4 text-[#268700]" />
-                                        </div>
-                                        <div>
-                                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.1em] leading-none mb-1">Prepared by</p>
-                                            <p className="text-sm font-black text-gray-900">{dish.caterer.name}</p>
-                                        </div>
-                                    </div>
-                                    <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#268700] transition-colors" />
-                                </div>
-                            )}
                         </div>
                     </div>
 
-                    {/* Right Column: Event Form - Wider & Primary */}
-                    <div className="lg:col-span-7">
-                        <div className="bg-white rounded-[1.5rem] p-7 shadow-sm border border-gray-100 h-full">
-                            <h2 className="text-lg font-black text-gray-900 mb-6 flex items-center gap-3 underline decoration-green-500/30 underline-offset-8">
-                                <Calendar className="w-5 h-5 text-[#268700]" />
-                                Event Details
-                            </h2>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.25em] mb-1.5 px-1">Event Type *</label>
-                                    <select
-                                        value={selectedEventType}
-                                        onChange={(e) => setSelectedEventType(e.target.value)}
-                                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-transparent text-sm font-black focus:outline-none focus:border-[#268700] focus:bg-white transition-all appearance-none cursor-pointer"
-                                    >
-                                        <option value="">Select Event Type</option>
-                                        {occasions.map((occ) => (
-                                            <option key={occ.id} value={occ.id}>{occ.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.25em] mb-1.5 px-1">Location *</label>
-                                    <div className="relative">
-                                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                        <select
-                                            value={selectedLocation}
-                                            onChange={(e) => setSelectedLocation(e.target.value)}
-                                            className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-50 border border-transparent text-sm font-black focus:outline-none focus:border-[#268700] focus:bg-white transition-all appearance-none cursor-pointer"
-                                        >
-                                            <option value="">Select Location</option>
-                                            <option value="Dubai Marina">Dubai Marina</option>
-                                            <option value="Downtown Dubai">Downtown Dubai</option>
-                                            <option value="JLT">JLT</option>
-                                            <option value="Palm Jumeirah">Palm Jumeirah</option>
-                                            <option value="All over UAE">All over UAE</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.25em] mb-1.5 px-1">Guests *</label>
-                                        <div className="relative">
-                                            <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                            <input
-                                                type="number"
-                                                value={guestCount}
-                                                onChange={(e) => setGuestCount(parseInt(e.target.value))}
-                                                min="1"
-                                                className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-50 border border-transparent text-sm font-black focus:outline-none focus:border-[#268700] focus:bg-white transition-all"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.25em] mb-1.5 px-1">Date *</label>
-                                        <div className="relative">
-                                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                            <input
-                                                type="date"
-                                                value={eventDate}
-                                                onChange={(e) => setEventDate(e.target.value)}
-                                                className="w-full pl-10 pr-1 py-3 rounded-xl bg-gray-50 border border-transparent text-sm font-black focus:outline-none focus:border-[#268700] focus:bg-white transition-all cursor-pointer"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="mt-8 pt-6 border-t border-gray-50 text-center">
-                                <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest">
-                                    Secure your booking now
-                                </p>
-                            </div>
-                        </div>
+                    <div className="mt-12 pt-8 border-t border-gray-50 text-center">
+                        <p className="text-[11px] text-gray-400 font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-3">
+                            <span className="w-8 h-px bg-gray-100"></span>
+                            Secure your booking now
+                            <span className="w-8 h-px bg-gray-100"></span>
+                        </p>
                     </div>
                 </div>
             </div>
 
-            {/* Sticky Bottom Bar - Integrated & Balanced */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white/95 border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] px-8 py-4 z-50 backdrop-blur-md">
+            {/* Sticky Bottom Bar - Clean & Centered */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white/95 border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] px-8 py-5 z-50 backdrop-blur-md">
                 <div className="max-w-[1000px] mx-auto flex items-center justify-between gap-12">
                     <div className="flex flex-col shrink-0">
-                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.4em] mb-1">Starting Price</span>
-                        <div className="flex items-baseline gap-1.5">
-                            <span className="text-xs font-black text-gray-900 tracking-tight">AED</span>
-                            <span className="text-3xl font-black text-gray-900 tracking-tighter leading-none lowercase text-[#2EB400]">{dish.price.toLocaleString()}</span>
-                            <span className="text-[11px] font-bold text-gray-400 ml-2">/ person</span>
+                        <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.4em] mb-1.5">Starting Price</span>
+                        <div className="flex items-baseline gap-2.5">
+                            <span className="text-base font-black text-gray-900 tracking-tight">AED</span>
+                            <span className="text-5xl font-black text-gray-900 tracking-tighter leading-none lowercase text-[#2EB400]">{dish.price.toLocaleString()}</span>
+                            <span className="text-sm font-bold text-gray-400 ml-2">/ person</span>
                         </div>
                     </div>
 
                     <button
                         onClick={handleViewPackages}
-                        className="bg-[#2EB400] text-white px-10 py-3.5 rounded-2xl font-black text-sm uppercase tracking-[0.25em] hover:bg-[#268700] transition-all shadow-xl shadow-green-100 active:scale-95 flex items-center gap-4 group flex-1 max-w-[400px] justify-center"
+                        className="bg-[#2EB400] text-white px-14 py-5 rounded-2xl font-black text-base uppercase tracking-[0.25em] hover:bg-[#268700] transition-all shadow-xl shadow-green-100 active:scale-95 flex items-center gap-4 group flex-1 max-w-[500px] justify-center"
                     >
                         View Menu Package
-                        <ChevronRight className="w-5 h-5 stroke-[3]" />
+                        <ChevronRight className="w-7 h-7 stroke-[3] transition-transform group-hover:translate-x-1" />
                     </button>
                 </div>
             </div>
