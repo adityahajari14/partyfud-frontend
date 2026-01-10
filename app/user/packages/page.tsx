@@ -440,7 +440,7 @@ export default function PackagesPage() {
                 {/* RIGHT CONTENT */}
                 <div>
                     {/* Active Filter Indicators */}
-                    {(packageType || occasionName || cuisineTypeName || menuType || selectedOccasions.length > 0) && (
+                    {(packageType || occasionName || cuisineTypeName) && (
                         <div className="mb-4 space-y-2">
                             {packageType && (
                                 <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
@@ -510,36 +510,6 @@ export default function PackagesPage() {
                                             window.history.replaceState({}, '', newUrl);
                                         }}
                                         className="text-sm text-green-700 hover:text-green-900 underline"
-                                    >
-                                        Clear
-                                    </button>
-                                </div>
-                            )}
-                            {menuType && (
-                                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm text-blue-700 font-medium">
-                                            Menu Type: <strong>{menuType === 'fixed' ? 'Fixed' : 'Customizable'}</strong>
-                                        </span>
-                                    </div>
-                                    <button
-                                        onClick={() => setMenuType('')}
-                                        className="text-sm text-blue-700 hover:text-blue-900 underline"
-                                    >
-                                        Clear
-                                    </button>
-                                </div>
-                            )}
-                            {selectedOccasions.length > 0 && (
-                                <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm text-purple-700 font-medium">
-                                            Occasions Selected: <strong>{selectedOccasions.length}</strong>
-                                        </span>
-                                    </div>
-                                    <button
-                                        onClick={() => setSelectedOccasions([])}
-                                        className="text-sm text-purple-700 hover:text-purple-900 underline"
                                     >
                                         Clear
                                     </button>
