@@ -452,50 +452,54 @@ export default function CatererMenuPage() {
               </div>
 
               {/* Capacity & Service Details - Inline */}
-              {(caterer as any).catererinfo && (
-                <div className="flex flex-wrap gap-4 mb-3 items-center">
-                  {(caterer as any).catererinfo.min_guests && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-gray-500">Min:</span>
-                      <span className="text-sm font-semibold text-[#268700]">{(caterer as any).catererinfo.min_guests}</span>
-                      <span className="text-xs text-gray-500">guests</span>
-                    </div>
-                  )}
-                  {(caterer as any).catererinfo.max_guests && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-gray-500">Max:</span>
-                      <span className="text-sm font-semibold text-[#268700]">{(caterer as any).catererinfo.max_guests}</span>
-                      <span className="text-xs text-gray-500">guests</span>
-                    </div>
-                  )}
-                  {(caterer as any).catererinfo.staff_count && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-gray-500">Staff:</span>
-                      <span className="text-sm font-semibold text-[#268700]">{(caterer as any).catererinfo.staff_count}</span>
-                    </div>
-                  )}
-                  {(caterer as any).catererinfo.servers_count && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-gray-500">Servers:</span>
-                      <span className="text-sm font-semibold text-[#268700]">{(caterer as any).catererinfo.servers_count}</span>
-                    </div>
-                  )}
-                  {(caterer as any).catererinfo.service_options && (caterer as any).catererinfo.service_options.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      {(caterer as any).catererinfo.service_options.map((option: string, index: number) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700"
-                        >
-                          {option === 'DELIVERY_ONLY' && '🚚 Delivery'}
-                          {option === 'DELIVERY_SETUP' && '🚚 Setup'}
-                          {option === 'FULL_SERVICE' && '⭐ Full Service'}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+              <div className="flex flex-wrap gap-4 mb-3 items-center">
+                {(caterer as any).minimum_guests && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-500">Min:</span>
+                    <span className="text-sm font-semibold text-[#268700]">{(caterer as any).minimum_guests}</span>
+                    <span className="text-xs text-gray-500">guests</span>
+                  </div>
+                )}
+                {(caterer as any).maximum_guests && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-500">Max:</span>
+                    <span className="text-sm font-semibold text-[#268700]">{(caterer as any).maximum_guests}</span>
+                    <span className="text-xs text-gray-500">guests</span>
+                  </div>
+                )}
+                {(caterer as any).staff && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-500">Staff:</span>
+                    <span className="text-sm font-semibold text-[#268700]">{(caterer as any).staff}</span>
+                  </div>
+                )}
+                {(caterer as any).servers && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-500">Servers:</span>
+                    <span className="text-sm font-semibold text-[#268700]">{(caterer as any).servers}</span>
+                  </div>
+                )}
+                {((caterer as any).delivery_only || (caterer as any).delivery_plus_setup || (caterer as any).full_service) && (
+                  <div className="flex items-center gap-2">
+                    {(caterer as any).delivery_only && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                        🚚 Delivery
+                      </span>
+                    )}
+                    {(caterer as any).delivery_plus_setup && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                        🚚 Setup
+                      </span>
+                    )}
+                    {(caterer as any).full_service && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                        ⭐ Full Service
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
 
               <p className="text-sm text-gray-600 mb-2">
                 {caterer.description || 'Award-winning catering service specializing in Mediterranean and French cuisine. We bring restaurant-quality food to your events with impeccable service.'}
