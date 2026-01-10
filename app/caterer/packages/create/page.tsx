@@ -488,7 +488,7 @@ export default function CreatePackagePage() {
                           className="w-4 h-4 text-[#268700] border-gray-300 focus:ring-[#268700]"
                         />
                         <div>
-                          <span className="text-sm font-semibold text-gray-900">Fixed Package</span>
+                          <span className="text-sm font-semibold text-gray-900">Customisable Package</span>
                           <p className="text-xs text-gray-500 mt-0.5">Set limits on category selections</p>
                         </div>
                       </label>
@@ -508,7 +508,7 @@ export default function CreatePackagePage() {
                           className="w-4 h-4 text-[#268700] border-gray-300 focus:ring-[#268700]"
                         />
                         <div>
-                          <span className="text-sm font-semibold text-gray-900">Customisable Package</span>
+                          <span className="text-sm font-semibold text-gray-900">Fixed Package</span>
                           <p className="text-xs text-gray-500 mt-0.5">Users can select any items</p>
                         </div>
                       </label>
