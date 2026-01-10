@@ -443,16 +443,16 @@ export default function CatererMenuPage() {
                   </span>
                 ))}
               </div>
-              <div className="text-sm text-gray-600 mb-2">
-                ⭐ {packages.length > 0 && packages[0]?.rating
-                  ? typeof packages[0].rating === 'number'
-                    ? packages[0].rating.toFixed(1)
-                    : parseFloat(String(packages[0].rating)).toFixed(1)
-                  : 'N/A'}
-              </div>
+              <div className="flex flex-wrap items-center gap-4 mb-2">
+                <div className="text-sm text-gray-600">
+                  ⭐ {packages.length > 0 && packages[0]?.rating
+                    ? typeof packages[0].rating === 'number'
+                      ? packages[0].rating.toFixed(1)
+                      : parseFloat(String(packages[0].rating)).toFixed(1)
+                    : 'N/A'}
+                </div>
 
-              {/* Capacity & Service Details - Inline */}
-              <div className="flex flex-wrap gap-4 mb-3 items-center">
+                {/* Capacity & Service Details - Inline with Rating */}
                 {(caterer as any).minimum_guests && (
                   <div className="flex items-center gap-1">
                     <span className="text-xs text-gray-500">Min:</span>
@@ -480,28 +480,25 @@ export default function CatererMenuPage() {
                   </div>
                 )}
                 {((caterer as any).delivery_only || (caterer as any).delivery_plus_setup || (caterer as any).full_service) && (
-                  <div className="flex items-center gap-2">
+                  <>
                     {(caterer as any).delivery_only && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                        🚚 Delivery
+                        Delivery
                       </span>
                     )}
                     {(caterer as any).delivery_plus_setup && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                        🚚 Setup
+                        Setup
                       </span>
                     )}
                     {(caterer as any).full_service && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                        ⭐ Full Service
+                        Full Service
                       </span>
                     )}
-                  </div>
+                  </>
                 )}
-              </div>
-
-
-              <p className="text-sm text-gray-600 mb-2">
+              </div>  <p className="text-sm text-gray-600 mb-2">
                 {caterer.description || 'Award-winning catering service specializing in Mediterranean and French cuisine. We bring restaurant-quality food to your events with impeccable service.'}
               </p>
               <p className="font-semibold text-gray-900">{caterer.priceRange}</p>
