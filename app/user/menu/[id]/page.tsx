@@ -276,7 +276,7 @@ export default function DishDetailsPage() {
                 </div>
             </div>
 
-            {/* Sticky Bottom Bar - Widened & Proportional like Caterer Page */}
+            {/* Sticky Bottom Bar - Widened & Proportional like Caterer Page     */}
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-[0_-10px_30px_rgba(0,0,0,0.03)] px-6 py-5 z-50">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
                     <div className="flex flex-col">
