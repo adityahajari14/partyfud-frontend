@@ -119,6 +119,7 @@ export default function EditPackagePage() {
   const [packageData, setPackageData] = useState<Package | null>(null);
   const [formData, setFormData] = useState<any>({
     name: '',
+    description: '',
     people_count: 0,
     package_type_id: '',
     cover_image_url: '',
@@ -175,6 +176,7 @@ export default function EditPackagePage() {
       // Initialize form with current package data
       const initialFormData = {
         name: pkg.name || '',
+        description: (pkg as any).description || '',
         people_count: pkg.people_count || 0,
         package_type_id: pkg.package_type_id || '',
         cover_image_url: pkg.cover_image_url || '',
@@ -500,6 +502,22 @@ export default function EditPackagePage() {
                     error={errors.people_count}
                   />
                 </div>
+
+                {/* Package Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Package Description
+                  </label>
+                  <textarea
+                    value={formData.description || ''}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Enter package description (e.g., Authentic cuisine with fresh ingredients. Perfect for sophisticated palates.)"
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#268700] focus:border-transparent resize-none"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">This will be displayed on the package cards</p>
+                </div>
+
                 <div>
                   <Select
                     label="Package Type"

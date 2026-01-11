@@ -43,6 +43,7 @@ export interface Caterer {
 export interface Package {
   id: string;
   name: string;
+  description?: string;
   people_count: number;
   package_type: {
     id: string;

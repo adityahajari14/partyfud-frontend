@@ -89,6 +89,7 @@ export interface CreatePackageRequest {
 
 export interface UpdatePackageRequest {
   name?: string;
+  description?: string;
   people_count?: number;
   package_type_id?: string;
   cover_image_url?: string;
@@ -392,6 +393,9 @@ export const catererApi = {
     // Add other fields only if they are defined
     if (data.name !== undefined) {
       formData.append('name', data.name);
+    }
+    if (data.description !== undefined) {
+      formData.append('description', data.description);
     }
     if (data.people_count !== undefined) {
       formData.append('people_count', data.people_count.toString());

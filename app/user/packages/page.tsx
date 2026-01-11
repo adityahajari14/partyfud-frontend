@@ -673,9 +673,10 @@ export default function PackagesPage() {
                                                     {pkg.title}
                                                 </h3>
 
-                                                {/* Package Description (Hardcoded for now) */}
+
+                                                {/* Package Description */}
                                                 <p className="text-sm text-gray-500 mb-4 line-clamp-2 leading-relaxed">
-                                                    Authentic cuisine with fresh ingredients. Perfect for sophisticated palates.
+                                                    {apiPkg?.description || 'Authentic cuisine with fresh ingredients. Perfect for sophisticated palates.'}
                                                 </p>
 
                                                 {/* Rating and People Count */}
