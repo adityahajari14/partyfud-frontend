@@ -624,7 +624,7 @@ export default function PackagesPage() {
                             <div className="mb-4 text-sm text-gray-600">
                                 Showing {packages.length} package{packages.length !== 1 ? 's' : ''}
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {packages.map((pkg) => {
                                     const apiPkg = apiPackagesData.find((p: any) => p.id === pkg.id);
                                     const peopleCount = apiPkg?.people_count || 1;
