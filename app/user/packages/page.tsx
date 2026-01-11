@@ -675,9 +675,11 @@ export default function PackagesPage() {
 
 
                                                 {/* Package Description */}
-                                                <p className="text-sm text-gray-500 mb-4 line-clamp-2 leading-relaxed">
-                                                    {apiPkg?.description || 'Authentic cuisine with fresh ingredients. Perfect for sophisticated palates.'}
-                                                </p>
+                                                {apiPkg?.description && (
+                                                    <p className="text-sm text-gray-500 mb-4 line-clamp-2 leading-relaxed">
+                                                        {apiPkg.description}
+                                                    </p>
+                                                )}
 
                                                 {/* Rating and People Count */}
                                                 <div className="flex items-center gap-4 mb-4">
