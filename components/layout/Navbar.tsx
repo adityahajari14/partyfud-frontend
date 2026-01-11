@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { PartnerForm } from '@/components/PartnerForm';
 import { userApi } from '@/lib/api/user.api';
 
+// Main Navbar component for the application
 export function Navbar() {
     const { user, logout } = useAuth();
     const router = useRouter();
