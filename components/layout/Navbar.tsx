@@ -1,5 +1,6 @@
 'use client';
 
+
 import Link from 'next/link';
 import { MapPin, Mail, User, ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
@@ -10,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { PartnerForm } from '@/components/PartnerForm';
 import { userApi } from '@/lib/api/user.api';
 
+// Main Navbar component for the application
 export function Navbar() {
     const { user, logout } = useAuth();
     const router = useRouter();
@@ -207,16 +209,18 @@ export function Navbar() {
                     ) : (
                         <Link
                             href="/login"
-                            className="flex items-center gap-2 text-gray-700 hover:text-[#268700] transition-colors font-semibold py-2 px-3 rounded-lg hover:bg-gray-50"
+                            className="group flex items-center gap-2 text-gray-700 hover:text-[#268700] transition-all duration-200 font-bold py-2 px-3 rounded-xl hover:bg-gray-50 active:scale-95"
                         >
-                            <User size={20} />
-                            <span className="text-sm whitespace-nowrap">Sign In</span>
+                            <div className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#268700]/10 group-hover:text-[#268700] transition-colors">
+                                <User size={18} />
+                            </div>
+                            <span className="text-sm whitespace-nowrap tracking-tight">Sign In</span>
                         </Link>
                     )}
 
                     <button
                         onClick={() => setIsPartnerFormOpen(true)}
-                        className="bg-[#268700] text-white text-sm font-semibold px-6 py-2.5 rounded-full hover:bg-[#1f6b00] transition-all duration-200 shadow-sm hover:shadow-md"
+                        className="bg-[#268700] text-white text-[11px] font-black uppercase tracking-widest px-8 py-3.5 rounded-xl hover:bg-[#1f6b00] transition-all duration-300 shadow-[0_10px_20px_-10px_rgba(38,135,0,0.3)] hover:shadow-[0_15px_25px_-10px_rgba(38,135,0,0.4)] active:scale-95"
                     >
                         Partner with Us
                     </button>
