@@ -16,7 +16,7 @@ export default function CallToAction() {
 
   return (
     <section className="relative bg-gradient-to-br from-[#00241b] via-[#003d2a] to-[#00241b] py-24 overflow-hidden">
-      {/* Background Glow Effects */}
+      {/* Background Glow Effects   */}
       <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#268700]/20 rounded-full blur-3xl opacity-50" />
       <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-[#1f9d55]/20 rounded-full blur-3xl opacity-50" />
       
