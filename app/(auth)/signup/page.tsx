@@ -7,9 +7,12 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get('redirect');
   const [justSignedUp, setJustSignedUp] = useState(false);
   const { signup, user } = useAuth();
   const [userType, setUserType] = useState<'USER' | 'CATERER'>('USER');
@@ -47,7 +50,7 @@ export default function SignupPage() {
         router.replace('/caterer/dashboard');
       }
     } else if (user.type === 'USER') {
-      router.replace('/user/dashboard');
+      router.replace(redirect || '/user/dashboard');
     } else if (user.type === 'ADMIN') {
       router.replace('/admin/dashboard');
     }
@@ -84,7 +87,7 @@ export default function SignupPage() {
           // The useEffect will handle redirect based on profile_completed status
           router.replace('/caterer/details');
         } else {
-          router.replace('/user/dashboard');
+          router.replace(redirect || '/user/dashboard');
         }
       }
     } catch (error) {
@@ -125,8 +128,8 @@ export default function SignupPage() {
               type="button"
               onClick={() => setUserType('USER')}
               className={`flex-1 py-2.5 px-4 rounded-md font-medium transition-all ${userType === 'USER'
-                  ? 'bg-[#268700] text-white shadow-sm'
-                  : 'text-gray-700 hover:text-gray-900'
+                ? 'bg-[#268700] text-white shadow-sm'
+                : 'text-gray-700 hover:text-gray-900'
                 }`}
             >
               👤 User
@@ -135,8 +138,8 @@ export default function SignupPage() {
               type="button"
               onClick={() => setUserType('CATERER')}
               className={`flex-1 py-2.5 px-4 rounded-md font-medium transition-all ${userType === 'CATERER'
-                  ? 'bg-[#268700] text-white shadow-sm'
-                  : 'text-gray-700 hover:text-gray-900'
+                ? 'bg-[#268700] text-white shadow-sm'
+                : 'text-gray-700 hover:text-gray-900'
                 }`}
             >
               🏢 Caterer
@@ -234,7 +237,7 @@ export default function SignupPage() {
             <div className="text-center">
               <p className="text-sm text-gray-600">
                 Already have an account?{' '}
-                <Link href="/login" className="font-semibold text-[#268700] hover:text-[#1f6b00]">
+                <Link href={`/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`} className="font-semibold text-[#268700] hover:text-[#1f6b00]">
                   Sign in
                 </Link>
               </p>

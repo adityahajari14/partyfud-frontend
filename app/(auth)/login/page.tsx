@@ -7,9 +7,12 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get('redirect');
   const { login, user, loading: authLoading } = useAuth();
   const userRef = useRef(user);
   const [formData, setFormData] = useState({
@@ -26,7 +29,7 @@ export default function LoginPage() {
 
   // Redirect if already logged in or after successful login
   useEffect(() => {
-    if (user && !authLoading ) {
+    if (user && !authLoading) {
       setIsLoading(false); // Reset loading when user is available
 
       // Redirect immediately based on user type
@@ -38,7 +41,7 @@ export default function LoginPage() {
           router.replace('/caterer/dashboard');
         }
       } else if (user.type === 'USER') {
-        router.replace('/user/dashboard');
+        router.replace(redirect || '/user/dashboard');
       } else if (user.type === 'ADMIN') {
         router.replace('/admin/dashboard');
       }
@@ -60,7 +63,7 @@ export default function LoginPage() {
       } else if (result.user) {
         // Success - redirect immediately based on user data from login response
         const loggedInUser = result.user;
-        
+
         if (loggedInUser.type === 'CATERER') {
           // Check if profile is completed, if not redirect to details page immediately
           if (loggedInUser.profile_completed === false) {
@@ -69,7 +72,7 @@ export default function LoginPage() {
             router.replace('/caterer/dashboard');
           }
         } else if (loggedInUser.type === 'USER') {
-          router.replace('/user/dashboard');
+          router.replace(redirect || '/user/dashboard');
         } else if (loggedInUser.type === 'ADMIN') {
           router.replace('/admin/dashboard');
         }
@@ -164,7 +167,7 @@ export default function LoginPage() {
               <div className="text-center">
                 <p className="text-sm text-gray-600">
                   Don't have an account?{' '}
-                  <Link href="/signup" className="font-semibold text-[#268700] hover:text-[#1f6b00]">
+                  <Link href={`/signup${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`} className="font-semibold text-[#268700] hover:text-[#1f6b00]">
                     Sign up for free
                   </Link>
                 </p>

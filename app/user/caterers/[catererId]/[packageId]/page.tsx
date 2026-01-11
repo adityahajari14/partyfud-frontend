@@ -65,13 +65,13 @@ export default function PackageDetailsPage() {
     useEffect(() => {
         const fetchPackage = async () => {
             if (!packageId) return;
-            
+
             setLoading(true);
             setError(null);
-            
+
             try {
                 const response = await userApi.getPackageById(packageId);
-                
+
                 if (response.error) {
                     setError(response.error);
                 } else if (response.data?.data) {
@@ -92,19 +92,70 @@ export default function PackageDetailsPage() {
         fetchPackage();
     }, [packageId]);
 
+    // Check for pending cart item on mount/login
+    useEffect(() => {
+        const resumePendingAction = async () => {
+            const pendingItemStr = sessionStorage.getItem('pending_cart_item');
+            if (!pendingItemStr || !user || loading || !pkg) return;
+
+            try {
+                const pendingItem = JSON.parse(pendingItemStr);
+
+                // Only resume if it's the correct package and recent (within 30 mins)
+                if (pendingItem.packageId === packageId && (Date.now() - pendingItem.timestamp < 30 * 60 * 1000)) {
+                    console.log('🔄 Resuming pending cart action...');
+
+                    // Restore state
+                    if (pendingItem.location) setLocation(pendingItem.location);
+                    if (pendingItem.guests) setGuests(pendingItem.guests);
+                    if (pendingItem.date) setDate(pendingItem.date);
+                    if (pendingItem.selectedDishIds) setSelectedDishIds(new Set(pendingItem.selectedDishIds));
+
+                    // Clear pending item immediately to prevent loops
+                    sessionStorage.removeItem('pending_cart_item');
+
+                    // Small delay to ensure state is updated before resuming action
+                    setTimeout(() => {
+                        if (pendingItem.action === 'create_custom_package') {
+                            handleCreateCustomPackage();
+                        } else {
+                            handleAddToCart();
+                        }
+                    }, 500);
+                } else {
+                    // Item expired or wrong package
+                    sessionStorage.removeItem('pending_cart_item');
+                }
+            } catch (err) {
+                console.error('Error resuming pending cart action:', err);
+                sessionStorage.removeItem('pending_cart_item');
+            }
+        };
+
+        resumePendingAction();
+    }, [user, loading, pkg, packageId]);
+
     // Check if package is already in cart
     useEffect(() => {
         const checkCartStatus = async () => {
             if (!packageId) return;
-            
+
+            // Don't check cart if not logged in
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                setIsAddedToCart(false);
+                setCartItemId(null);
+                return;
+            }
+
             try {
                 const response = await userApi.getCartItems();
-                
+
                 if (response.data?.data && Array.isArray(response.data.data)) {
                     const cartItem = response.data.data.find(
                         (item: any) => item.package?.id === packageId
                     );
-                    
+
                     if (cartItem) {
                         setIsAddedToCart(true);
                         setCartItemId(cartItem.id);
@@ -141,14 +192,14 @@ export default function PackageDetailsPage() {
         for (const selection of pkg.category_selections) {
             const categoryName = selection.category.name;
             const limit = selection.num_dishes_to_select;
-            
+
             // Only validate categories that have items available in the package
             const categoryNameNormalized = categoryName.trim().toLowerCase();
             if (!categoriesWithItems.has(categoryNameNormalized)) {
                 // Skip validation for categories that don't have items in the package
                 continue;
             }
-            
+
             const selectedCount = getSelectedCountInCategory(categoryName);
 
             if (limit !== null && limit !== undefined) {
@@ -169,10 +220,22 @@ export default function PackageDetailsPage() {
         // Check authentication first
         const token = localStorage.getItem('auth_token');
         if (!token) {
-            setCartMessage({ type: 'error', text: 'Please log in to add items to cart' });
+            // Save current selection state to resume after login
+            const pendingItem = {
+                packageId,
+                catererId,
+                location,
+                guests,
+                date,
+                selectedDishIds: Array.from(selectedDishIds),
+                timestamp: Date.now()
+            };
+            sessionStorage.setItem('pending_cart_item', JSON.stringify(pendingItem));
+
+            setCartMessage({ type: 'success', text: 'Redirecting to login...' });
             setTimeout(() => {
-                window.location.href = '/login';
-            }, 2000);
+                router.push(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+            }, 1000);
             return;
         }
 
@@ -249,7 +312,7 @@ export default function PackageDetailsPage() {
             if (response.error) {
                 // Handle specific error cases with user-friendly messages
                 let errorMessage = response.error;
-                
+
                 if (errorMessage.includes('authentication') || errorMessage.includes('Unauthorized') || errorMessage.includes('User account not found')) {
                     errorMessage = 'Your session has expired. Please log in again.';
                     setTimeout(() => {
@@ -262,7 +325,7 @@ export default function PackageDetailsPage() {
                 } else if (errorMessage.includes('Package type not found') || errorMessage.includes('package type') || errorMessage.includes('package_type')) {
                     errorMessage = 'Please select a valid event type. Please go back and select an event type.';
                 }
-                
+
                 setCartMessage({ type: 'error', text: errorMessage });
                 setIsAddedToCart(false);
             } else if (response.data?.success) {
@@ -334,13 +397,13 @@ export default function PackageDetailsPage() {
     }, [eventType, location, guests, date]);
 
     // Check if package is customizable (CUSTOMISABLE type allows unlimited selections)
-    const isCustomizable = pkg?.customisation_type === 'CUSTOMISABLE' || 
-                          pkg?.customisation_type === 'CUSTOMIZABLE';
-    
+    const isCustomizable = pkg?.customisation_type === 'CUSTOMISABLE' ||
+        pkg?.customisation_type === 'CUSTOMIZABLE';
+
     // Check if package is FIXED with category selections (has limits)
-    const isFixedWithLimits = pkg?.customisation_type === 'FIXED' && 
-                              pkg?.category_selections && 
-                              pkg.category_selections.length > 0;
+    const isFixedWithLimits = pkg?.customisation_type === 'FIXED' &&
+        pkg?.category_selections &&
+        pkg.category_selections.length > 0;
 
     // Get category selection limit for a category (only for FIXED packages)
     const getCategoryLimit = (categoryName: string): number | null => {
@@ -371,7 +434,7 @@ export default function PackageDetailsPage() {
     const canSelectInCategory = (categoryName: string): boolean => {
         // For CUSTOMISABLE packages, always allow selection (no limits)
         if (isCustomizable) return true;
-        
+
         // For FIXED packages, check limits
         const limit = getCategoryLimit(categoryName);
         if (limit === null) return true; // No limit (select all)
@@ -384,10 +447,10 @@ export default function PackageDetailsPage() {
     const toggleDishSelection = (dishId: string, categoryName: string) => {
         // Allow selection for CUSTOMISABLE packages or FIXED packages with category selections
         if ((!isCustomizable && !isFixedWithLimits) || !pkg) return;
-        
+
         const newSelected = new Set(selectedDishIds);
         const isCurrentlySelected = newSelected.has(dishId);
-        
+
         if (isCurrentlySelected) {
             // Deselecting - always allowed
             newSelected.delete(dishId);
@@ -398,28 +461,28 @@ export default function PackageDetailsPage() {
             } else {
                 // For FIXED packages, check category limit BEFORE adding
                 const limit = getCategoryLimit(categoryName);
-                
+
                 if (limit !== null) {
                     // Calculate current count in this category (excluding the item we're about to add)
                     const currentCount = getSelectedCountInCategory(categoryName);
-                    
+
                     // Check if adding this item would exceed the limit
                     if (currentCount >= limit) {
                         // Limit reached - show message and prevent selection
-                        setCartMessage({ 
-                            type: 'error', 
-                            text: `You can only select ${limit} ${limit === 1 ? 'item' : 'items'} from ${categoryName}. Please deselect another item first.` 
+                        setCartMessage({
+                            type: 'error',
+                            text: `You can only select ${limit} ${limit === 1 ? 'item' : 'items'} from ${categoryName}. Please deselect another item first.`
                         });
                         setTimeout(() => setCartMessage(null), 3000);
                         return; // Don't add the item
                     }
                 }
-                
+
                 // Limit check passed (or no limit) - add the item
                 newSelected.add(dishId);
             }
         }
-        
+
         setSelectedDishIds(newSelected);
     };
 
@@ -430,8 +493,29 @@ export default function PackageDetailsPage() {
 
     // Handle Create Custom Package
     const handleCreateCustomPackage = async () => {
-        if (!pkg || selectedDishIds.size === 0 || !user) {
+        if (!pkg || selectedDishIds.size === 0) {
             setPackageMessage({ type: 'error', text: 'Please select at least one dish' });
+            return;
+        }
+
+        if (!user) {
+            // Save current selection state to resume after login
+            const pendingItem = {
+                packageId,
+                catererId,
+                location,
+                guests,
+                date,
+                selectedDishIds: Array.from(selectedDishIds),
+                action: 'create_custom_package',
+                timestamp: Date.now()
+            };
+            sessionStorage.setItem('pending_cart_item', JSON.stringify(pendingItem));
+
+            setPackageMessage({ type: 'success', text: 'Redirecting to login...' });
+            setTimeout(() => {
+                router.push(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+            }, 1000);
             return;
         }
 
@@ -446,23 +530,23 @@ export default function PackageDetailsPage() {
         try {
             // Convert selected dishes Set to array and filter out any invalid IDs
             const dishIds = Array.from(selectedDishIds).filter(id => id && id.trim() !== '');
-            
+
             if (dishIds.length === 0) {
                 setPackageMessage({ type: 'error', text: 'Please select at least one valid dish' });
                 setCreatingPackage(false);
                 return;
             }
-            
+
             // Validate that all selected dishes belong to dishes in the package
             const packageDishIds = new Set(pkg.items.map((item: any) => item.dish?.id).filter(Boolean));
             const invalidDishes = dishIds.filter(id => !packageDishIds.has(id));
-            
+
             if (invalidDishes.length > 0) {
                 setPackageMessage({ type: 'error', text: 'Some selected dishes are not valid. Please refresh the page and try again.' });
                 setCreatingPackage(false);
                 return;
             }
-            
+
             // Create custom package
             const response = await userApi.createCustomPackage({
                 dish_ids: dishIds,
@@ -477,7 +561,7 @@ export default function PackageDetailsPage() {
                     return;
                 }
                 // Show the actual error message from backend
-                const errorMessage = response.error.includes('All dishes must be from the same caterer') 
+                const errorMessage = response.error.includes('All dishes must be from the same caterer')
                     ? 'All selected dishes must be from the same caterer. Please ensure all dishes belong to this package\'s caterer.'
                     : response.error || 'Failed to create custom package';
                 setPackageMessage({ type: 'error', text: errorMessage });
@@ -553,314 +637,306 @@ export default function PackageDetailsPage() {
     }
 
     // Create placeholder images array if cover_image_url exists
-    const images = pkg.cover_image_url 
+    const images = pkg.cover_image_url
         ? [pkg.cover_image_url, '/user/package2.svg', '/user/package3.svg', '/user/package4.svg']
         : ['/user/package1.svg', '/user/package2.svg', '/user/package3.svg', '/user/package4.svg'];
 
     return (
         <>
-        <section className="bg-[#FAFAFA] min-h-screen px-6 py-10">
-            <div className="max-w-7xl mx-auto">
+            <section className="bg-[#FAFAFA] min-h-screen px-6 py-10">
+                <div className="max-w-7xl mx-auto">
 
-                {/* Back Button */}
-                <button
-                    onClick={() => router.push(`/user/caterers/${catererId}`)}
-                    className="text-gray-600 hover:text-gray-900 mb-4 flex items-center gap-2"
-                >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Back to Packages
-                </button>
+                    {/* Back Button */}
+                    <button
+                        onClick={() => router.push(`/user/caterers/${catererId}`)}
+                        className="text-gray-600 hover:text-gray-900 mb-4 flex items-center gap-2"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Back to Packages
+                    </button>
 
-                {/* Package Header */}
-                <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">{pkg.name}</h1>
-                    <p className="text-sm text-gray-500 mb-4">{pkg.package_type?.name || 'Package'}</p>
-                    <div className="flex items-center gap-6">
-                        {pkg.rating && (
-                            <div className="text-sm">
-                                ⭐ {pkg.rating}
+                    {/* Package Header */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+                        <h1 className="text-2xl font-bold text-gray-900 mb-2">{pkg.name}</h1>
+                        <p className="text-sm text-gray-500 mb-4">{pkg.package_type?.name || 'Package'}</p>
+                        <div className="flex items-center gap-6">
+                            {pkg.rating && (
+                                <div className="text-sm">
+                                    ⭐ {pkg.rating}
+                                </div>
+                            )}
+                            <div className="font-semibold flex items-center gap-1">
+                                <img src="/dirham.svg" alt="AED" className="w-4 h-4" />
+                                {pkg.price_per_person.toLocaleString()}/Person
                             </div>
-                        )}
-                        <div className="font-semibold flex items-center gap-1">
-                            <img src="/dirham.svg" alt="AED" className="w-4 h-4" />
-                            {pkg.price_per_person.toLocaleString()}/Person
-                        </div>
-                        <div className="text-sm text-gray-500 flex items-center gap-1">
-                            Total: <img src="/dirham.svg" alt="AED" className="w-3 h-3" />{pkg.total_price.toLocaleString()} for {pkg.people_count} people
+                            <div className="text-sm text-gray-500 flex items-center gap-1">
+                                Total: <img src="/dirham.svg" alt="AED" className="w-3 h-3" />{pkg.total_price.toLocaleString()} for {pkg.people_count} people
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                {/* MAIN CONTENT */}
-                <div>
-                    {/* Image Gallery */}
-                    <div className="grid grid-cols-4 gap-4 mb-6">
-                        <div className="col-span-2 row-span-2 relative h-[260px] rounded-xl overflow-hidden">
-                            <Image
-                                src={images[0] || '/default_dish.jpg'}
-                                alt={pkg.name}
-                                fill
-                                className="object-cover"
-                            />
+                    {/* MAIN CONTENT */}
+                    <div>
+                        {/* Image Gallery */}
+                        <div className="grid grid-cols-4 gap-4 mb-6">
+                            <div className="col-span-2 row-span-2 relative h-[260px] rounded-xl overflow-hidden">
+                                <Image
+                                    src={images[0] || '/default_dish.jpg'}
+                                    alt={pkg.name}
+                                    fill
+                                    className="object-cover"
+                                />
+                            </div>
+
+                            {images.slice(1, 4).map((img, i) => (
+                                <div
+                                    key={i}
+                                    className="relative h-[120px] rounded-xl overflow-hidden"
+                                >
+                                    <Image src={img || '/default_dish.jpg'} alt="" fill className="object-cover" />
+                                    {i === 2 && (
+                                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-sm font-medium">
+                                            View All ({pkg.items.length})
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
                         </div>
 
-                        {images.slice(1, 4).map((img, i) => (
-                            <div
-                                key={i}
-                                className="relative h-[120px] rounded-xl overflow-hidden"
-                            >
-                                <Image src={img || '/default_dish.jpg'} alt="" fill className="object-cover" />
-                                {i === 2 && (
-                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-sm font-medium">
-                                        View All ({pkg.items.length})
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
+                        {/* Menu Items */}
+                        <div className="bg-white border border-gray-200 rounded-xl p-4">
+                            <h3 className="font-medium mb-2">
+                                Menu Items {isCustomizable ? '(Customizable)' : isFixedWithLimits ? '(Fixed - Select Items)' : '(Fixed)'}
+                            </h3>
 
-                    {/* Menu Items */}
-                    <div className="bg-white border border-gray-200 rounded-xl p-4">
-                        <h3 className="font-medium mb-2">
-                            Menu Items {isCustomizable ? '(Customizable)' : isFixedWithLimits ? '(Fixed - Select Items)' : '(Fixed)'}
-                        </h3>
+                            <p className="text-sm text-gray-600 mb-4">
+                                Package includes {pkg.items.length} items for {pkg.people_count} people.
+                            </p>
 
-                        <p className="text-sm text-gray-600 mb-4">
-                            Package includes {pkg.items.length} items for {pkg.people_count} people.
-                        </p>
+                            {/* List grouped by category */}
+                            <div className="space-y-0">
+                                {Object.entries(groupedItems).map(([category, items]: [string, any], categoryIndex) => {
+                                    const categoryLimit = getCategoryLimit(category);
+                                    const selectedInCategory = getSelectedCountInCategory(category);
+                                    const canSelectMore = canSelectInCategory(category);
 
-                        {/* List grouped by category */}
-                        <div className="space-y-0">
-                            {Object.entries(groupedItems).map(([category, items]: [string, any], categoryIndex) => {
-                                const categoryLimit = getCategoryLimit(category);
-                                const selectedInCategory = getSelectedCountInCategory(category);
-                                const canSelectMore = canSelectInCategory(category);
-                                
-                                return (
-                                <div key={category} className="mb-0">
-                                    {/* Category Header with light grey background */}
-                                    <div className="bg-gray-100 py-2 px-4 font-semibold text-gray-900 flex items-center justify-between">
-                                        <span>{category}</span>
-                                        {/* Only show limits for FIXED packages with category selections */}
-                                        {isFixedWithLimits && categoryLimit !== null && (
-                                            <span className="text-sm font-normal text-gray-600">
-                                                {selectedInCategory} / {categoryLimit} selected
-                                            </span>
-                                        )}
-                                        {/* Show selection count for CUSTOMISABLE packages (no limits) */}
-                                        {isCustomizable && selectedInCategory > 0 && (
-                                            <span className="text-sm font-normal text-gray-600">
-                                                {selectedInCategory} selected
-                                            </span>
-                                        )}
-                                    </div>
-                                    
-                                    {/* Dishes List */}
-                                    <div className="bg-white">
-                                        {items.map((item: any, itemIndex: number) => {
-                                            // Only allow selection if dish has a valid ID
-                                            const dishId = item.dish?.id;
-                                            const hasValidDishId = dishId && dishId.trim() !== '';
-                                            const isSelected = hasValidDishId ? isDishSelected(dishId) : false;
-                                            
-                                            // For CUSTOMISABLE packages: no limits, always allow selection
-                                            // For FIXED packages: check limits
-                                            const categoryLimit = getCategoryLimit(category);
-                                            const selectedInThisCategory = getSelectedCountInCategory(category);
-                                            const isAtLimit = isFixedWithLimits && categoryLimit !== null && selectedInThisCategory >= categoryLimit && !isSelected;
-                                            const isDisabled = isFixedWithLimits && hasValidDishId && !isSelected && !canSelectMore;
-                                            
-                                            return (
-                                                <div
-                                                    key={item.id}
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        e.stopPropagation();
-                                                        if (hasValidDishId && !isDisabled && !isAtLimit) {
-                                                            toggleDishSelection(dishId, category);
-                                                        } else if (isAtLimit) {
-                                                            setCartMessage({ 
-                                                                type: 'error', 
-                                                                text: `You can only select ${categoryLimit} ${categoryLimit === 1 ? 'item' : 'items'} from ${category}` 
-                                                            });
-                                                            setTimeout(() => setCartMessage(null), 3000);
-                                                        }
-                                                    }}
-                                                    className={`py-3 px-4 border-b border-gray-200 ${
-                                                        itemIndex === items.length - 1 && categoryIndex !== Object.keys(groupedItems).length - 1
-                                                            ? 'border-b-2 border-gray-300'
-                                                            : ''
-                                                    } ${
-                                                        (isCustomizable || isFixedWithLimits) && hasValidDishId && !isDisabled && !isAtLimit
-                                                            ? 'cursor-pointer hover:bg-gray-50 transition-colors'
-                                                            : (isDisabled || isAtLimit)
-                                                            ? 'opacity-50 cursor-not-allowed'
-                                                            : !hasValidDishId
-                                                            ? 'opacity-60 cursor-not-allowed'
-                                                            : ''
-                                                    } ${
-                                                        (isCustomizable || isFixedWithLimits) && isSelected
-                                                            ? 'bg-green-50 border-l-4 border-l-[#268700]'
-                                                            : ''
-                                                    }`}
-                                                >
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-sm text-gray-700">
-                                                            {item.dish?.name || 'Unknown Dish'}
-                                                            {item.quantity > 1 && (
-                                                                <span className="text-gray-500 ml-2">(x{item.quantity})</span>
-                                                            )}
-                                                            {!hasValidDishId && (
-                                                                <span className="text-xs text-red-500 ml-2">(Not available)</span>
-                                                            )}
-                                                            {(isDisabled || isAtLimit) && (
-                                                                <span className="text-xs text-orange-500 ml-2">(Limit reached)</span>
-                                                            )}
-                                                        </span>
-                                                        {(isCustomizable || isFixedWithLimits) && hasValidDishId && (
-                                                            <div className="ml-4">
-                                                                {isSelected ? (
-                                                                    <Check className="w-5 h-5 text-[#268700]" />
-                                                                ) : (
-                                                                    <div className={`w-5 h-5 border-2 rounded ${
-                                                                        (isDisabled || isAtLimit)
-                                                                            ? 'border-gray-200 bg-gray-100' 
-                                                                            : 'border-gray-300'
-                                                                    }`} />
+                                    return (
+                                        <div key={category} className="mb-0">
+                                            {/* Category Header with light grey background */}
+                                            <div className="bg-gray-100 py-2 px-4 font-semibold text-gray-900 flex items-center justify-between">
+                                                <span>{category}</span>
+                                                {/* Only show limits for FIXED packages with category selections */}
+                                                {isFixedWithLimits && categoryLimit !== null && (
+                                                    <span className="text-sm font-normal text-gray-600">
+                                                        {selectedInCategory} / {categoryLimit} selected
+                                                    </span>
+                                                )}
+                                                {/* Show selection count for CUSTOMISABLE packages (no limits) */}
+                                                {isCustomizable && selectedInCategory > 0 && (
+                                                    <span className="text-sm font-normal text-gray-600">
+                                                        {selectedInCategory} selected
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Dishes List */}
+                                            <div className="bg-white">
+                                                {items.map((item: any, itemIndex: number) => {
+                                                    // Only allow selection if dish has a valid ID
+                                                    const dishId = item.dish?.id;
+                                                    const hasValidDishId = dishId && dishId.trim() !== '';
+                                                    const isSelected = hasValidDishId ? isDishSelected(dishId) : false;
+
+                                                    // For CUSTOMISABLE packages: no limits, always allow selection
+                                                    // For FIXED packages: check limits
+                                                    const categoryLimit = getCategoryLimit(category);
+                                                    const selectedInThisCategory = getSelectedCountInCategory(category);
+                                                    const isAtLimit = isFixedWithLimits && categoryLimit !== null && selectedInThisCategory >= categoryLimit && !isSelected;
+                                                    const isDisabled = isFixedWithLimits && hasValidDishId && !isSelected && !canSelectMore;
+
+                                                    return (
+                                                        <div
+                                                            key={item.id}
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                if (hasValidDishId && !isDisabled && !isAtLimit) {
+                                                                    toggleDishSelection(dishId, category);
+                                                                } else if (isAtLimit) {
+                                                                    setCartMessage({
+                                                                        type: 'error',
+                                                                        text: `You can only select ${categoryLimit} ${categoryLimit === 1 ? 'item' : 'items'} from ${category}`
+                                                                    });
+                                                                    setTimeout(() => setCartMessage(null), 3000);
+                                                                }
+                                                            }}
+                                                            className={`py-3 px-4 border-b border-gray-200 ${itemIndex === items.length - 1 && categoryIndex !== Object.keys(groupedItems).length - 1
+                                                                ? 'border-b-2 border-gray-300'
+                                                                : ''
+                                                                } ${(isCustomizable || isFixedWithLimits) && hasValidDishId && !isDisabled && !isAtLimit
+                                                                    ? 'cursor-pointer hover:bg-gray-50 transition-colors'
+                                                                    : (isDisabled || isAtLimit)
+                                                                        ? 'opacity-50 cursor-not-allowed'
+                                                                        : !hasValidDishId
+                                                                            ? 'opacity-60 cursor-not-allowed'
+                                                                            : ''
+                                                                } ${(isCustomizable || isFixedWithLimits) && isSelected
+                                                                    ? 'bg-green-50 border-l-4 border-l-[#268700]'
+                                                                    : ''
+                                                                }`}
+                                                        >
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-sm text-gray-700">
+                                                                    {item.dish?.name || 'Unknown Dish'}
+                                                                    {item.quantity > 1 && (
+                                                                        <span className="text-gray-500 ml-2">(x{item.quantity})</span>
+                                                                    )}
+                                                                    {!hasValidDishId && (
+                                                                        <span className="text-xs text-red-500 ml-2">(Not available)</span>
+                                                                    )}
+                                                                    {(isDisabled || isAtLimit) && (
+                                                                        <span className="text-xs text-orange-500 ml-2">(Limit reached)</span>
+                                                                    )}
+                                                                </span>
+                                                                {(isCustomizable || isFixedWithLimits) && hasValidDishId && (
+                                                                    <div className="ml-4">
+                                                                        {isSelected ? (
+                                                                            <Check className="w-5 h-5 text-[#268700]" />
+                                                                        ) : (
+                                                                            <div className={`w-5 h-5 border-2 rounded ${(isDisabled || isAtLimit)
+                                                                                ? 'border-gray-200 bg-gray-100'
+                                                                                : 'border-gray-300'
+                                                                                }`} />
+                                                                        )}
+                                                                    </div>
                                                                 )}
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Create Package Button (only for CUSTOMISABLE packages, not FIXED with category selections) */}
+                            {isCustomizable &&
+                                pkg?.customisation_type === 'CUSTOMISABLE' &&
+                                selectedDishIds.size > 0 && (
+                                    <div className="mt-6 pt-4 border-t border-gray-200">
+                                        {packageMessage && (
+                                            <div className={`mb-4 p-3 rounded-lg text-sm ${packageMessage.type === 'success'
+                                                ? 'bg-green-100 text-green-800 border border-green-300'
+                                                : 'bg-red-100 text-red-800 border border-red-300'
+                                                }`}>
+                                                {packageMessage.text}
+                                            </div>
+                                        )}
+                                        <button
+                                            onClick={handleCreateCustomPackage}
+                                            disabled={creatingPackage || selectedDishIds.size === 0 || !guests || guests <= 0}
+                                            className={`w-full py-3 rounded-full text-white font-medium transition-all ${creatingPackage || selectedDishIds.size === 0 || !guests || guests <= 0
+                                                ? 'bg-gray-400 cursor-not-allowed'
+                                                : 'bg-[#268700] hover:bg-[#1f6b00] cursor-pointer'
+                                                }`}
+                                        >
+                                            {creatingPackage
+                                                ? 'Creating Package...'
+                                                : `Create Custom Package (${selectedDishIds.size} ${selectedDishIds.size === 1 ? 'dish' : 'dishes'} selected)`
+                                            }
+                                        </button>
+                                        <p className="text-xs text-gray-500 mt-2 text-center">
+                                            Selected dishes will be used to create your custom package
+                                        </p>
                                     </div>
-                                </div>
-                            );
-                            })}
+                                )}
+
+                            {/* Selection Summary for FIXED packages with category selections */}
+                            {isCustomizable &&
+                                pkg?.customisation_type === 'FIXED' &&
+                                pkg?.category_selections &&
+                                pkg.category_selections.length > 0 &&
+                                selectedDishIds.size > 0 && (
+                                    <div className="mt-6 pt-4 border-t border-gray-200">
+                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                            <p className="text-sm font-medium text-blue-900 mb-2">
+                                                {selectedDishIds.size} {selectedDishIds.size === 1 ? 'item' : 'items'} selected
+                                            </p>
+                                            <p className="text-xs text-blue-700">
+                                                Complete your selections and click "Add to Cart" below to proceed.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                         </div>
 
-                        {/* Create Package Button (only for CUSTOMISABLE packages, not FIXED with category selections) */}
-                        {isCustomizable && 
-                         pkg?.customisation_type === 'CUSTOMISABLE' && 
-                         selectedDishIds.size > 0 && (
-                            <div className="mt-6 pt-4 border-t border-gray-200">
-                                {packageMessage && (
-                                    <div className={`mb-4 p-3 rounded-lg text-sm ${
-                                        packageMessage.type === 'success' 
-                                            ? 'bg-green-100 text-green-800 border border-green-300' 
-                                            : 'bg-red-100 text-red-800 border border-red-300'
-                                    }`}>
-                                        {packageMessage.text}
-                                    </div>
-                                )}
-                                <button
-                                    onClick={handleCreateCustomPackage}
-                                    disabled={creatingPackage || selectedDishIds.size === 0 || !guests || guests <= 0}
-                                    className={`w-full py-3 rounded-full text-white font-medium transition-all ${
-                                        creatingPackage || selectedDishIds.size === 0 || !guests || guests <= 0
-                                            ? 'bg-gray-400 cursor-not-allowed'
-                                            : 'bg-[#268700] hover:bg-[#1f6b00] cursor-pointer'
-                                    }`}
-                                >
-                                    {creatingPackage 
-                                        ? 'Creating Package...' 
-                                        : `Create Custom Package (${selectedDishIds.size} ${selectedDishIds.size === 1 ? 'dish' : 'dishes'} selected)`
-                                    }
-                                </button>
-                                <p className="text-xs text-gray-500 mt-2 text-center">
-                                    Selected dishes will be used to create your custom package
-                                </p>
-                            </div>
-                        )}
-
-                        {/* Selection Summary for FIXED packages with category selections */}
-                        {isCustomizable && 
-                         pkg?.customisation_type === 'FIXED' && 
-                         pkg?.category_selections && 
-                         pkg.category_selections.length > 0 && 
-                         selectedDishIds.size > 0 && (
-                            <div className="mt-6 pt-4 border-t border-gray-200">
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                    <p className="text-sm font-medium text-blue-900 mb-2">
-                                        {selectedDishIds.size} {selectedDishIds.size === 1 ? 'item' : 'items'} selected
+                        {/* Add to Cart Section - Fixed at bottom */}
+                        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-4 z-50">
+                            <div className="max-w-7xl mx-auto flex justify-between items-center">
+                                <div>
+                                    <p className="text-sm text-gray-600">Total Cost</p>
+                                    <p className="text-2xl font-bold text-gray-900 flex items-center gap-1">
+                                        <img src="/dirham.svg" alt="AED" className="w-6 h-6" />
+                                        {guests > 0 && guests !== pkg.people_count
+                                            ? (pkg.total_price * (guests / pkg.people_count)).toLocaleString(undefined, { maximumFractionDigits: 2 })
+                                            : pkg.total_price.toLocaleString()}
                                     </p>
-                                    <p className="text-xs text-blue-700">
-                                        Complete your selections and click "Add to Cart" below to proceed.
+                                    <p className="text-sm text-gray-500">
+                                        {guests > 0 ? guests : pkg.people_count} {guests === 1 ? 'person' : 'people'} × <img src="/dirham.svg" alt="AED" className="w-3 h-3 inline" />{pkg.price_per_person.toLocaleString()}/person
                                     </p>
+                                    {/* Show selection status for FIXED packages with category selections */}
+                                    {isCustomizable &&
+                                        pkg?.customisation_type === 'FIXED' &&
+                                        pkg?.category_selections &&
+                                        pkg.category_selections.length > 0 && (
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {selectedDishIds.size} {selectedDishIds.size === 1 ? 'item' : 'items'} selected
+                                            </p>
+                                        )}
                                 </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Add to Cart Section - Fixed at bottom */}
-                    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-4 z-50">
-                        <div className="max-w-7xl mx-auto flex justify-between items-center">
-                            <div>
-                                <p className="text-sm text-gray-600">Total Cost</p>
-                                <p className="text-2xl font-bold text-gray-900 flex items-center gap-1">
-                                    <img src="/dirham.svg" alt="AED" className="w-6 h-6" />
-                                    {guests > 0 && guests !== pkg.people_count 
-                                        ? (pkg.total_price * (guests / pkg.people_count)).toLocaleString(undefined, { maximumFractionDigits: 2 })
-                                        : pkg.total_price.toLocaleString()}
-                                </p>
-                                <p className="text-sm text-gray-500">
-                                    {guests > 0 ? guests : pkg.people_count} {guests === 1 ? 'person' : 'people'} × <img src="/dirham.svg" alt="AED" className="w-3 h-3 inline" />{pkg.price_per_person.toLocaleString()}/person
-                                </p>
-                                {/* Show selection status for FIXED packages with category selections */}
-                                {isCustomizable && 
-                                 pkg?.customisation_type === 'FIXED' && 
-                                 pkg?.category_selections && 
-                                 pkg.category_selections.length > 0 && (
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        {selectedDishIds.size} {selectedDishIds.size === 1 ? 'item' : 'items'} selected
-                                    </p>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-4">
-                                {cartMessage && (
-                                    <div className={`p-3 rounded-lg text-sm ${
-                                        cartMessage.type === 'success' 
-                                            ? 'bg-green-100 text-green-800 border border-green-300' 
+                                <div className="flex items-center gap-4">
+                                    {cartMessage && (
+                                        <div className={`p-3 rounded-lg text-sm ${cartMessage.type === 'success'
+                                            ? 'bg-green-100 text-green-800 border border-green-300'
                                             : 'bg-red-100 text-red-800 border border-red-300'
-                                    }`}>
-                                        {cartMessage.text}
-                                    </div>
-                                )}
-                                <button 
-                                    onClick={isAddedToCart ? handleRemoveFromCart : handleAddToCart}
-                                    disabled={
-                                        (addingToCart || removingFromCart) || 
-                                        (!pkg) || 
-                                        (isAddedToCart ? false : (!eventType || !location || !guests || !date))
-                                    }
-                                    className={`px-8 py-3 rounded-full text-white font-medium transition-all ${
-                                        (addingToCart || removingFromCart) || !pkg
+                                            }`}>
+                                            {cartMessage.text}
+                                        </div>
+                                    )}
+                                    <button
+                                        onClick={isAddedToCart ? handleRemoveFromCart : handleAddToCart}
+                                        disabled={
+                                            (addingToCart || removingFromCart) ||
+                                            (!pkg) ||
+                                            (isAddedToCart ? false : (!eventType || !location || !guests || !date))
+                                        }
+                                        className={`px-8 py-3 rounded-full text-white font-medium transition-all ${(addingToCart || removingFromCart) || !pkg
                                             ? 'bg-gray-400 cursor-not-allowed'
                                             : isAddedToCart
-                                            ? 'bg-green-800 hover:bg-green-900 cursor-pointer'
-                                            : (!eventType || !location || !guests || !date)
-                                            ? 'bg-gray-400 cursor-not-allowed'
-                                            : 'bg-[#268700] hover:bg-[#1f6b00] cursor-pointer'
-                                    }`}
-                                >
-                                    {removingFromCart 
-                                        ? 'Removing from Cart...' 
-                                        : addingToCart 
-                                        ? 'Adding to Cart...' 
-                                        : isAddedToCart 
-                                        ? 'Remove from Cart' 
-                                        : 'Add to Cart'}
-                                </button>
+                                                ? 'bg-green-800 hover:bg-green-900 cursor-pointer'
+                                                : (!eventType || !location || !guests || !date)
+                                                    ? 'bg-gray-400 cursor-not-allowed'
+                                                    : 'bg-[#268700] hover:bg-[#1f6b00] cursor-pointer'
+                                            }`}
+                                    >
+                                        {removingFromCart
+                                            ? 'Removing from Cart...'
+                                            : addingToCart
+                                                ? 'Adding to Cart...'
+                                                : isAddedToCart
+                                                    ? 'Remove from Cart'
+                                                    : 'Add to Cart'}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
-        {/* <Testimonials/> */}
+            </section>
+            {/* <Testimonials/> */}
         </>
     );
 }
