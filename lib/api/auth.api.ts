@@ -56,6 +56,7 @@ export interface User {
   phone: string;
   type: 'USER' | 'CATERER' | 'ADMIN';
   company_name?: string;
+  image_url?: string;
   profile_completed?: boolean;
 }
 
