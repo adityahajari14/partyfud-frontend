@@ -209,7 +209,7 @@ export default function PackageDetailsPage() {
 
             const cartData = {
                 package_id: pkg.id,
-                package_type_id: eventType,
+                package_type_id: pkg.package_type.id, // Use the package's actual package_type_id
                 location: location,
                 guests: guests,
                 date: isoDate,
