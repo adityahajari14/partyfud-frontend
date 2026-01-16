@@ -214,13 +214,13 @@ export default function CreatePackagePage() {
 
     // Apply search filter if query exists
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
+    const query = searchQuery.toLowerCase().trim();
       filteredCategories = dishesByCategory
-        .map(categoryGroup => ({
-          ...categoryGroup,
-          dishes: categoryGroup.dishes.filter(dish =>
-            dish.name.toLowerCase().includes(query)
-          )
+      .map(categoryGroup => ({
+        ...categoryGroup,
+        dishes: categoryGroup.dishes.filter(dish =>
+          dish.name.toLowerCase().includes(query)
+        )
         }));
     }
 

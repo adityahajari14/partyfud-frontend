@@ -17,6 +17,7 @@ export function PreviewPublish({ data, onBack, onDraftSaved, onSubmitSuccess }: 
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [draftSaveMessage, setDraftSaveMessage] = useState('');
   const [cuisineTypes, setCuisineTypes] = useState<Array<{ id: string; name: string }>>([]);
+  const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     // Fetch cuisine types to display names instead of IDs
@@ -67,6 +68,7 @@ export function PreviewPublish({ data, onBack, onDraftSaved, onSubmitSuccess }: 
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
+      setSubmitMessage(null);
       const token = localStorage.getItem('auth_token');
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/caterer/onboarding/submit`, {
         method: 'POST',
@@ -79,15 +81,25 @@ export function PreviewPublish({ data, onBack, onDraftSaved, onSubmitSuccess }: 
 
       if (!response.ok) throw new Error('Failed to submit');
 
-      alert(
-        'Application submitted successfully! Our team will review your profile and get back to you within 2-3 business days.'
-      );
+      // Show success message
+      setSubmitMessage({
+        type: 'success',
+        text: 'Application submitted successfully! Our team will review your profile and get back to you within 2-3 business days.'
+      });
+      
       // Refresh user data to update their type to CATERER
       if (onSubmitSuccess) await onSubmitSuccess();
-      router.push('/caterer/dashboard');
+      
+      // Redirect to caterer dashboard after a short delay
+      setTimeout(() => {
+        router.push('/caterer/dashboard');
+      }, 2000);
     } catch (error) {
       console.error('Error submitting:', error);
-      alert('Failed to submit application. Please try again.');
+      setSubmitMessage({
+        type: 'error',
+        text: 'Failed to submit application. Please try again.'
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -295,6 +307,37 @@ export function PreviewPublish({ data, onBack, onDraftSaved, onSubmitSuccess }: 
           }`}>
             {draftSaveMessage}
           </p>
+        </div>
+      )}
+
+      {/* Submit Message */}
+      {submitMessage && (
+        <div className={`rounded-lg p-4 ${
+          submitMessage.type === 'error' 
+            ? 'bg-red-50 border border-red-200' 
+            : 'bg-green-50 border border-green-200'
+        }`}>
+          <div className="flex items-start gap-3">
+            {submitMessage.type === 'success' ? (
+              <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            )}
+            <div>
+              <p className={`text-sm font-medium ${
+                submitMessage.type === 'error' ? 'text-red-700' : 'text-green-700'
+              }`}>
+                {submitMessage.text}
+              </p>
+              {submitMessage.type === 'success' && (
+                <p className="text-xs text-green-600 mt-1">Redirecting to dashboard...</p>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

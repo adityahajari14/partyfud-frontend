@@ -94,14 +94,16 @@ function CatererLayoutContent({
       if (!user) {
         router.replace('/login');
       } else if (user.type !== 'CATERER') {
+        // Allow users who just submitted their caterer application
+        // They should be redirected to login only if they're not a caterer type
         router.replace('/login');
       }
     }
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (!loading && user && user.type === 'CATERER' && user.profile_completed) {
-      // Fetch approval status whenever user changes
+    if (!loading && user && user.type === 'CATERER') {
+      // Fetch approval status whenever user changes (regardless of profile_completed)
       fetchApprovalStatus();
     }
   }, [user, loading]);
@@ -141,6 +143,7 @@ function CatererLayoutContent({
   }
 
   // Disable all navigation except Dashboard when approval is pending
+  // Profile, Menus, Packages, Orders, Proposals should be disabled until approved
   const filteredNavItems = approvalStatus === 'PENDING' 
     ? navItems.map(item => ({
         ...item,

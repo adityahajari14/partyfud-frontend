@@ -17,8 +17,8 @@ export default function CatererDashboard() {
   // Reset loading state when auth completes and user is available
   useEffect(() => {
     if (!authLoading && user) {
-      // If user is not a caterer or profile not completed, stop loading immediately
-      if (user.type !== 'CATERER' || user.profile_completed === false) {
+      // If user is not a caterer, stop loading immediately
+      if (user.type !== 'CATERER') {
         setLoading(false);
       }
     } else if (!authLoading && !user) {
@@ -26,12 +26,9 @@ export default function CatererDashboard() {
     }
   }, [authLoading, user]);
 
-  // Redirect to onboarding page if profile is not completed
-  useEffect(() => {
-    if (!authLoading && user && user.type === 'CATERER' && user.profile_completed === false) {
-      router.replace('/onboarding');
-    }
-  }, [user, authLoading, router]);
+  // Note: We no longer redirect to onboarding if profile is not completed
+  // because caterers should be able to access dashboard after submitting application
+  // even if profile_completed is false (it gets set when admin approves)
 
   useEffect(() => {
     // If auth is still loading, don't do anything yet
@@ -51,14 +48,9 @@ export default function CatererDashboard() {
       return;
     }
 
-    // If profile not completed, redirect should have happened, but stop loading just in case
-    if (user.profile_completed === false) {
-      setLoading(false);
-      return;
-    }
-
-    // Only fetch stats if profile is completed and we haven't fetched yet
-    if (user.profile_completed === true && !hasFetched.current) {
+    // Fetch stats regardless of profile_completed status
+    // This allows caterers to see their dashboard even while pending approval
+    if (!hasFetched.current) {
       hasFetched.current = true;
       fetchDashboardStats();
     } else if (hasFetched.current) {
@@ -236,26 +228,16 @@ export default function CatererDashboard() {
             </div>
           </div>
 
-          {/* Pending Approval Banner */}
+          {/* Pending Approval Banner - Minimal and Professional */}
           {catererStatus === 'PENDING' && (
-            <div className="mb-8 bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <svg className="w-6 h-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-4 flex-1">
-                  <h3 className="text-lg font-semibold text-yellow-800 mb-1">
-                    Verification Pending
-                  </h3>
-                  <p className="text-sm text-yellow-700 mb-3">
-                    Your profile is currently under review by our admin team. You'll be able to create packages and receive orders once your profile is approved. We typically review applications within 2-3 business days.
-                  </p>
-                  <p className="text-xs text-yellow-600">
-                    You'll receive an email notification once your profile is approved.
-                  </p>
-                </div>
+            <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+              <div className="flex items-center gap-3">
+                <svg className="w-5 h-5 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                </svg>
+                <p className="text-sm text-amber-800">
+                  <span className="font-medium">Verification pending</span> — Your profile is under review. You'll receive an email once approved.
+                </p>
               </div>
             </div>
           )}

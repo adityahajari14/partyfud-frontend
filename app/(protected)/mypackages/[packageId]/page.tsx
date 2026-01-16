@@ -631,7 +631,7 @@ export default function PackageDetailsPage() {
                                 className={`px-8 py-3 rounded-full font-semibold transition ${selectedDishes.size === 0 || savingCustomPackage
                                     ? 'bg-gray-400 cursor-not-allowed text-white'
                                     : 'bg-[#268700] text-white hover:bg-[#1f6b00]'
-                                }`}
+                                        }`}
                                     >
                             {savingCustomPackage ? 'Saving...' : 'Save Customised Package'}
                         </button>
@@ -799,13 +799,13 @@ export default function PackageDetailsPage() {
 
     {/* Cart Message */}
     {cartMessage && (
-        <div className={`mt-4 p-3 rounded-lg text-sm ${cartMessage.type === 'success'
+            <div className={`mt-4 p-3 rounded-lg text-sm ${cartMessage.type === 'success' 
             ? 'bg-green-100 text-green-800 border border-green-300'
             : 'bg-red-100 text-red-800 border border-red-300'
         }`}>
-            {cartMessage.text}
-        </div>
-    )}
+                            {cartMessage.text}
+                        </div>
+                    )}
 
                     <button 
                         onClick={isAddedToCart ? handleRemoveFromCart : handleAddToCart}
@@ -815,7 +815,7 @@ export default function PackageDetailsPage() {
                             (isAddedToCart ? false : (!eventType || !location || !guests || !date))
                         }
                         className={`mt-4 w-full py-3 rounded-full text-white font-medium transition-all ${
-                            (addingToCart || removingFromCart) || !pkg
+        (addingToCart || removingFromCart) || !pkg
                                 ? 'bg-gray-400 cursor-not-allowed'
                                 : isAddedToCart
                                     ? 'bg-green-800 hover:bg-green-900 cursor-pointer'
