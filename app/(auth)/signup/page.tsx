@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { PhoneInput } from '@/components/ui/PhoneInput';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
@@ -16,25 +17,13 @@ function SignupContent() {
   const redirect = searchParams.get('redirect');
   const [justSignedUp, setJustSignedUp] = useState(false);
   const { signup, user } = useAuth();
-  const [userType, setUserType] = useState<'USER' | 'CATERER'>('USER');
 
-  // Read type from URL query parameter on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const type = params.get('type');
-      if (type === 'caterer') {
-        setUserType('CATERER');
-      }
-    }
-  }, []);
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
     phone: '',
     email: '',
     password: '',
-    company_name: '',
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -43,36 +32,26 @@ function SignupContent() {
   useEffect(() => {
     if (!user || justSignedUp) return;
 
+    // If user is already logged in and navigates to signup page
     if (user.type === 'CATERER') {
-      // Check if profile is completed, if not redirect to details page
-      if (user.profile_completed === false) {
-        router.replace('/caterer/details');
-      } else {
-        router.replace('/caterer/dashboard');
-      }
+      router.replace('/caterer/dashboard');
     } else if (user.type === 'USER') {
-      router.replace(redirect || '/');
+      router.replace('/');
     } else if (user.type === 'ADMIN') {
       router.replace('/admin/dashboard');
     }
-  }, [user, justSignedUp, router, redirect]);
+  }, [user, justSignedUp, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (userType === 'CATERER' && !formData.company_name.trim()) {
-      setError('Company name is required for caterers');
-      return;
-    }
 
     setIsLoading(true);
 
     try {
       const signupData = {
         ...formData,
-        type: userType,
-        ...(userType === 'CATERER' && { company_name: formData.company_name }),
+        type: 'USER', // All signups are USER by default, onboarding will change to CATERER
       };
 
       const result = await signup(signupData);
@@ -82,20 +61,14 @@ function SignupContent() {
         setIsLoading(false);
       } else {
         setJustSignedUp(true);
-
-        if (userType === 'CATERER') {
-          // Always redirect caterers to details page after signup
-          // The useEffect will handle redirect based on profile_completed status
-          router.replace('/caterer/details');
-        } else {
-          router.replace(redirect || '/');
-        }
+        // If redirect is to onboarding, go there after signup
+        // Otherwise go to homepage
+        router.replace(redirect || '/');
       }
     } catch (error) {
       setError('An unexpected error occurred. Please try again.');
       setIsLoading(false);
     }
-    // Redirect will happen via useEffect when user state updates
   };
 
   return (
@@ -121,30 +94,6 @@ function SignupContent() {
             <p className="text-center text-base text-gray-600">
               Join Party Fud and start your journey today
             </p>
-          </div>
-
-          {/* User Type Selection */}
-          <div className="flex gap-3 p-1 bg-gray-100 rounded-lg">
-            <button
-              type="button"
-              onClick={() => setUserType('USER')}
-              className={`flex-1 py-2.5 px-4 rounded-md font-medium transition-all ${userType === 'USER'
-                ? 'bg-[#268700] text-white shadow-sm'
-                : 'text-gray-700 hover:text-gray-900'
-                }`}
-            >
-              👤 User
-            </button>
-            <button
-              type="button"
-              onClick={() => setUserType('CATERER')}
-              className={`flex-1 py-2.5 px-4 rounded-md font-medium transition-all ${userType === 'CATERER'
-                ? 'bg-[#268700] text-white shadow-sm'
-                : 'text-gray-700 hover:text-gray-900'
-                }`}
-            >
-              🏢 Caterer
-            </button>
           </div>
 
           <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
@@ -174,13 +123,12 @@ function SignupContent() {
                 />
               </div>
 
-              <Input
+              <PhoneInput
                 label="Phone Number"
-                type="tel"
                 required
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+971501234567"
+                onChange={(phone) => setFormData({ ...formData, phone })}
+                placeholder="50 123 4567"
               />
 
               <Input
@@ -191,17 +139,6 @@ function SignupContent() {
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="Enter your email"
               />
-
-              {userType === 'CATERER' && (
-                <Input
-                  label="Company Name"
-                  type="text"
-                  required
-                  value={formData.company_name}
-                  onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-                  placeholder="Enter company name"
-                />
-              )}
 
               <Input
                 label="Password"

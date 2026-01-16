@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { SidebarProvider, useSidebar } from '@/contexts/SidebarContext';
 import { usePathname } from 'next/navigation';
+import { catererApi } from '@/lib/api/caterer.api';
 
 const navItems = [
   {
@@ -72,8 +73,8 @@ function CatererLayoutContent({
   const { user, loading } = useAuth();
   const pathname = usePathname();
   const { isOpen, closeSidebar } = useSidebar();
-  const isDetailsPage = pathname === '/caterer/details';
   const router = useRouter();
+  const [approvalStatus, setApprovalStatus] = useState<string | null>(null);
 
   // Close sidebar when window is resized to desktop
   useEffect(() => {
@@ -87,29 +88,45 @@ function CatererLayoutContent({
     return () => window.removeEventListener('resize', handleResize);
   }, [closeSidebar]);
 
+  // Handle authentication and redirects
   useEffect(() => {
     if (!loading) {
       if (!user) {
         router.replace('/login');
       } else if (user.type !== 'CATERER') {
         router.replace('/login');
-      } else if (user.type === 'CATERER' && user.profile_completed === false && pathname !== '/caterer/details') {
-        // Redirect to details page if profile is not completed (unless already on details page)
-        // Use replace to prevent back navigation
-        router.replace('/caterer/details');
       }
     }
-  }, [user, loading, router, pathname]);
+  }, [user, loading, router]);
 
-  // Prevent access to any caterer pages except details if profile is not completed
   useEffect(() => {
-    if (!loading && user && user.type === 'CATERER' && user.profile_completed === false) {
-      // If somehow user navigated to a page other than details, redirect immediately
-      if (pathname !== '/caterer/details') {
-        router.replace('/caterer/details');
-      }
+    if (!loading && user && user.type === 'CATERER' && user.profile_completed) {
+      // Fetch approval status whenever user changes
+      fetchApprovalStatus();
     }
-  }, [user, loading, router, pathname]);
+  }, [user, loading]);
+
+  const fetchApprovalStatus = async () => {
+    try {
+      const response = await catererApi.getCatererInfo();
+      console.log('Caterer info response:', response);
+      
+      // The backend returns { success: true, data: catererInfo }
+      // apiRequest wraps it, so response.data is the whole backend response
+      const catererData = response.data as any;
+      
+      if (catererData && catererData.success && catererData.data) {
+        console.log('Setting approval status to:', catererData.data.status);
+        setApprovalStatus(catererData.data.status);
+      } else if (catererData && 'status' in catererData) {
+        // Fallback: if the data is directly the catererInfo
+        console.log('Setting approval status to (fallback):', catererData.status);
+        setApprovalStatus(catererData.status);
+      }
+    } catch (error) {
+      console.error('Error fetching approval status:', error);
+    }
+  };
 
   if (loading) {
     return (
@@ -123,16 +140,20 @@ function CatererLayoutContent({
     return null;
   }
 
-  return isDetailsPage ? (
-    // 👉 NO SIDEBAR LAYOUT (for /caterer/details)
-    <div className="min-h-screen">
-      {children}
-    </div>
-  ) : (
-    // 👉 NORMAL CATERER DASHBOARD LAYOUT
-    <div className="flex min-h-screen bg-gray-50">
+  // Disable all navigation except Dashboard when approval is pending
+  const filteredNavItems = approvalStatus === 'PENDING' 
+    ? navItems.map(item => ({
+        ...item,
+        disabled: item.name !== 'Dashboard'
+      }))
+    : navItems;
+
+  console.log('Approval status:', approvalStatus, 'Filtered nav items:', filteredNavItems);
+
+  return (
+    <div className="flex h-screen bg-gray-50">
       <Sidebar 
-        navItems={navItems} 
+        navItems={filteredNavItems} 
         isOpen={isOpen}
         onClose={closeSidebar}
       />

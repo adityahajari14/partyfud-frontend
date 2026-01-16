@@ -36,9 +36,9 @@ function LoginContent() {
 
       // Redirect immediately based on user type
       if (user.type === 'CATERER') {
-        // Check if profile is completed, if not redirect to details page
+        // Check if profile is completed, if not redirect to onboarding page
         if (user.profile_completed === false) {
-          router.replace('/caterer/details');
+          router.replace('/onboarding');
         } else {
           router.replace('/caterer/dashboard');
         }
@@ -67,9 +67,9 @@ function LoginContent() {
         const loggedInUser = result.user;
 
         if (loggedInUser.type === 'CATERER') {
-          // Check if profile is completed, if not redirect to details page immediately
+          // Check if profile is completed, if not redirect to onboarding page immediately
           if (loggedInUser.profile_completed === false) {
-            router.replace('/caterer/details');
+            router.replace('/onboarding');
           } else {
             router.replace('/caterer/dashboard');
           }

@@ -12,17 +12,9 @@ export default function PartnerWithPartyFud() {
   const handleJoinClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     
-    // If user is logged in, log them out first then redirect to caterer signup
-    if (user) {
-      await logout();
-      // Small delay to ensure logout completes
-      setTimeout(() => {
-        router.push('/signup?type=caterer');
-      }, 100);
-    } else {
-      // If not logged in, go directly to signup page with caterer type
-      router.push('/signup?type=caterer');
-    }
+    // Always redirect to onboarding
+    // If user is not logged in, they'll be prompted to signup/login first
+    router.push('/onboarding');
   };
 
   return (

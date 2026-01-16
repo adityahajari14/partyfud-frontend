@@ -58,6 +58,7 @@ export default function MenusPage() {
   const router = useRouter();
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
+  const [catererStatus, setCatererStatus] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     cuisine_type_id: '',
     category_id: '',
@@ -94,7 +95,19 @@ export default function MenusPage() {
   useEffect(() => {
     fetchDishes();
     fetchMetadata();
+    fetchCatererStatus();
   }, [filters]);
+
+  const fetchCatererStatus = async () => {
+    try {
+      const response = await catererApi.getCatererInfo();
+      if (response.data && typeof response.data === 'object' && 'status' in response.data) {
+        setCatererStatus(response.data.status);
+      }
+    } catch (error) {
+      console.error('Error fetching caterer status:', error);
+    }
+  };
 
   useEffect(() => {
     // Fetch subcategories when category changes in create form
@@ -296,11 +309,25 @@ export default function MenusPage() {
     <>
       <Header
         showAddButton={true}
-        addButtonText="+ Add Menu Item"
-        onAddClick={() => setIsCreateModalOpen(true)}
+        addButtonText={catererStatus === 'PENDING' ? 'Awaiting Approval' : '+ Add Menu Item'}
+        onAddClick={catererStatus === 'PENDING' ? undefined : () => setIsCreateModalOpen(true)}
       />
       <main className="flex-1 p-4 lg:p-6 pt-20 lg:pt-24">
         <div className="max-w-7xl mx-auto">
+          {/* Pending Approval Banner */}
+          {catererStatus === 'PENDING' && (
+            <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+              <div className="flex items-center">
+                <svg className="w-5 h-5 text-yellow-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <p className="text-sm text-yellow-800">
+                  <span className="font-semibold">Awaiting Approval:</span> You can view menu items but cannot create new ones until your profile is approved.
+                </p>
+              </div>
+            </div>
+          )}
+
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Menu Items</h1>
           <p className="text-gray-700 mb-6">Create and manage your menu items</p>
 
@@ -332,9 +359,18 @@ export default function MenusPage() {
           ) : dishes.length === 0 ? (
             <div className="bg-white rounded-lg shadow p-12 text-center">
               <p className="text-gray-700 mb-4">No dishes found. Create your first dish to get started.</p>
-              <Button onClick={() => setIsCreateModalOpen(true)} variant="primary">
-                + Add Menu Item
-              </Button>
+              {catererStatus === 'PENDING' ? (
+                <div className="inline-block">
+                  <Button disabled variant="outline" className="opacity-50 cursor-not-allowed">
+                    + Add Menu Item (Awaiting Approval)
+                  </Button>
+                  <p className="text-xs text-yellow-600 mt-2">Your profile must be approved before creating menu items</p>
+                </div>
+              ) : (
+                <Button onClick={() => setIsCreateModalOpen(true)} variant="primary">
+                  + Add Menu Item
+                </Button>
+              )}
             </div>
           ) : Array.isArray(dishes) && dishes.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">

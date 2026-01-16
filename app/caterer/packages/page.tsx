@@ -73,6 +73,7 @@ export default function PackagesPage() {
   const [packages, setPackages] = useState<Package[]>([]);
   const [allPackages, setAllPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
+  const [catererStatus, setCatererStatus] = useState<string | null>(null);
   const [occasions, setOccasions] = useState<Array<{ value: string; label: string }>>([
     { value: '', label: 'All Occasions' },
   ]);
@@ -82,7 +83,19 @@ export default function PackagesPage() {
   useEffect(() => {
     fetchPackages();
     fetchOccasions();
+    fetchCatererStatus();
   }, []);
+
+  const fetchCatererStatus = async () => {
+    try {
+      const response = await catererApi.getCatererInfo();
+      if (response.data && typeof response.data === 'object' && 'status' in response.data) {
+        setCatererStatus(response.data.status);
+      }
+    } catch (error) {
+      console.error('Error fetching caterer status:', error);
+    }
+  };
 
   useEffect(() => {
     // Filter packages based on selected occasion
@@ -169,12 +182,26 @@ export default function PackagesPage() {
   return (
     <>
       <Header
-        onAddClick={() => router.push('/caterer/packages/create')}
-        addButtonText="+ Create a Package"
+        onAddClick={catererStatus === 'PENDING' ? undefined : () => router.push('/caterer/packages/create')}
+        addButtonText={catererStatus === 'PENDING' ? 'Awaiting Approval' : '+ Create a Package'}
         showAddButton={true}
       />
       <main className="flex-1 p-4 lg:p-6 pt-20 lg:pt-24 bg-gray-50 min-h-screen">
         <div className="max-w-7xl mx-auto">
+          {/* Pending Approval Banner */}
+          {catererStatus === 'PENDING' && (
+            <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+              <div className="flex items-center">
+                <svg className="w-5 h-5 text-yellow-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <p className="text-sm text-yellow-800">
+                  <span className="font-semibold">Awaiting Approval:</span> You can view packages but cannot create new ones until your profile is approved.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Packages</h1>
             <p className="text-gray-700">Create and manage your catering packages</p>
@@ -199,9 +226,18 @@ export default function PackagesPage() {
           ) : !Array.isArray(packages) || packages.length === 0 ? (
             <div className="bg-white rounded-lg shadow-sm p-12 text-center">
               <p className="text-gray-700 mb-4">No packages found. Create your first package to get started.</p>
-              <Button onClick={() => router.push('/caterer/packages/create')} variant="primary">
-                + Create a Package
-              </Button>
+              {catererStatus === 'PENDING' ? (
+                <div className="inline-block">
+                  <Button disabled variant="outline" className="opacity-50 cursor-not-allowed">
+                    + Create a Package (Awaiting Approval)
+                  </Button>
+                  <p className="text-xs text-yellow-600 mt-2">Your profile must be approved before creating packages</p>
+                </div>
+              ) : (
+                <Button onClick={() => router.push('/caterer/packages/create')} variant="primary">
+                  + Create a Package
+                </Button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

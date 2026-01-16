@@ -11,11 +11,8 @@ import {
   Mail,
 } from "lucide-react";
 import Image from "next/image";
-import { PartnerForm } from "@/components/PartnerForm";
 
 export const Footer: React.FC = () => {
-  const [isPartnerFormOpen, setIsPartnerFormOpen] = useState(false);
-
   return (
     <footer className="relative bg-gradient-to-b from-[#0b0a2a] to-[#09081f] text-white">
       <div className="absolute inset-0 flex justify-center pointer-events-none">
@@ -41,12 +38,12 @@ export const Footer: React.FC = () => {
             </p>
           </div>
 
-          <button
-            onClick={() => setIsPartnerFormOpen(true)}
+          <Link
+            href="/onboarding"
             className="bg-[#1ee87a] text-black font-medium px-6 py-3 rounded-full hover:opacity-90 transition"
           >
             Partner with Us
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -94,12 +91,12 @@ export const Footer: React.FC = () => {
               </Link>
             </li>
             <li>
-              <button
-                onClick={() => setIsPartnerFormOpen(true)}
-                className="hover:text-white transition-colors text-left"
+              <Link
+                href="/onboarding"
+                className="hover:text-white transition-colors"
               >
                 Partner with Us
-              </button>
+              </Link>
             </li>
           </ul>
         </div>
@@ -204,12 +201,6 @@ export const Footer: React.FC = () => {
           </Link>
         </div>
       </div>
-
-      {/* Partner Form Modal */}
-      <PartnerForm
-        isOpen={isPartnerFormOpen}
-        onClose={() => setIsPartnerFormOpen(false)}
-      />
     </footer>
   );
 };

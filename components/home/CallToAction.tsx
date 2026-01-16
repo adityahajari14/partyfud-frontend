@@ -11,7 +11,7 @@ export default function CallToAction() {
   };
 
   const handleJoinPartner = () => {
-    router.push('/signup?type=caterer');
+    router.push('/onboarding');
   };
 
   return (

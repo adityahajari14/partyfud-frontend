@@ -188,7 +188,7 @@ export default function Hero() {
                                     Plan Your Event
                                 </button>
                                 <Link
-                                    href="/partner"
+                                    href="/onboarding"
                                     className="px-8 py-4 border-2 border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 whitespace-nowrap text-center hover:scale-[1.02] active:scale-[0.98]"
                                 >
                                     Become a Caterer

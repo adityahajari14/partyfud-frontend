@@ -8,7 +8,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
-import { PartnerForm } from '@/components/PartnerForm';
 import { userApi } from '@/lib/api/user.api';
 
 // Main Navbar component for the application
@@ -17,7 +16,6 @@ export function Navbar() {
     const router = useRouter();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [isPartnerFormOpen, setIsPartnerFormOpen] = useState(false);
     const [cartItemCount, setCartItemCount] = useState(0);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -172,6 +170,15 @@ export function Navbar() {
                                         </p>
                                     </div>
                                     <div className="px-3 py-2 space-y-2">
+                                        {user.type === 'CATERER' && (
+                                            <Link
+                                                href="/caterer/dashboard"
+                                                onClick={() => setIsDropdownOpen(false)}
+                                                className="block w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                                            >
+                                                Dashboard
+                                            </Link>
+                                        )}
                                         <Link
                                             href="/orders"
                                             onClick={() => setIsDropdownOpen(false)}
@@ -218,20 +225,14 @@ export function Navbar() {
                         </Link>
                     )}
 
-                    <button
-                        onClick={() => setIsPartnerFormOpen(true)}
+                    <Link
+                        href="/onboarding"
                         className="bg-[#268700] text-white text-[11px] font-black uppercase tracking-widest px-8 py-3.5 rounded-xl hover:bg-[#1f6b00] transition-all duration-300 shadow-[0_10px_20px_-10px_rgba(38,135,0,0.3)] hover:shadow-[0_15px_25px_-10px_rgba(38,135,0,0.4)] active:scale-95"
                     >
                         Partner with Us
-                    </button>
+                    </Link>
                 </div>
             </div>
-
-            {/* Partner Form Modal */}
-            <PartnerForm
-                isOpen={isPartnerFormOpen}
-                onClose={() => setIsPartnerFormOpen(false)}
-            />
         </header>
     );
 }
