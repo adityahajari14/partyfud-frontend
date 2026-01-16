@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useState, useMemo } from 'react';
 import { userApi, type Caterer, type Package, type Dish } from '@/lib/api/user.api';
 import { Star, MapPin, Users, ChefHat, Check, Plus, ArrowRight } from 'lucide-react';
@@ -300,9 +301,21 @@ export default function CatererDetailPage() {
         {/* Caterer Header */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
           <div className="flex flex-col sm:flex-row gap-6">
-            {/* Logo */}
-            <div className="w-24 h-24 bg-linear-to-br from-green-500 to-green-600 text-white rounded-xl flex items-center justify-center font-bold text-xl shrink-0">
-              {logoText}
+            {/* Logo/Image */}
+            <div className="relative w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
+              {caterer.image_url ? (
+                <Image
+                  src={caterer.image_url}
+                  alt={caterer.name}
+                  fill
+                  className="object-contain"
+                  unoptimized
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-white font-bold text-xl">
+                  {logoText}
+                </div>
+              )}
             </div>
 
             {/* Info */}

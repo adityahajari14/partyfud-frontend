@@ -7,10 +7,10 @@ import { userApi, type Caterer } from '@/lib/api/user.api';
 
 export default function BrowseCaterersPage() {
   const [search, setSearch] = useState('');
-  const [location, setLocation] = useState('Dubai');
+  const [location, setLocation] = useState('All');
   const [guests, setGuests] = useState<number | undefined>(undefined);
   const [date, setDate] = useState('');
-  const [budget, setBudget] = useState(160);
+  const [budget, setBudget] = useState(500);
   const [menuType, setMenuType] = useState({
     fixed: true,
     customizable: true,
@@ -39,7 +39,7 @@ export default function BrowseCaterersPage() {
           location: location !== 'All' ? location : undefined,
           guests,
           date: date || undefined,
-          maxBudget: budget,
+          maxBudget: budget < 500 ? budget : undefined,
           menuType: {
             fixed: menuType.fixed,
             customizable: menuType.customizable,
@@ -93,10 +93,10 @@ export default function BrowseCaterersPage() {
                 className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
                 onClick={() => {
                   setSearch('');
-                  setLocation('Dubai');
+                  setLocation('All');
                   setGuests(undefined);
                   setDate('');
-                  setBudget(160);
+                  setBudget(500);
                   setMenuType({ fixed: true, customizable: true, liveStations: true });
                 }}
               >
@@ -149,14 +149,14 @@ export default function BrowseCaterersPage() {
                 <label className="text-sm font-medium text-gray-700 mb-2 block">Budget (Per Person)</label>
                 <input
                   type="range"
-                  min={100}
-                  max={300}
+                  min={0}
+                  max={500}
                   step={10}
                   value={budget}
                   onChange={(e) => setBudget(Number(e.target.value))}
                   className="w-full mt-2 accent-[#268700]"
                 />
-                <p className="text-sm text-gray-600 mt-2 flex items-center gap-1"><img src="/dirham.svg" alt="AED" className="w-3 h-3" />100 – <img src="/dirham.svg" alt="AED" className="w-3 h-3" />{budget}</p>
+                <p className="text-sm text-gray-600 mt-2 flex items-center gap-1"><img src="/dirham.svg" alt="AED" className="w-3 h-3" />0 – <img src="/dirham.svg" alt="AED" className="w-3 h-3" />{budget}</p>
               </div>
 
               <div>
@@ -260,7 +260,7 @@ export default function BrowseCaterersPage() {
                               src={c.image_url}
                               alt={c.name}
                               fill
-                              className="object-cover group-hover:scale-105 transition-transform duration-300"
+                              className="object-contain group-hover:scale-105 transition-transform duration-300"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">

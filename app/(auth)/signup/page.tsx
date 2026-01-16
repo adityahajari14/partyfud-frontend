@@ -51,7 +51,7 @@ function SignupContent() {
         router.replace('/caterer/dashboard');
       }
     } else if (user.type === 'USER') {
-      router.replace(redirect || '/user/dashboard');
+      router.replace(redirect || '/');
     } else if (user.type === 'ADMIN') {
       router.replace('/admin/dashboard');
     }
@@ -88,7 +88,7 @@ function SignupContent() {
           // The useEffect will handle redirect based on profile_completed status
           router.replace('/caterer/details');
         } else {
-          router.replace(redirect || '/user/dashboard');
+          router.replace(redirect || '/');
         }
       }
     } catch (error) {

@@ -43,7 +43,7 @@ function LoginContent() {
           router.replace('/caterer/dashboard');
         }
       } else if (user.type === 'USER') {
-        router.replace(redirect || '/user/dashboard');
+        router.replace(redirect || '/');
       } else if (user.type === 'ADMIN') {
         router.replace('/admin/dashboard');
       }
@@ -74,7 +74,7 @@ function LoginContent() {
             router.replace('/caterer/dashboard');
           }
         } else if (loggedInUser.type === 'USER') {
-          router.replace(redirect || '/user/dashboard');
+          router.replace(redirect || '/');
         } else if (loggedInUser.type === 'ADMIN') {
           router.replace('/admin/dashboard');
         }
