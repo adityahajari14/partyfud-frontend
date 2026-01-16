@@ -409,11 +409,10 @@ export default function CatererDetailPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
-                className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition ${
-                  activeTab === tab.id
+                className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition ${activeTab === tab.id
                     ? 'bg-green-600 text-white shadow-sm'
                     : 'text-gray-600 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>
@@ -512,11 +511,10 @@ export default function CatererDetailPage() {
                               <div
                                 key={dish.id}
                                 onClick={() => toggleDish(dish.id)}
-                                className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition ${
-                                  isSelected
+                                className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition ${isSelected
                                     ? 'border-green-500 bg-green-50'
                                     : 'border-gray-200 hover:border-gray-300'
-                                }`}
+                                  }`}
                               >
                                 <div className="flex-1">
                                   <p className="font-medium text-gray-900 text-sm">
@@ -595,11 +593,10 @@ export default function CatererDetailPage() {
                 <button
                   onClick={handleCreatePackage}
                   disabled={selectedDishes.size === 0 || creatingPackage}
-                  className={`w-full mt-4 py-3 rounded-lg font-medium transition ${
-                    selectedDishes.size === 0 || creatingPackage
+                  className={`w-full mt-4 py-3 rounded-lg font-medium transition ${selectedDishes.size === 0 || creatingPackage
                       ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                       : 'bg-green-600 text-white hover:bg-green-700'
-                  }`}
+                    }`}
                 >
                   {creatingPackage ? (
                     <span className="flex items-center justify-center gap-2">
@@ -726,11 +723,10 @@ export default function CatererDetailPage() {
                             }
                             setDietaryPreferences(newPrefs);
                           }}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
-                            isSelected
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${isSelected
                               ? 'bg-green-100 text-green-700 border border-green-300'
                               : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                          }`}
+                            }`}
                         >
                           {pref}
                         </button>
@@ -757,11 +753,10 @@ export default function CatererDetailPage() {
               <button
                 onClick={handleRequestQuote}
                 disabled={submittingQuote}
-                className={`w-full py-3 rounded-lg font-medium transition ${
-                  submittingQuote
+                className={`w-full py-3 rounded-lg font-medium transition ${submittingQuote
                     ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                     : 'bg-green-600 text-white hover:bg-green-700'
-                }`}
+                  }`}
               >
                 {submittingQuote ? 'Submitting...' : 'Submit Quote Request'}
               </button>
@@ -784,11 +779,10 @@ export default function CatererDetailPage() {
               <button
                 onClick={handleContinueToPackage}
                 disabled={!isFormValid}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition ${
-                  isFormValid
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition ${isFormValid
                     ? 'bg-green-600 text-white hover:bg-green-700'
                     : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                }`}
+                  }`}
               >
                 Continue
                 <ArrowRight className="w-4 h-4" />

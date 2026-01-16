@@ -50,7 +50,7 @@ export default function WhyChoose() {
         {/* Heading */}
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-semibold mb-3 text-gray-900">
-            Why Choose FeastFlow
+            Why Choose PartyFud
           </h2>
           <p className="text-gray-600 text-lg">
             We're not just a marketplace — we're your catering partner.

@@ -14,10 +14,6 @@ interface OrderItem {
     total_price: number;
     currency: string;
     cover_image_url?: string | null;
-    package_type: {
-      id: string;
-      name: string;
-    };
     caterer: {
       id: string;
       business_name: string | null;
@@ -44,10 +40,6 @@ interface OrderItem {
       is_addon: boolean;
       people_count: number;
     }>;
-  };
-  package_type: {
-    id: string;
-    name: string;
   };
   location: string | null;
   guests: number | null;
@@ -92,7 +84,7 @@ export default function CatererOrdersPage() {
     setError(null);
     try {
       const response = await catererApi.getOrders();
-      
+
       if (response.error) {
         setError(response.error);
       } else if (response.data) {
@@ -115,7 +107,7 @@ export default function CatererOrdersPage() {
   const handleViewOrder = async (orderId: string) => {
     try {
       const response = await catererApi.getOrderById(orderId);
-      
+
       if (response.error) {
         setMessage({ type: 'error', text: response.error });
       } else if (response.data) {
@@ -140,16 +132,16 @@ export default function CatererOrdersPage() {
     setMessage(null);
     try {
       const response = await catererApi.updateOrderStatus(orderId, newStatus);
-      
+
       if (response.error) {
         setMessage({ type: 'error', text: response.error });
       } else if (response.data) {
         // API returns { success: true, data: {...} }
         const apiResponse = response.data as any;
         const orderData = apiResponse.success ? apiResponse.data : apiResponse;
-        
+
         // Update the order in the list
-        setOrders(orders.map(o => 
+        setOrders(orders.map(o =>
           o.id === orderId ? orderData : o
         ));
         // Update selected order if it's the one being updated
@@ -238,8 +230,8 @@ export default function CatererOrdersPage() {
     return status !== 'DELIVERED' && status !== 'CANCELLED';
   };
 
-  const filteredOrders = statusFilter === 'ALL' 
-    ? orders 
+  const filteredOrders = statusFilter === 'ALL'
+    ? orders
     : orders.filter(o => o.status === statusFilter);
 
   const statusOptions = [
@@ -292,11 +284,11 @@ export default function CatererOrdersPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Order Management</h1>
           <p className="text-gray-600 mb-4">
-            {filteredOrders.length === 0 
-              ? 'No orders found' 
+            {filteredOrders.length === 0
+              ? 'No orders found'
               : `${filteredOrders.length} ${filteredOrders.length === 1 ? 'order' : 'orders'} found`}
           </p>
-          
+
           {/* Status Filter and Stats */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -324,11 +316,10 @@ export default function CatererOrdersPage() {
 
         {/* Message */}
         {message && (
-          <div className={`mb-6 p-4 rounded-lg text-sm ${
-            message.type === 'success' 
-              ? 'bg-green-100 text-green-800 border border-green-300' 
+          <div className={`mb-6 p-4 rounded-lg text-sm ${message.type === 'success'
+              ? 'bg-green-100 text-green-800 border border-green-300'
               : 'bg-red-100 text-red-800 border border-red-300'
-          }`}>
+            }`}>
             {message.text}
           </div>
         )}
@@ -344,7 +335,7 @@ export default function CatererOrdersPage() {
             {filteredOrders.map((order) => {
               const nextStatusOptions = getNextStatusOptions(order.status);
               const orderTotal = order.items.reduce((sum, item) => sum + item.price_at_time, 0);
-              
+
               return (
                 <div
                   key={order.id}
@@ -425,7 +416,6 @@ export default function CatererOrdersPage() {
                           )}
                           <div className="flex-1">
                             <h4 className="font-semibold text-gray-900">{item.package.name}</h4>
-                            <p className="text-sm text-gray-600">{item.package.package_type.name}</p>
                             <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
                               {item.guests && (
                                 <span className="flex items-center gap-1">
@@ -465,11 +455,11 @@ export default function CatererOrdersPage() {
       {showOrderDetails && selectedOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Blurred Background */}
-          <div 
+          <div
             className="absolute inset-0 bg-black/30 backdrop-blur-md"
             onClick={() => setShowOrderDetails(false)}
           />
-          
+
           {/* Modal Content */}
           <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             {/* Close Button */}
@@ -542,7 +532,6 @@ export default function CatererOrdersPage() {
                         )}
                         <div className="flex-1">
                           <h4 className="font-semibold text-gray-900 mb-1">{item.package.name}</h4>
-                          <p className="text-sm text-gray-600 mb-2">{item.package.package_type.name}</p>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs text-gray-500">
                             {item.guests && (
                               <div>

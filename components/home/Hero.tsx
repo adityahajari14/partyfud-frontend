@@ -48,7 +48,6 @@ export default function Hero() {
         
         // Build query parameters
         const params = new URLSearchParams();
-        if (eventType) params.append('package_type', eventType);
         if (location) params.append('location', location);
         if (guests) params.append('min_guests', String(guests));
         if (date) params.append('date', date);

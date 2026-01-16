@@ -25,38 +25,30 @@ export default function PopularPackagesPage() {
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [packageType, setPackageType] = useState<string | null>(null);
   const [occasionName, setOccasionName] = useState<string | null>(null);
 
-  // Read package_type and occasion_name from URL on mount and when it changes
+  // Read occasion_name from URL on mount and when it changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      const typeParam = params.get('package_type');
       const occasionParam = params.get('occasion_name');
-      setPackageType(typeParam);
       setOccasionName(occasionParam);
     }
 
-    // Listen for URL changes (when PackageTypes or Occasions component navigates)
+    // Listen for URL changes (when Occasions component navigates)
     const handleLocationChange = () => {
       if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
-        const typeParam = params.get('package_type');
         const occasionParam = params.get('occasion_name');
-        setPackageType(typeParam);
         setOccasionName(occasionParam);
       }
     };
 
     window.addEventListener('popstate', handleLocationChange);
-    // Also listen for custom events from PackageTypes
-    window.addEventListener('packageTypeChanged', handleLocationChange);
     window.addEventListener('occasionChanged', handleLocationChange);
 
     return () => {
       window.removeEventListener('popstate', handleLocationChange);
-      window.removeEventListener('packageTypeChanged', handleLocationChange);
       window.removeEventListener('occasionChanged', handleLocationChange);
     };
   }, []);
@@ -70,10 +62,6 @@ export default function PopularPackagesPage() {
         const filters: any = {
           sort_by: 'rating_desc', // Show popular packages first
         };
-        
-        if (packageType) {
-          filters.package_type = packageType;
-        }
 
         // If occasion_name is provided, fetch occasion by name first to get its ID
         if (occasionName) {
@@ -103,7 +91,7 @@ export default function PopularPackagesPage() {
             .map((pkg: ApiPackage) => ({
               id: pkg.id,
               title: pkg.name,
-              caterer: (pkg as any).caterer?.name || pkg.package_type?.name || 'Unknown Caterer',
+              caterer: (pkg as any).caterer?.name || 'Unknown Caterer',
               catererId: (pkg as any).caterer?.id,
               price: pkg.total_price,
               rating: pkg.rating || undefined,
@@ -124,7 +112,7 @@ export default function PopularPackagesPage() {
     };
 
     fetchPackages();
-  }, [packageType, occasionName]);
+  }, [occasionName]);
 
   const scroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return;
@@ -183,9 +171,6 @@ export default function PopularPackagesPage() {
   // Build URL for "View All Packages" button
   const buildViewAllUrl = () => {
     const params = new URLSearchParams();
-    if (packageType) {
-      params.append('package_type', packageType);
-    }
     if (occasionName) {
       params.append('occasion_name', occasionName);
     }

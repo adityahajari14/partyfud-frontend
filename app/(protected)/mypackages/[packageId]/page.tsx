@@ -36,7 +36,7 @@ export default function PackageDetailsPage() {
     const [cartMessage, setCartMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [isAddedToCart, setIsAddedToCart] = useState(false);
     const [cartItemId, setCartItemId] = useState<string | null>(null);
-    
+
     // Customization states
     const [isCustomizable, setIsCustomizable] = useState(false);
     const [selectedDishes, setSelectedDishes] = useState<Set<string>>(new Set());
@@ -54,7 +54,7 @@ export default function PackageDetailsPage() {
             setLoadingTypes(true);
             try {
                 const response = await userApi.getOccasions();
-                
+
                 if (response.error) {
                     console.error('Failed to fetch occasions:', response.error);
                 } else if (response.data?.data) {
@@ -74,32 +74,29 @@ export default function PackageDetailsPage() {
     useEffect(() => {
         const fetchPackage = async () => {
             if (!packageId) return;
-            
+
             setLoading(true);
             setError(null);
-            
+
             try {
                 const response = await userApi.getPackageById(packageId);
-                
+
                 if (response.error) {
                     setError(response.error);
                 } else if (response.data?.data) {
                     const packageData = response.data.data;
                     setPkg(packageData);
-                    // Set default event type to the package's type if available
-                    if (packageData.package_type?.id) {
-                        setEventType(packageData.package_type.id);
-                    }
+                    // Event type is no longer used
                     // Set default guests to the package's people_count
                     if (packageData.people_count) {
                         setGuests(packageData.people_count);
                     }
-                    
+
                     // Check if package is customizable based on customisation_type field
-                    const isPackageCustomizable = packageData.customisation_type === 'CUSTOMISABLE' || 
-                                                  packageData.customisation_type === 'CUSTOMIZABLE';
+                    const isPackageCustomizable = packageData.customisation_type === 'CUSTOMISABLE' ||
+                        packageData.customisation_type === 'CUSTOMIZABLE';
                     setIsCustomizable(isPackageCustomizable);
-                    
+
                     // Initialize selected dishes with all items (both optional and non-optional) if customizable
                     if (packageData.items && isPackageCustomizable) {
                         const initialSelected = new Set<string>();
@@ -128,15 +125,15 @@ export default function PackageDetailsPage() {
     useEffect(() => {
         const checkCartStatus = async () => {
             if (!packageId) return;
-            
+
             try {
                 const response = await userApi.getCartItems();
-                
+
                 if (response.data?.data && Array.isArray(response.data.data)) {
                     const cartItem = response.data.data.find(
                         (item: any) => item.package?.id === packageId
                     );
-                    
+
                     if (cartItem) {
                         setIsAddedToCart(true);
                         setCartItemId(cartItem.id);
@@ -209,7 +206,6 @@ export default function PackageDetailsPage() {
 
             const cartData = {
                 package_id: pkg.id,
-                package_type_id: pkg.package_type.id, // Use the package's actual package_type_id
                 location: location,
                 guests: guests,
                 date: isoDate,
@@ -221,7 +217,7 @@ export default function PackageDetailsPage() {
             if (response.error) {
                 // Handle specific error cases with user-friendly messages
                 let errorMessage = response.error;
-                
+
                 if (errorMessage.includes('authentication') || errorMessage.includes('Unauthorized') || errorMessage.includes('User account not found')) {
                     errorMessage = 'Your session has expired. Please log in again.';
                     setTimeout(() => {
@@ -232,7 +228,7 @@ export default function PackageDetailsPage() {
                 } else if (errorMessage.includes('already exists')) {
                     errorMessage = 'This package is already in your cart.';
                 }
-                
+
                 setCartMessage({ type: 'error', text: errorMessage });
                 setIsAddedToCart(false);
             } else if (response.data?.success) {
@@ -331,7 +327,7 @@ export default function PackageDetailsPage() {
     const groupDishesByCategory = (): CategoryGroup[] => {
         const dishes = getAllDishesFromPackage();
         const grouped: { [key: string]: any[] } = {};
-        
+
         dishes.forEach((dish) => {
             const categoryName = dish.category?.name || 'Other';
             if (!grouped[categoryName]) {
@@ -391,11 +387,10 @@ export default function PackageDetailsPage() {
         setSavingCustomPackage(true);
         try {
             const dishIds = Array.from(selectedDishes);
-            
+
             const response = await userApi.createCustomPackage({
                 dish_ids: dishIds,
                 people_count: guests || pkg?.people_count || 50,
-                package_type_id: pkg?.package_type?.id,
             });
 
             if (response.error) {
@@ -448,92 +443,91 @@ export default function PackageDetailsPage() {
     }
 
     // Create placeholder images array if cover_image_url exists
-    const images = pkg.cover_image_url 
+    const images = pkg.cover_image_url
         ? [pkg.cover_image_url, '/user/package2.svg', '/user/package3.svg', '/user/package4.svg']
         : ['/user/package1.svg', '/user/package2.svg', '/user/package3.svg', '/user/package4.svg'];
 
     return (
         <>
-        <section className="bg-[#FAFAFA] min-h-screen px-6 py-10">
-            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
+            <section className="bg-[#FAFAFA] min-h-screen px-6 py-10">
+                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
 
-                {/* LEFT CONTENT */}
-                <div>
-                    {/* Image Gallery */}
-                    <div className="grid grid-cols-4 gap-4 mb-6">
-                        <div className="col-span-2 row-span-2 relative h-[260px] rounded-xl overflow-hidden">
-                            <Image
-                                src={images[0] || '/default_dish.jpg'}
-                                alt={pkg.name}
-                                fill
-                                className="object-cover"
-                            />
+                    {/* LEFT CONTENT */}
+                    <div>
+                        {/* Image Gallery */}
+                        <div className="grid grid-cols-4 gap-4 mb-6">
+                            <div className="col-span-2 row-span-2 relative h-[260px] rounded-xl overflow-hidden">
+                                <Image
+                                    src={images[0] || '/default_dish.jpg'}
+                                    alt={pkg.name}
+                                    fill
+                                    className="object-cover"
+                                />
+                            </div>
+
+                            {images.slice(1, 4).map((img, i) => (
+                                <div
+                                    key={i}
+                                    className="relative h-[120px] rounded-xl overflow-hidden"
+                                >
+                                    <Image src={img || '/default_dish.jpg'} alt="" fill className="object-cover" />
+                                    {i === 2 && (
+                                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-sm font-medium">
+                                            View All ({pkg.items.length})
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
                         </div>
 
-                        {images.slice(1, 4).map((img, i) => (
-                            <div
-                                key={i}
-                                className="relative h-[120px] rounded-xl overflow-hidden"
-                            >
-                                <Image src={img || '/default_dish.jpg'} alt="" fill className="object-cover" />
-                                {i === 2 && (
-                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-sm font-medium">
-                                        View All ({pkg.items.length})
-                                    </div>
+                        {/* Menu Items */}
+                        <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6">
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className="font-medium">
+                                    Menu Items {isCustomizable ? '(Customizable)' : '(Fixed)'}
+                                </h3>
+                                {isCustomizable && (
+                                    <button
+                                        onClick={() => setShowCustomizeSection(!showCustomizeSection)}
+                                        className="px-4 py-2 bg-[#268700] text-white rounded-lg text-sm font-medium hover:bg-[#1f6b00] transition"
+                                    >
+                                        {showCustomizeSection ? 'Hide Customization' : 'Customize Package'}
+                                    </button>
                                 )}
                             </div>
-                        ))}
-                    </div>
 
-                    {/* Menu Items */}
-                    <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6">
-                        <div className="flex justify-between items-center mb-2">
-                            <h3 className="font-medium">
-                                Menu Items {isCustomizable ? '(Customizable)' : '(Fixed)'}
-                            </h3>
-                            {isCustomizable && (
-                                <button
-                                    onClick={() => setShowCustomizeSection(!showCustomizeSection)}
-                                    className="px-4 py-2 bg-[#268700] text-white rounded-lg text-sm font-medium hover:bg-[#1f6b00] transition"
-                                >
-                                    {showCustomizeSection ? 'Hide Customization' : 'Customize Package'}
-                                </button>
-                            )}
-                        </div>
+                            <p className="text-sm text-gray-600 mb-4">
+                                Package includes {pkg.items.length} items for {pkg.people_count} people.
+                            </p>
 
-                        <p className="text-sm text-gray-600 mb-4">
-                            Package includes {pkg.items.length} items for {pkg.people_count} people.
-                        </p>
+                            {/* List grouped by category */}
+                            <div className="space-y-0">
+                                {Object.entries(groupedItems).map(([category, items]: [string, any], categoryIndex) => (
+                                    <div key={category} className="mb-0">
+                                        {/* Category Header with light grey background */}
+                                        <div className="bg-gray-100 py-2 px-4 font-semibold text-gray-900">
+                                            {category}
+                                        </div>
 
-                        {/* List grouped by category */}
-                        <div className="space-y-0">
-                            {Object.entries(groupedItems).map(([category, items]: [string, any], categoryIndex) => (
-                                <div key={category} className="mb-0">
-                                    {/* Category Header with light grey background */}
-                                    <div className="bg-gray-100 py-2 px-4 font-semibold text-gray-900">
-                                        {category}
-                                    </div>
-                                    
-                                    {/* Dishes List */}
-                                    <div className="bg-white">
-                                        {items.map((item: any, itemIndex: number) => (
-                                            <div
-                                                key={item.id}
-                                                className={`py-3 px-4 border-b border-gray-200 ${
-                                                    itemIndex === items.length - 1 && categoryIndex !== Object.keys(groupedItems).length - 1
-                                                        ? 'border-b-2 border-gray-300'
-                                                        : ''
+                                        {/* Dishes List */}
+                                        <div className="bg-white">
+                                            {items.map((item: any, itemIndex: number) => (
+                                                <div
+                                                    key={item.id}
+                                                    className={`py-3 px-4 border-b border-gray-200 ${itemIndex === items.length - 1 && categoryIndex !== Object.keys(groupedItems).length - 1
+                                                        order-b-2 border-gray-300'
+                                                        
                                                 }`}
                                             >
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-sm text-gray-700">
-                                                        {item.dish?.name || 'Unknown Dish'}
-                                                        {item.quantity > 1 && (
-                                                            <span className="text-gray-500 ml-2">(x{item.quantity})</span>
-                                                        )}
-                                                    </span>
-                                                </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-gray-700">
+                                                    {item.dish?.name || 'Unknown Dish'}
+                                                    {item.quantity > 1 && (
+                                                        <span className="text-gray-500 ml-2">(x{item.quantity})</span>
+                                                    )}
+                                                </span>
                                             </div>
+                                        </div>
                                         ))}
                                     </div>
                                 </div>
@@ -546,8 +540,8 @@ export default function PackageDetailsPage() {
                                 <h4 className="font-medium mb-2">Customizable Categories</h4>
                                 {pkg.category_selections.map((selection) => (
                                     <div key={selection.id} className="text-sm text-gray-600 mb-1">
-                                        {selection.category.name}: {selection.num_dishes_to_select === null || selection.num_dishes_to_select === undefined 
-                                            ? 'Select all' 
+                                        {selection.category.name}: {selection.num_dishes_to_select === null || selection.num_dishes_to_select === undefined
+                                            ? 'Select all'
                                             : `Select ${selection.num_dishes_to_select} dish(es)`}
                                     </div>
                                 ))}
@@ -592,78 +586,77 @@ export default function PackageDetailsPage() {
                                                         return (
                                                             <div
                                                                 key={dish.id}
-                                                                className={`flex items-center justify-between p-3 rounded-lg border transition cursor-pointer ${
-                                                                    isSelected
-                                                                        ? 'border-[#268700] bg-green-50'
-                                                                        : 'border-gray-200 hover:border-gray-300'
+                                                                className={`flex items-center justify-between p-3 rounded-lg border transition cursor-pointer ${isSelected
+                                                                        order-[#268700] bg-green-50'
+                                                    order-gray-200 hover:border-gray-300'
                                                                 }`}
-                                                                onClick={() => toggleDishSelection(dish.id)}
+                                                    onClick={() => toggleDishSelection(dish.id)}
                                                             >
-                                                                <div className="flex-1">
-                                                                    <p className="font-medium text-gray-900">{dish.name}</p>
-                                                                    <p className="text-sm text-gray-600 flex items-center gap-1">
-                                                                        {dish.cuisine_type?.name || 'Cuisine'} • <img src="/dirham.svg" alt="AED" className="w-3 h-3" />{Number(dish.price).toLocaleString()}/person
-                                                                    </p>
-                                                                </div>
-                                                                <div className="ml-4">
-                                                                    {isSelected ? (
-                                                                        <Check className="w-5 h-5 text-[#268700]" />
-                                                                    ) : (
-                                                                        <Plus className="w-5 h-5 text-gray-400" />
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
+                                                    <div className="flex-1">
+                                                        <p className="font-medium text-gray-900">{dish.name}</p>
+                                                        <p className="text-sm text-gray-600 flex items-center gap-1">
+                                                            {dish.cuisine_type?.name || 'Cuisine'} • <img src="/dirham.svg" alt="AED" className="w-3 h-3" />{Number(dish.price).toLocaleString()}/person
+                                                        </p>
+                                                    </div>
+                                                    <div className="ml-4">
+                                                        {isSelected ? (
+                                                            <Check className="w-5 h-5 text-[#268700]" />
+                                                        ) : (
+                                                            <Plus className="w-5 h-5 text-gray-400" />
+                                                        )}
+                                                    </div>
                                                 </div>
+                                                );
+                                                    })}
                                             </div>
-                                        );
+                                            </div>
+                            );
                                     })}
-                                </div>
-                            )}
-
-                            {/* Save Button */}
-                            <div className="mt-6 pt-4 border-t border-gray-200">
-                                <div className="flex justify-between items-center mb-4">
-                                    <div>
-                                        <p className="text-sm text-gray-600">Total Amount</p>
-                                        <p className="text-2xl font-bold text-gray-900 flex items-center gap-1">
-                                            <img src="/dirham.svg" alt="AED" className="w-6 h-6" />
-                                            {calculateCustomizedTotal().toLocaleString()}
-                                        </p>
-                                        <p className="text-sm text-gray-500">{guests || pkg.people_count} guests</p>
-                                    </div>
-                                    <button
-                                        onClick={handleSaveCustomPackage}
-                                        disabled={selectedDishes.size === 0 || savingCustomPackage}
-                                        className={`px-8 py-3 rounded-full font-semibold transition ${
-                                            selectedDishes.size === 0 || savingCustomPackage
-                                                ? 'bg-gray-400 cursor-not-allowed text-white'
-                                                : 'bg-[#268700] text-white hover:bg-[#1f6b00]'
-                                        }`}
-                                    >
-                                        {savingCustomPackage ? 'Saving...' : 'Save Customised Package'}
-                                    </button>
-                                </div>
-                            </div>
                         </div>
                     )}
-                </div>
 
-                {/* RIGHT SIDEBAR */}
-                <aside className="bg-white border border-gray-200 rounded-xl p-5 h-fit">
+                    {/* Save Button */}
+                    <div className="mt-6 pt-4 border-t border-gray-200">
+                        <div className="flex justify-between items-center mb-4">
+                            <div>
+                                <p className="text-sm text-gray-600">Total Amount</p>
+                                <p className="text-2xl font-bold text-gray-900 flex items-center gap-1">
+                                    <img src="/dirham.svg" alt="AED" className="w-6 h-6" />
+                                    {calculateCustomizedTotal().toLocaleString()}
+                                </p>
+                                <p className="text-sm text-gray-500">{guests || pkg.people_count} guests</p>
+                            </div>
+                            <button
+                                onClick={handleSaveCustomPackage}
+                                disabled={selectedDishes.size === 0 || savingCustomPackage}
+                                className={`px-8 py-3 rounded-full font-semibold transition ${selectedDishes.size === 0 || savingCustomPackage
+                                                g-gray-400 cursor-not-allowed text-white'
+                            g-[#268700] text-white hover:bg-[#1f6b00]'
+                                        }`}
+                                    >
+                            {savingCustomPackage ? 'Saving...' : 'Save Customised Package'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+                    )}
+        </div >
+
+            {/* RIGHT SIDEBAR */ }
+            < aside className = "bg-white border border-gray-200 rounded-xl p-5 h-fit" >
                     <button className="text-sm text-gray-600 mb-2">
                         ← {pkg.name}
                     </button>
 
                     <h2 className="font-semibold text-lg">{pkg.name}</h2>
-                    <p className="text-sm text-gray-500">{pkg.package_type.name}</p>
 
-                    {pkg.rating && (
-                        <div className="text-sm mt-2">
-                            ⭐ {pkg.rating}
-                        </div>
-                    )}
+    {
+        pkg.rating && (
+            <div className="text-sm mt-2">
+                ⭐ {pkg.rating}
+            </div>
+        )
+    }
 
                     <p className="mt-2 font-semibold flex items-center gap-1">
                         <img src="/dirham.svg" alt="AED" className="w-4 h-4" />
@@ -673,7 +666,7 @@ export default function PackageDetailsPage() {
                         Total: <img src="/dirham.svg" alt="AED" className="w-3 h-3" />{pkg.total_price.toLocaleString()} for {pkg.people_count} people
                     </p>
 
-                    {/* Controls */}
+    {/* Controls */ }
                     <div className="mt-4 space-y-3">
                         {/* Event Type */}
                         <div>
@@ -793,13 +786,13 @@ export default function PackageDetailsPage() {
                         </div>
                     </div>
 
-                    {/* Cart Message */}
-                    {cartMessage && (
-                        <div className={`mt-4 p-3 rounded-lg text-sm ${
-                            cartMessage.type === 'success' 
-                                ? 'bg-green-100 text-green-800 border border-green-300' 
-                                : 'bg-red-100 text-red-800 border border-red-300'
-                        }`}>
+    {/* Cart Message */ }
+    {
+        cartMessage && (
+            <div className={`mt-4 p-3 rounded-lg text-sm ${cartMessage.type === 'success' 
+                                g-green-100 text-green-800 border border-green-300' 
+        g - red - 100 text - red - 800 border border - red - 300'
+    } `}>
                             {cartMessage.text}
                         </div>
                     )}
@@ -811,15 +804,15 @@ export default function PackageDetailsPage() {
                             (!pkg) || 
                             (isAddedToCart ? false : (!eventType || !location || !guests || !date))
                         }
-                        className={`mt-4 w-full py-3 rounded-full text-white font-medium transition-all ${
-                            (addingToCart || removingFromCart) || !pkg
-                                ? 'bg-gray-400 cursor-not-allowed'
-                                : isAddedToCart
-                                ? 'bg-green-800 hover:bg-green-900 cursor-pointer'
-                                : (!eventType || !location || !guests || !date)
-                                ? 'bg-gray-400 cursor-not-allowed'
-                                : 'bg-green-600 hover:opacity-90 cursor-pointer'
-                        }`}
+                        className={`mt - 4 w - full py - 3 rounded - full text - white font - medium transition - all ${
+        (addingToCart || removingFromCart) || !pkg
+        g - gray - 400 cursor - not - allowed'
+        AddedToCart
+            ? 'been-800 hover:bg-green-900 cursor-pointer'
+            : (!tType || !location || !guests || !date)
+                ? 'bg-gr00 cursor-not-allowed'
+                : 'bg-gr600 hover:opacity-90 cursor-pointer'
+    } `}
                     >
                         {removingFromCart 
                             ? 'Removing from Cart...' 

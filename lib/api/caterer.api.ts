@@ -1,4 +1,4 @@
-import { apiRequest, API_BASE_URL, getAuthToken } from './config';
+import { apiRequest } from './config';
 
 // Dish Types
 export interface Dish {
@@ -72,10 +72,9 @@ export interface CategorySelection {
 
 export interface CreatePackageRequest {
   name: string;
-  people_count: number;
-  package_type_id: string;
+  minimum_people?: number; // Optional - defaults to caterer's minimum_guests
   cover_image_url?: string;
-  total_price: number;
+  total_price?: number; // Optional - will be calculated from items automatically
   currency?: string;
   // rating?: number;
   occassion: string[];
@@ -90,10 +89,9 @@ export interface CreatePackageRequest {
 export interface UpdatePackageRequest {
   name?: string;
   description?: string;
-  people_count?: number;
-  package_type_id?: string;
+  minimum_people?: number; // Optional - defaults to caterer's minimum_guests
   cover_image_url?: string;
-  total_price?: number;
+  total_price?: number; // Optional - will be recalculated from items automatically
   currency?: string;
   rating?: number;
   occassion?: string[];
@@ -171,7 +169,6 @@ export const catererApi = {
   },
 
   createDish: async (data: CreateDishRequest, imageFile?: File) => {
-    const token = getAuthToken();
     const formData = new FormData();
 
     // Add image file if provided
@@ -209,41 +206,10 @@ export const catererApi = {
       });
     }
 
-    const headers: HeadersInit = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    // Don't set Content-Type - browser will set it with boundary for FormData
-
-    const response = await fetch(`${API_BASE_URL}/api/caterer/dishes`, {
+    return apiRequest<Dish>('/api/caterer/dishes', {
       method: 'POST',
-      headers,
       body: formData,
     });
-
-    let responseData;
-    try {
-      responseData = await response.json();
-    } catch (jsonError) {
-      const text = await response.text();
-      return {
-        error: text || `HTTP ${response.status}: ${response.statusText}`,
-      };
-    }
-
-    if (!response.ok) {
-      let errorMessage = 'An error occurred';
-      if (responseData?.error?.message) {
-        errorMessage = responseData.error.message;
-      } else if (responseData?.message) {
-        errorMessage = responseData.message;
-      } else if (responseData?.error) {
-        errorMessage = typeof responseData.error === 'string' ? responseData.error : JSON.stringify(responseData.error);
-      }
-      return { error: errorMessage };
-    }
-
-    return { data: responseData.data || responseData };
   },
 
   updateDish: async (id: string, data: UpdateDishRequest, imageFile?: File) => {
@@ -299,7 +265,6 @@ export const catererApi = {
   },
 
   createPackage: async (data: CreatePackageRequest, imageFile?: File) => {
-    const token = getAuthToken();
     const formData = new FormData();
 
     // Add image file if provided
@@ -309,9 +274,13 @@ export const catererApi = {
 
     // Add other fields
     formData.append('name', data.name);
-    formData.append('people_count', data.people_count.toString());
-    formData.append('package_type_id', data.package_type_id);
-    formData.append('total_price', data.total_price.toString());
+    if (data.minimum_people !== undefined) {
+      formData.append('minimum_people', data.minimum_people.toString());
+    }
+    // total_price is optional and will be calculated from items if not provided
+    if (data.total_price !== undefined) {
+      formData.append('total_price', data.total_price.toString());
+    }
     if (data.currency) {
       formData.append('currency', data.currency);
     }
@@ -344,45 +313,13 @@ export const catererApi = {
       formData.append('additional_info', data.additional_info);
     }
 
-    const headers: HeadersInit = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    // Don't set Content-Type - browser will set it with boundary for FormData
-
-    const response = await fetch(`${API_BASE_URL}/api/caterer/packages`, {
+    return apiRequest<Package>('/api/caterer/packages', {
       method: 'POST',
-      headers,
       body: formData,
     });
-
-    let responseData;
-    try {
-      responseData = await response.json();
-    } catch (jsonError) {
-      const text = await response.text();
-      return {
-        error: text || `HTTP ${response.status}: ${response.statusText}`,
-      };
-    }
-
-    if (!response.ok) {
-      let errorMessage = 'An error occurred';
-      if (responseData?.error?.message) {
-        errorMessage = responseData.error.message;
-      } else if (responseData?.message) {
-        errorMessage = responseData.message;
-      } else if (responseData?.error) {
-        errorMessage = typeof responseData.error === 'string' ? responseData.error : JSON.stringify(responseData.error);
-      }
-      return { error: errorMessage };
-    }
-
-    return { data: responseData.data || responseData };
   },
 
   updatePackage: async (id: string, data: UpdatePackageRequest, imageFile?: File) => {
-    const token = getAuthToken();
     const formData = new FormData();
 
     // Add image file if provided
@@ -397,11 +334,8 @@ export const catererApi = {
     if (data.description !== undefined) {
       formData.append('description', data.description);
     }
-    if (data.people_count !== undefined) {
-      formData.append('people_count', data.people_count.toString());
-    }
-    if (data.package_type_id !== undefined) {
-      formData.append('package_type_id', data.package_type_id);
+    if (data.minimum_people !== undefined) {
+      formData.append('minimum_people', data.minimum_people.toString());
     }
     if (data.total_price !== undefined) {
       formData.append('total_price', data.total_price.toString());
@@ -435,32 +369,10 @@ export const catererApi = {
       formData.append('additional_info', data.additional_info);
     }
 
-    const headers: HeadersInit = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/caterer/packages/${id}`, {
-        method: 'PUT',
-        headers,
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-      }
-
-      const responseData = await response.json();
-      return { data: responseData.data || responseData };
-    } catch (error) {
-      let errorMessage = 'An error occurred while updating the package';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      return { error: errorMessage };
-    }
+    return apiRequest<Package>(`/api/caterer/packages/${id}`, {
+      method: 'PUT',
+      body: formData,
+    });
   },
 
   deletePackage: async (id: string) => {

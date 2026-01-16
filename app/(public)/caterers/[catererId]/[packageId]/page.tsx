@@ -227,7 +227,6 @@ export default function PackageDetailPage() {
 
       const res = await userApi.createCartItem({
         package_id: pkg.id,
-        package_type_id: pkg.package_type?.id,
         location,
         guests: guestCount,
         date: dateObj.toISOString(),
@@ -325,17 +324,13 @@ export default function PackageDetailPage() {
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <span className={`inline-block text-xs px-2 py-1 rounded-full mb-2 ${
-                    isCustomizable
+                  <span className={`inline-block text-xs px-2 py-1 rounded-full mb-2 ${isCustomizable
                       ? 'bg-blue-100 text-blue-700'
                       : 'bg-gray-100 text-gray-600'
-                  }`}>
+                    }`}>
                     {isCustomizable ? 'Customizable' : 'Fixed Menu'}
                   </span>
                   <h1 className="text-2xl font-bold text-gray-900">{pkg.name}</h1>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {pkg.package_type?.name || 'Package'}
-                  </p>
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold text-gray-900">
@@ -410,9 +405,8 @@ export default function PackageDetailPage() {
                         <div
                           key={item.id}
                           onClick={() => dishId && toggleDish(dishId)}
-                          className={`px-4 py-3 flex items-center justify-between ${
-                            isCustomizable ? 'cursor-pointer hover:bg-gray-50' : ''
-                          } ${isSelected ? 'bg-green-50' : ''}`}
+                          className={`px-4 py-3 flex items-center justify-between ${isCustomizable ? 'cursor-pointer hover:bg-gray-50' : ''
+                            } ${isSelected ? 'bg-green-50' : ''}`}
                         >
                           <div className="flex-1">
                             <p className="text-sm text-gray-900">{item.dish?.name || 'Unknown'}</p>
@@ -421,11 +415,10 @@ export default function PackageDetailPage() {
                             )}
                           </div>
                           {isCustomizable && (
-                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                              isSelected
+                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${isSelected
                                 ? 'bg-green-600 border-green-600'
                                 : 'border-gray-300'
-                            }`}>
+                              }`}>
                               {isSelected && <Check className="w-3 h-3 text-white" />}
                             </div>
                           )}
@@ -567,11 +560,10 @@ export default function PackageDetailPage() {
                 <button
                   onClick={handleAddToCart}
                   disabled={addingToCart || !eventType || !location || !eventDate}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition ${
-                    addingToCart || !eventType || !location || !eventDate
+                  className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition ${addingToCart || !eventType || !location || !eventDate
                       ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                       : 'bg-green-600 text-white hover:bg-green-700'
-                  }`}
+                    }`}
                 >
                   {addingToCart ? (
                     'Adding...'

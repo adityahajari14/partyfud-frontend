@@ -29,7 +29,6 @@ export default function PackagesPage() {
     const [maxPrice, setMaxPrice] = useState<number>(10000);
     const [menuType, setMenuType] = useState<'fixed' | 'customizable' | ''>('');
     const [sortBy, setSortBy] = useState<'price_asc' | 'price_desc' | 'rating_desc' | 'created_desc'>('created_desc');
-    const [packageType, setPackageType] = useState<string>('');
     const [occasionId, setOccasionId] = useState<string>('');
     const [occasionName, setOccasionName] = useState<string>('');
     const [occasionNameParam, setOccasionNameParam] = useState<string>('');
@@ -47,19 +46,14 @@ export default function PackagesPage() {
     const [error, setError] = useState<string | null>(null);
     const [occasions, setOccasions] = useState<Array<{ id: string; name: string }>>([]);
 
-    // Read package_type, occasion_id, occasion_name, and cuisine_type_id from URL on mount
+    // Read occasion_id, occasion_name, and cuisine_type_id from URL on mount
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search);
-            const typeParam = params.get('package_type');
             const occasionIdParam = params.get('occasion_id');
             const occasionNameParamValue = params.get('occasion_name');
             const cuisineTypeIdParam = params.get('cuisine_type_id');
             const dishIdParam = params.get('dish_id');
-
-            if (typeParam) {
-                setPackageType(decodeURIComponent(typeParam));
-            }
 
             if (dishIdParam) {
                 setDishId(dishIdParam);
@@ -180,10 +174,6 @@ export default function PackagesPage() {
             filters.menu_type = menuType;
         }
 
-        if (packageType) {
-            filters.package_type = packageType;
-        }
-
         if (occasionId) {
             filters.occasion_id = occasionId;
         }
@@ -228,7 +218,7 @@ export default function PackagesPage() {
                         .map((pkg: ApiPackage) => ({
                             id: pkg.id,
                             title: pkg.name,
-                            caterer: (pkg as any).caterer?.name || pkg.package_type?.name || 'Unknown Caterer',
+                            caterer: (pkg as any).caterer?.name || 'Unknown Caterer',
                             catererId: (pkg as any).caterer?.id, // Get caterer ID for navigation
                             price: pkg.total_price,
                             rating: pkg.rating || undefined,
@@ -257,7 +247,7 @@ export default function PackagesPage() {
 
         return () => clearTimeout(timeoutId);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search, location, minGuests, maxGuests, minPrice, maxPrice, menuType, sortBy, packageType, occasionId, occasionNameParam, cuisineTypeId, dishId]); // Removed selectedOccasions
+    }, [search, location, minGuests, maxGuests, minPrice, maxPrice, menuType, sortBy, occasionId, occasionNameParam, cuisineTypeId, dishId]); // Removed selectedOccasions
 
     // Client-side filtering by selected occasions
     useEffect(() => {
@@ -291,7 +281,7 @@ export default function PackagesPage() {
         setDishId('');
         setDishName('');
         // Clear URL parameters
-        if (packageType || occasionId || occasionNameParam || cuisineTypeId || dishId) {
+        if (occasionId || occasionNameParam || cuisineTypeId || dishId) {
             window.history.replaceState({}, '', '/packages');
         }
     };
@@ -483,31 +473,8 @@ export default function PackagesPage() {
                 {/* RIGHT CONTENT */}
                 <div>
                     {/* Active Filter Indicators */}
-                    {(packageType || occasionName || cuisineTypeName) && (
+                    {(occasionName || cuisineTypeName) && (
                         <div className="mb-4 space-y-2">
-                            {packageType && (
-                                <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm text-green-700 font-medium">
-                                            Filtered by Package Type: <strong>{packageType}</strong>
-                                        </span>
-                                    </div>
-                                    <button
-                                        onClick={() => {
-                                            setPackageType('');
-                                            const params = new URLSearchParams(window.location.search);
-                                            params.delete('package_type');
-                                            const newUrl = params.toString()
-                                                ? `/packages?${params.toString()}`
-                                                : '/packages';
-                                            window.history.replaceState({}, '', newUrl);
-                                        }}
-                                        className="text-sm text-green-700 hover:text-green-900 underline"
-                                    >
-                                        Clear
-                                    </button>
-                                </div>
-                            )}
                             {occasionName && (
                                 <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -627,8 +594,7 @@ export default function PackagesPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {packages.map((pkg) => {
                                     const apiPkg = apiPackagesData.find((p: any) => p.id === pkg.id);
-                                    const peopleCount = apiPkg?.people_count || 1;
-                                    const pricePerPerson = pkg.price / peopleCount;
+                                    const minimumPeople = apiPkg?.minimum_people || apiPkg?.people_count || 1;
 
                                     return (
                                         <div
@@ -696,7 +662,7 @@ export default function PackagesPage() {
                                                         <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                                         </svg>
-                                                        <span className="text-sm font-bold text-gray-700">{peopleCount}+</span>
+                                                        <span className="text-sm font-bold text-gray-700">Min. {minimumPeople}</span>
                                                     </div>
                                                 </div>
 
@@ -706,11 +672,11 @@ export default function PackagesPage() {
                                                 {/* Price and Button */}
                                                 <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                                                     <div>
+                                                        <div className="text-xs text-gray-500 mb-0.5">Starting from</div>
                                                         <div className="text-2xl font-black text-gray-900">
-                                                            AED {Math.round(pricePerPerson)}
+                                                            AED {typeof pkg.price === 'number' ? pkg.price.toLocaleString() : parseFloat(pkg.price || '0').toLocaleString()}
                                                         </div>
-                                                        <div className="text-xs text-gray-400 font-medium">per person</div>
-                                                        <div className="text-[10px] text-gray-400 mt-0.5">Min. AED {pkg.price.toLocaleString()}</div>
+                                                        <div className="text-xs text-gray-400 font-medium mt-0.5">for {minimumPeople} people</div>
                                                     </div>
                                                     <Link
                                                         href={`/caterers/${pkg.catererId}/${pkg.id}`}

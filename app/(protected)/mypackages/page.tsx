@@ -28,7 +28,6 @@ export default function MyPackagesPage() {
     const [maxPrice, setMaxPrice] = useState<number>(10000);
     const [menuType, setMenuType] = useState<'fixed' | 'customizable' | ''>('');
     const [sortBy, setSortBy] = useState<'price_asc' | 'price_desc' | 'rating_desc' | 'created_desc'>('created_desc');
-    const [packageType, setPackageType] = useState<string>('');
     const [occasionId, setOccasionId] = useState<string>('');
     const [occasionName, setOccasionName] = useState<string>('');
     const [occasionNameParam, setOccasionNameParam] = useState<string>('');
@@ -41,11 +40,10 @@ export default function MyPackagesPage() {
     const [error, setError] = useState<string | null>(null);
     const [highlightedPackageId, setHighlightedPackageId] = useState<string | null>(null);
     
-    // Read package_type, occasion_id, occasion_name, and cuisine_type_id from URL on mount
+    // Read occasion_id, occasion_name, and cuisine_type_id from URL on mount
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search);
-            const typeParam = params.get('package_type');
             const occasionIdParam = params.get('occasion_id');
             const occasionNameParamValue = params.get('occasion_name');
             const cuisineTypeIdParam = params.get('cuisine_type_id');
@@ -65,10 +63,6 @@ export default function MyPackagesPage() {
                 setTimeout(() => {
                     setHighlightedPackageId(null);
                 }, 2000);
-            }
-            
-            if (typeParam) {
-                setPackageType(decodeURIComponent(typeParam));
             }
             
             if (occasionIdParam) {
@@ -176,7 +170,7 @@ export default function MyPackagesPage() {
                         .map((pkg: ApiPackage) => ({
                             id: pkg.id,
                             title: pkg.name,
-                            caterer: (pkg as any).caterer?.name || pkg.package_type?.name || 'Unknown Caterer',
+                            caterer: (pkg as any).caterer?.name || 'Unknown Caterer',
                             catererId: (pkg as any).caterer?.id, // Get caterer ID for navigation to package detail page
                             price: pkg.total_price,
                             rating: pkg.rating || undefined,
@@ -214,14 +208,13 @@ export default function MyPackagesPage() {
         setMaxPrice(10000);
         setMenuType('');
         setSortBy('created_desc');
-        setPackageType('');
         setOccasionId('');
         setOccasionName('');
         setOccasionNameParam('');
         setCuisineTypeId('');
         setCuisineTypeName('');
         // Clear URL parameters
-        if (packageType || occasionId || occasionNameParam || cuisineTypeId) {
+        if (occasionId || occasionNameParam || cuisineTypeId) {
             window.history.replaceState({}, '', '/mypackages');
         }
     };
@@ -366,31 +359,8 @@ export default function MyPackagesPage() {
                 {/* RIGHT CONTENT */}
                 <div>
                     {/* Active Filter Indicators */}
-                    {(packageType || occasionName || cuisineTypeName) && (
+                    {(occasionName || cuisineTypeName) && (
                         <div className="mb-4 space-y-2">
-                            {packageType && (
-                                <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm text-green-700 font-medium">
-                                            Filtered by Package Type: <strong>{packageType}</strong>
-                                        </span>
-                                    </div>
-                                    <button
-                                        onClick={() => {
-                                            setPackageType('');
-                                            const params = new URLSearchParams(window.location.search);
-                                            params.delete('package_type');
-                                            const newUrl = params.toString() 
-                                                ? `/mypackages?${params.toString()}`
-                                                : '/mypackages';
-                                            window.history.replaceState({}, '', newUrl);
-                                        }}
-                                        className="text-sm text-green-700 hover:text-green-900 underline"
-                                    >
-                                        Clear
-                                    </button>
-                                </div>
-                            )}
                             {occasionName && (
                                 <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
                                     <div className="flex items-center gap-2">

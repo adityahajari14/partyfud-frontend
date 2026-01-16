@@ -120,10 +120,8 @@ export default function EditPackagePage() {
   const [formData, setFormData] = useState<any>({
     name: '',
     description: '',
-    people_count: 0,
-    package_type_id: '',
+    minimum_people: undefined, // Will be set from caterer's minimum_guests or package data
     cover_image_url: '',
-    total_price: 0,
     currency: 'AED',
     // rating: undefined,
     occassion: [] as string[],
@@ -138,12 +136,12 @@ export default function EditPackagePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [occasions, setOccasions] = useState<Array<{ id: string; name: string }>>([]);
-  const [packageTypes, setPackageTypes] = useState<Array<{ id: string; name: string; description?: string | null }>>([]);
   const [categories, setCategories] = useState<Array<{ id: string; name: string; description?: string | null }>>([]);
   const [packageItemsByCategory, setPackageItemsByCategory] = useState<Array<{
     category: { id: string; name: string; description?: string | null };
     items: Array<{ id: string; dish: { name: string; image_url?: string | null }; people_count: number; quantity: string }>;
   }>>([]);
+  const [minimumGuests, setMinimumGuests] = useState<number | null>(null);
   const DEFAULT_COVER = "/cover.png";
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(DEFAULT_COVER);
@@ -174,20 +172,19 @@ export default function EditPackagePage() {
       }).filter(Boolean) || [];
 
       // Initialize form with current package data
+      // Support both minimum_people and people_count during migration
       const initialFormData = {
         name: pkg.name || '',
         description: (pkg as any).description || '',
-        people_count: pkg.people_count || 0,
-        package_type_id: pkg.package_type_id || '',
+        minimum_people: (pkg as any).minimum_people || pkg.people_count || undefined,
         cover_image_url: pkg.cover_image_url || '',
-        total_price: Number(pkg.total_price) || 0,
         currency: pkg.currency || 'AED',
         occassion: occasionIds,
         is_active: pkg.is_active ?? true,
         is_available: pkg.is_available ?? true,
         customisation_type: pkg.customisation_type || 'FIXED',
         additional_info: pkg.additional_info || '', // Extra pricing and services information
-        package_item_ids: pkg.package_items?.map((item: any) => item.id) || [],
+        package_item_ids: pkg.items?.map((item: any) => item.id) || pkg.package_items?.map((item: any) => item.id) || [],
         category_selections: pkg.category_selections || [],
       };
       console.log('📝 Setting form data:', initialFormData);
@@ -210,6 +207,24 @@ export default function EditPackagePage() {
   const fetchMetadata = async () => {
     setLoadingMetadata(true);
     try {
+      // Fetch caterer info to get minimum_guests
+      try {
+        const catererInfoResponse = await catererApi.getCatererInfo();
+        if (catererInfoResponse.data) {
+          const info = (catererInfoResponse.data as any).data || catererInfoResponse.data;
+          if (info.minimum_guests) {
+            setMinimumGuests(info.minimum_guests);
+            // Pre-fill form with caterer's minimum_guests if package doesn't have minimum_people set
+            setFormData(prev => ({
+              ...prev,
+              minimum_people: prev.minimum_people || info.minimum_guests
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching caterer info:', error);
+      }
+
       // Fetch occasions
       const occasionsResponse = await userApi.getOccasions();
       if (occasionsResponse.data?.data) {
@@ -217,24 +232,6 @@ export default function EditPackagePage() {
           id: occ.id,
           name: occ.name,
         })));
-      }
-
-      // Fetch package types
-      try {
-        const packageTypesResponse = await catererApi.getPackageTypes();
-        if (packageTypesResponse.data) {
-          const packageTypesData = packageTypesResponse.data as any;
-          // Handle different response structures: { success: true, data: [...] } or direct array
-          if (packageTypesData.success && Array.isArray(packageTypesData.data)) {
-            setPackageTypes(packageTypesData.data);
-          } else if (packageTypesData.data && Array.isArray(packageTypesData.data)) {
-            setPackageTypes(packageTypesData.data);
-          } else if (Array.isArray(packageTypesData)) {
-            setPackageTypes(packageTypesData);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching package types:', error);
       }
 
       // Fetch categories
@@ -379,9 +376,6 @@ export default function EditPackagePage() {
     return selection?.num_dishes_to_select ?? null;
   };
 
-  const handleOpenCreateItemModal = () => {
-    router.push(`/caterer/packages/create/add-items?people_count=${formData.people_count || 0}`);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -392,16 +386,13 @@ export default function EditPackagePage() {
       setErrors({ name: 'Package name is required' });
       return;
     }
-    if (!formData.people_count || formData.people_count <= 0) {
-      setErrors({ people_count: 'People count must be greater than 0' });
+    const minPeople = formData.minimum_people || minimumGuests;
+    if (!minPeople || minPeople <= 0) {
+      setErrors({ minimum_people: 'Minimum people must be greater than 0' });
       return;
     }
-    if (!formData.package_type_id) {
-      setErrors({ package_type_id: 'Package type is required' });
-      return;
-    }
-    if (!formData.total_price || formData.total_price <= 0) {
-      setErrors({ total_price: 'Total price must be greater than 0' });
+    if (!formData.package_item_ids || formData.package_item_ids.length === 0) {
+      setErrors({ package_item_ids: 'At least one package item must be selected' });
       return;
     }
 
@@ -491,15 +482,24 @@ export default function EditPackagePage() {
                     error={errors.name}
                   />
                   <Input
-                    label="People Count"
+                    label="Minimum People"
                     type="number"
-                    value={formData.people_count?.toString() || ''}
+                    min="1"
+                    value={formData.minimum_people !== undefined && formData.minimum_people !== null ? formData.minimum_people.toString() : ''}
                     onChange={(e) => {
-                      const peopleCount = parseInt(e.target.value) || 0;
-                      setFormData({ ...formData, people_count: peopleCount });
+                      const value = e.target.value.trim();
+                      if (value === '') {
+                        // Allow clearing - will use default when submitting
+                        setFormData({ ...formData, minimum_people: undefined });
+                      } else {
+                        const numValue = parseInt(value, 10);
+                        if (!isNaN(numValue)) {
+                          setFormData({ ...formData, minimum_people: numValue });
+                        }
+                      }
                     }}
-                    placeholder="Enter number of people"
-                    error={errors.people_count}
+                    placeholder={minimumGuests ? `${minimumGuests} (default from profile)` : 'Enter minimum number of people'}
+                    error={errors.minimum_people}
                   />
                 </div>
 
@@ -518,25 +518,6 @@ export default function EditPackagePage() {
                   <p className="mt-1 text-xs text-gray-500">This will be displayed on the package cards</p>
                 </div>
 
-                <div>
-                  <Select
-                    label="Package Type"
-                    value={formData.package_type_id || ''}
-                    onChange={(e) => setFormData({ ...formData, package_type_id: e.target.value })}
-                    options={
-                      loadingMetadata
-                        ? [{ value: '', label: 'Loading package types...' }]
-                        : packageTypes.length === 0
-                          ? [{ value: '', label: 'No package types available' }]
-                          : [
-                            { value: '', label: 'Select a package type' },
-                            ...packageTypes.map(pt => ({ value: pt.id, label: pt.name }))
-                          ]
-                    }
-                    error={errors.package_type_id}
-                    disabled={loadingMetadata || packageTypes.length === 0}
-                  />
-                </div>
                 <div>
                   {/* Occasions - Multiple Selection with Checkboxes */}
                   <div>
@@ -709,14 +690,6 @@ export default function EditPackagePage() {
                   Select items to include in this package
                 </p>
               </div>
-              <Button
-                type="button"
-                variant="primary"
-                size="sm"
-                onClick={handleOpenCreateItemModal}
-              >
-                + Add Ons & Options
-              </Button>
             </div>
 
             {/* Selected Items Summary */}
@@ -754,15 +727,7 @@ export default function EditPackagePage() {
               </div>
             ) : getAllItems().length === 0 ? (
               <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
-                <p className="text-gray-500 mb-3">No package items available</p>
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="sm"
-                  onClick={handleOpenCreateItemModal}
-                >
-                  + Create Your First Item
-                </Button>
+                <p className="text-gray-500">No package items available</p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -846,19 +811,21 @@ export default function EditPackagePage() {
             <div className="grid grid-cols-1 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Total Price
+                  Starting Price (Calculated)
                 </label>
                 <div className="relative">
                   <img src="/dirham.svg" alt="AED" className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.total_price?.toString() || ''}
-                    onChange={(e) => setFormData({ ...formData, total_price: parseFloat(e.target.value) || 0 })}
-                    placeholder="0.00"
-                    error={errors.total_price}
-                    className="pl-12"
-                  />
+                  <div className="pl-12 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-700">
+                    <span className="text-sm text-gray-500">Starting </span>
+                    <span className="text-lg font-semibold">
+                      {packageData?.total_price 
+                        ? `AED ${Number(packageData.total_price).toFixed(2)}`
+                        : 'Calculating...'}
+                    </span>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Price is automatically calculated from selected dishes × minimum people × quantity
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -884,10 +851,17 @@ export default function EditPackagePage() {
           {/* Footer Actions */}
           <div className="bg-white rounded-lg shadow-sm p-6 flex items-center justify-between border-t border-gray-100">
             <div>
-              <span className="text-sm text-gray-600">Total Price: </span>
+              <span className="text-sm text-gray-600">Starting Price: </span>
               <span className="text-2xl font-bold text-gray-900 ml-2">
-                AED {formData.total_price ? formData.total_price.toFixed(2) : '0.00'}
+                {packageData?.total_price 
+                  ? `AED ${Number(packageData.total_price).toFixed(2)}`
+                  : 'Calculating...'}
               </span>
+              {formData.package_item_ids && formData.package_item_ids.length > 0 && (formData.minimum_people || minimumGuests) && (formData.minimum_people || minimumGuests || 0) > 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Price will be recalculated from selected items for {formData.minimum_people || minimumGuests} people
+                </p>
+              )}
             </div>
             <div className="flex gap-3">
               <Button

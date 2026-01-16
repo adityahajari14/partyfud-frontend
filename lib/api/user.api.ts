@@ -44,15 +44,11 @@ export interface Package {
   id: string;
   name: string;
   description?: string;
-  people_count: number;
-  package_type: {
-    id: string;
-    name: string;
-    description?: string;
-  };
+  minimum_people: number; // Minimum number of people for this package
+  people_count?: number; // Legacy field - kept for backward compatibility during migration
   cover_image_url?: string;
-  total_price: number;
-  price_per_person: number;
+  total_price: number; // Starting price calculated from dishes × minimum_people × quantity
+  price_per_person?: number; // Calculated field: total_price / minimum_people (for backward compatibility)
   currency: string;
   rating?: number;
   is_available: boolean;
@@ -317,7 +313,6 @@ export const userApi = {
    */
   createCartItem: async (data: {
     package_id: string;
-    package_type_id?: string;
     location?: string;
     guests?: number;
     date?: string;
@@ -525,7 +520,6 @@ export const userApi = {
     name?: string;
     dish_ids: string[];
     people_count: number;
-    package_type_id?: string;
     quantities?: { [dish_id: string]: number };
   }) => {
     const response = await apiRequest<{ success: boolean; data: Package }>(

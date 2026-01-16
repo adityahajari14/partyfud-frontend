@@ -15,18 +15,10 @@ interface OrderItem {
         total_price: number;
         currency: string;
         cover_image_url?: string | null;
-        package_type: {
-            id: string;
-            name: string;
-        };
         caterer: {
             id: string;
             business_name: string | null;
         };
-    };
-    package_type: {
-        id: string;
-        name: string;
     };
     location: string | null;
     guests: number | null;

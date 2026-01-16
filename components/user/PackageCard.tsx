@@ -18,7 +18,6 @@ export function PackageCard({
   guestCount,
   showCustomBadge = false,
 }: PackageCardProps) {
-  const totalPrice = pkg.price_per_person * guestCount;
   
   // Format menu items for display
   const getMenuSummary = () => {
@@ -75,14 +74,9 @@ export function PackageCard({
       </div>
 
       {/* Package Name */}
-      <h3 className="font-semibold text-base text-gray-900 mb-1 pr-8">
+      <h3 className="font-semibold text-base text-gray-900 mb-3 pr-8">
         {pkg.name}
       </h3>
-      
-      {/* Package Type */}
-      <p className="text-xs text-gray-500 mb-3">
-        {pkg.package_type?.name || 'Package'}
-      </p>
 
       {/* Menu Summary */}
       {menuSummary && (
@@ -105,13 +99,15 @@ export function PackageCard({
       {/* Price */}
       <div className="border-t border-gray-100 pt-3 mt-auto">
         <div className="flex items-baseline justify-between">
-          <span className="text-lg font-bold text-gray-900">
-            AED {pkg.price_per_person.toLocaleString()}
-          </span>
-          <span className="text-xs text-gray-500">/person</span>
+          <div>
+            <p className="text-xs text-gray-500 mb-0.5">Starting from</p>
+            <span className="text-lg font-bold text-gray-900">
+              AED {typeof pkg.total_price === 'number' ? pkg.total_price.toLocaleString() : parseFloat(pkg.total_price || '0').toLocaleString()}
+            </span>
+          </div>
         </div>
         <p className="text-xs text-gray-500 mt-1">
-          Total: AED {totalPrice.toLocaleString()} for {guestCount} guests
+          For minimum {(pkg as any).minimum_people || (pkg as any).people_count || 1} people
         </p>
       </div>
     </div>

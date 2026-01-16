@@ -86,54 +86,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const response = await authApi.getCurrentUser();
-      console.log('🔄 [AUTH] getCurrentUser response:', response);
       
-      // Handle API response structure: { success: true, data: { user } } or { data: user }
-      if (response.data) {
-        // Check if response.data has nested structure
-        if (response.data.success && response.data.data?.user) {
-          // Backend returns: { success: true, data: { user } }
-          updateUser(response.data.data.user);
-        } else if (response.data?.data?.user) {
-          // Alternative structure: { data: { user } }
-          updateUser(response.data.data.user);
-        } 
-        // else if (response.data.id) {
-        //   // Direct user object: { data: user }
-        //   updateUser(response.data);
-        // } 
-        else {
-          console.warn('⚠️ [AUTH] Unexpected response structure:', response.data);
-        }
+      if (response.data?.user) {
+        updateUser(response.data.user);
       } else if (response.error) {
-        // Only clear token if it's an authentication error (401/403)
-        // Check both status code and error message
         const isAuthError = response.status === 401 || 
                            response.status === 403 ||
                            response.error.includes('Unauthorized') || 
-                           response.error.includes('401') || 
-                           response.error.includes('403') ||
                            response.error.includes('Invalid token') ||
-                           response.error.includes('Token expired') ||
-                           response.error.includes('authentication');
+                           response.error.includes('Token expired');
         
         if (isAuthError) {
-          console.log('🔄 Authentication error (status:', response.status, '), clearing token and user');
           removeAuthToken();
           updateUser(null);
-        } else {
-          // For other errors (network, server errors), keep the token and user
-          // User might still be valid, just couldn't verify right now
-          console.warn('⚠️ Error refreshing user (non-auth error, status:', response.status, '), keeping token and user:', response.error);
-          // Keep existing user from localStorage - don't clear on non-auth errors
         }
       }
     } catch (error) {
-      // Only clear token on authentication-related errors
       // Network errors shouldn't log the user out
-      console.warn('⚠️ Network error refreshing user, keeping token and user:', error);
-      // Don't clear token or user on catch - might be a network issue
-      // The user state will remain as it was (from localStorage or previous state)
+      // Keep existing user from localStorage
     } finally {
       setLoading(false);
     }
@@ -147,12 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await authApi.login({ email, password });
       
-      // Check if response has the expected structure: { success: true, data: { token, user } }
-      if (response.data?.success && response.data?.data?.user) {
-        // Token should already be set by authApi.login
+      if (response.data?.data?.user) {
         const userData = response.data.data.user;
-        
-        // Set user directly from login response (faster than refreshing from API)
         const userObj: User = {
           id: userData.id,
           email: userData.email,
@@ -165,23 +131,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
         updateUser(userObj);
         setLoading(false);
-        
         return { user: userObj };
       }
       
-      // If response structure is different, try refreshing user
       if (response.data) {
         await refreshUser();
         return {};
       }
       
-      // Ensure error is always a string
-      const errorMessage = typeof response.error === 'string' 
-        ? response.error 
-        : response.error 
-          ? JSON.stringify(response.error)
-          : 'Login failed';
-      return { error: errorMessage };
+      return { 
+        error: typeof response.error === 'string' 
+          ? response.error 
+          : response.error 
+            ? JSON.stringify(response.error)
+            : 'Login failed' 
+      };
     } catch (error) {
       return { 
         error: error instanceof Error ? error.message : 'Login failed' 
@@ -201,12 +165,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await authApi.signup(data);
       
-      // Check if response has the expected structure: { success: true, data: { token, user } }
-      if (response.data?.success && response.data?.data?.user) {
-        // Token should already be set by authApi.signup
+      if (response.data?.data?.user) {
         const userData = response.data.data.user;
-        
-        // Set user directly from signup response (faster)
         const userObj: User = {
           id: userData.id,
           email: userData.email,
@@ -219,23 +179,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
         updateUser(userObj);
         setLoading(false);
-        
         return {};
       }
       
-      // If response structure is different, try refreshing user
       if (response.data) {
         await refreshUser();
         return {};
       }
       
-      // Ensure error is always a string
-      const errorMessage = typeof response.error === 'string' 
-        ? response.error 
-        : response.error 
-          ? JSON.stringify(response.error)
-          : 'Signup failed';
-      return { error: errorMessage };
+      return { 
+        error: typeof response.error === 'string' 
+          ? response.error 
+          : response.error 
+            ? JSON.stringify(response.error)
+            : 'Signup failed' 
+      };
     } catch (error) {
       return { 
         error: error instanceof Error ? error.message : 'Signup failed' 

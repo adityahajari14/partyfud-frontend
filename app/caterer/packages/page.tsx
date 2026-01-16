@@ -100,7 +100,7 @@ export default function PackagesPage() {
   useEffect(() => {
     // Filter packages based on selected occasion
     if (selectedOccasion) {
-      setPackages(allPackages.filter(pkg => 
+      setPackages(allPackages.filter(pkg =>
         pkg.occasions && pkg.occasions.some((occ: any) => occ.occassion?.id === selectedOccasion || occ.id === selectedOccasion)
       ));
     } else {
@@ -264,8 +264,8 @@ export default function PackagesPage() {
                       <div className="flex items-center justify-between mb-4">
                         <span
                           className={`px-3 py-1.5 rounded-full text-xs font-semibold ${pkg.is_available
-                              ? 'bg-[#e8f5e0] text-[#1a5a00]'
-                              : 'bg-gray-100 text-gray-800'
+                            ? 'bg-[#e8f5e0] text-[#1a5a00]'
+                            : 'bg-gray-100 text-gray-800'
                             }`}
                         >
                           {pkg.is_available ? 'Available' : 'Unavailable'}

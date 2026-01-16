@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { MapPin, Mail, User, ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
 import React, { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { userApi } from '@/lib/api/user.api';
@@ -14,6 +14,7 @@ import { userApi } from '@/lib/api/user.api';
 export function Navbar() {
     const { user, logout } = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [cartItemCount, setCartItemCount] = useState(0);
@@ -111,25 +112,31 @@ export function Navbar() {
                 <nav className="hidden md:flex items-center gap-10 absolute left-1/2 transform -translate-x-1/2">
                     <Link
                         href="/"
-                        className="text-base font-medium text-gray-700 hover:text-[#268700] transition-colors duration-200 py-2"
+                        className={`text-base font-medium transition-colors duration-200 py-2 ${
+                            pathname === '/' 
+                                ? 'text-[#268700] font-semibold' 
+                                : 'text-gray-700 hover:text-[#268700]'
+                        }`}
                     >
                         Home
                     </Link>
                     <Link
-                        href="/menu"
-                        className="text-base font-medium text-gray-700 hover:text-[#268700] transition-colors duration-200 py-2"
-                    >
-                        Menu
-                    </Link>
-                    <Link
                         href="/packages"
-                        className="text-base font-medium text-gray-700 hover:text-[#268700] transition-colors duration-200 py-2"
+                        className={`text-base font-medium transition-colors duration-200 py-2 ${
+                            pathname === '/packages' || pathname?.startsWith('/packages/')
+                                ? 'text-[#268700] font-semibold' 
+                                : 'text-gray-700 hover:text-[#268700]'
+                        }`}
                     >
                         Packages
                     </Link>
                     <Link
                         href="/caterers"
-                        className="text-base font-medium text-gray-700 hover:text-[#268700] transition-colors duration-200 py-2"
+                        className={`text-base font-medium transition-colors duration-200 py-2 ${
+                            pathname === '/caterers' || pathname?.startsWith('/caterers/')
+                                ? 'text-[#268700] font-semibold' 
+                                : 'text-gray-700 hover:text-[#268700]'
+                        }`}
                     >
                         Caterers
                     </Link>
