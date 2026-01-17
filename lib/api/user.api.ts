@@ -36,6 +36,7 @@ export interface Caterer {
   delivery_only: boolean;
   delivery_plus_setup: boolean;
   full_service: boolean;
+  gallery_images?: string[];
   packages: any[];
   packages_count: number;
 }

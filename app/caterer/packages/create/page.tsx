@@ -133,6 +133,7 @@ export default function CreatePackagePage() {
 
   const fetchMetadata = async () => {
     setLoadingMetadata(true);
+    setErrors({});
     try {
       // Fetch caterer info to get minimum_guests
       try {
@@ -145,34 +146,46 @@ export default function CreatePackagePage() {
             setFormData(prev => ({ ...prev, minimum_people: info.minimum_guests }));
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching caterer info:', error);
+        setErrors({ general: 'Failed to load caterer information. Please refresh the page.' });
       }
 
       // Fetch occasions
-      const occasionsResponse = await userApi.getOccasions();
-      if (occasionsResponse.data?.data) {
-        setOccasions(occasionsResponse.data.data.map((occ: any) => ({
-          id: occ.id,
-          name: occ.name,
-        })));
+      try {
+        const occasionsResponse = await userApi.getOccasions();
+        if (occasionsResponse.data?.data) {
+          setOccasions(occasionsResponse.data.data.map((occ: any) => ({
+            id: occ.id,
+            name: occ.name,
+          })));
+        }
+      } catch (error: any) {
+        console.error('Error fetching occasions:', error);
+        setErrors(prev => ({ ...prev, general: 'Failed to load occasions. Please refresh the page.' }));
       }
 
       // Fetch categories
-      const categoriesResponse = await catererApi.getCategories();
-      if (categoriesResponse.data) {
-        const categoriesData = categoriesResponse.data as any;
-        if (categoriesData.data && Array.isArray(categoriesData.data)) {
-          setCategories(categoriesData.data);
-        } else if (Array.isArray(categoriesData)) {
-          setCategories(categoriesData);
+      try {
+        const categoriesResponse = await catererApi.getCategories();
+        if (categoriesResponse.data) {
+          const categoriesData = categoriesResponse.data as any;
+          if (categoriesData.data && Array.isArray(categoriesData.data)) {
+            setCategories(categoriesData.data);
+          } else if (Array.isArray(categoriesData)) {
+            setCategories(categoriesData);
+          }
         }
+      } catch (error: any) {
+        console.error('Error fetching categories:', error);
+        setErrors(prev => ({ ...prev, general: 'Failed to load categories. Please refresh the page.' }));
       }
 
       // Fetch dishes grouped by category
       await fetchDishes();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching metadata:', error);
+      setErrors(prev => ({ ...prev, general: prev.general || 'Failed to load data. Please refresh the page.' }));
     } finally {
       setLoadingMetadata(false);
     }
@@ -324,11 +337,38 @@ export default function CreatePackagePage() {
         setErrors({ category_selections: 'Please set selection limits for all categories with selected dishes' });
         return;
       }
+
+      // Validate category_selections: filter out invalid category IDs
+      if (formData.category_selections && formData.category_selections.length > 0) {
+        const validCategoryIds = new Set(categories.map(cat => cat.id));
+        const invalidSelections = formData.category_selections.filter(
+          selection => !validCategoryIds.has(selection.category_id)
+        );
+        
+        if (invalidSelections.length > 0) {
+          // Filter out invalid category selections
+          const validSelections = formData.category_selections.filter(
+            selection => validCategoryIds.has(selection.category_id)
+          );
+          setFormData(prev => ({ ...prev, category_selections: validSelections }));
+          setErrors({ category_selections: `Removed ${invalidSelections.length} invalid categor${invalidSelections.length === 1 ? 'y' : 'ies'}. Please reselect categories.` });
+          return;
+        }
+      }
     }
 
     setIsSubmitting(true);
 
-    const response = await (catererApi as any).createPackage(formData, selectedImage || undefined);
+    // Clean up formData before submission: ensure category_selections only contains valid category IDs
+    const cleanedFormData = { ...formData };
+    if (cleanedFormData.category_selections && cleanedFormData.category_selections.length > 0) {
+      const validCategoryIds = new Set(categories.map(cat => cat.id));
+      cleanedFormData.category_selections = cleanedFormData.category_selections.filter(
+        selection => validCategoryIds.has(selection.category_id)
+      );
+    }
+
+    const response = await (catererApi as any).createPackage(cleanedFormData, selectedImage || undefined);
 
     if (response.error) {
       setErrors({ general: response.error });

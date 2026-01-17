@@ -471,6 +471,26 @@ export default function CatererDetailPage() {
           </div>
         </div>
 
+        {/* Gallery Images */}
+        {caterer.gallery_images && caterer.gallery_images.length > 0 && (
+          <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Gallery</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {caterer.gallery_images.map((imageUrl, index) => (
+                <div key={index} className="relative aspect-square overflow-hidden rounded-lg group cursor-pointer">
+                  <Image
+                    src={imageUrl}
+                    alt={`Gallery image ${index + 1}`}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    unoptimized
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="bg-white rounded-xl border border-gray-200 p-1 mb-6">
           <div className="flex gap-1">

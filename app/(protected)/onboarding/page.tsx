@@ -18,7 +18,7 @@ interface OnboardingData {
   business_type: string;
   business_description: string;
   service_area: string;
-  region: string;
+  region: string | string[];
   minimum_guests: number;
   maximum_guests: number;
   cuisine_types: string[];
@@ -54,7 +54,7 @@ export default function CatererOnboardingPage() {
     business_type: '',
     business_description: '',
     service_area: '',
-    region: '',
+    region: [],
     minimum_guests: 50,
     maximum_guests: 500,
     cuisine_types: [],
@@ -104,7 +104,7 @@ export default function CatererOnboardingPage() {
               business_type: draftData.business_type || '',
               business_description: draftData.business_description || '',
               service_area: draftData.service_area || '',
-              region: draftData.region || '',
+              region: Array.isArray(draftData.region) ? draftData.region : (draftData.region ? [draftData.region] : []),
               minimum_guests: draftData.minimum_guests || 50,
               maximum_guests: draftData.maximum_guests || 500,
               cuisine_types: draftData.cuisine_types || [],

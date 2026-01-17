@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { MapPin, X } from 'lucide-react';
 
 interface BusinessProfileProps {
   data: any;
@@ -45,6 +46,45 @@ const MAX_TRAVEL_DISTANCES = [
   { value: '100km', label: '100+ km' },
 ];
 
+const SERVICE_AREAS = [
+  // Emirates
+  'Dubai',
+  'Abu Dhabi',
+  'Sharjah',
+  'Ajman',
+  'Umm Al Quwain',
+  'Ras Al Khaimah',
+  'Fujairah',
+  'Al Ain',
+  // Dubai Areas
+  'Downtown Dubai',
+  'Dubai Marina',
+  'Jumeirah',
+  'Palm Jumeirah',
+  'Business Bay',
+  'Dubai International Financial Centre (DIFC)',
+  'Dubai Mall Area',
+  'Burj Al Arab Area',
+  'Dubai Festival City',
+  'Dubai Sports City',
+  'Dubai Media City',
+  'Dubai Internet City',
+  'Dubai Knowledge Park',
+  'Dubai Healthcare City',
+  'Dubai World Trade Centre',
+  'Dubai Creek',
+  'Deira',
+  'Bur Dubai',
+  'Al Barsha',
+  'Jumeirah Beach Residence (JBR)',
+  'Dubai Hills',
+  'Arabian Ranches',
+  'Emirates Hills',
+  'Dubai Silicon Oasis',
+  'Dubai Production City',
+  'Dubai Studio City',
+];
+
 export function BusinessProfile({ data, updateData, onNext }: BusinessProfileProps) {
   const [cuisineTypes, setCuisineTypes] = useState<CuisineType[]>([]);
   const [loading, setLoading] = useState(false);
@@ -55,6 +95,9 @@ export function BusinessProfile({ data, updateData, onNext }: BusinessProfilePro
   const [registrationPreview, setRegistrationPreview] = useState<string | null>(data.Registration || null);
   const foodLicenseInputRef = useRef<HTMLInputElement>(null);
   const registrationInputRef = useRef<HTMLInputElement>(null);
+  const [serviceAreaSearch, setServiceAreaSearch] = useState('');
+  const [showServiceAreaDropdown, setShowServiceAreaDropdown] = useState(false);
+  const serviceAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Fetch cuisine types from API
@@ -68,6 +111,23 @@ export function BusinessProfile({ data, updateData, onNext }: BusinessProfilePro
       .catch((err) => console.error('Error fetching cuisines:', err));
   }, []);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (serviceAreaRef.current && !serviceAreaRef.current.contains(event.target as Node)) {
+        setShowServiceAreaDropdown(false);
+      }
+    };
+
+    if (showServiceAreaDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showServiceAreaDropdown]);
+
   const validate = () => {
     const newErrors: Record<string, string> = {};
 
@@ -77,13 +137,15 @@ export function BusinessProfile({ data, updateData, onNext }: BusinessProfilePro
     if (!data.business_type) {
       newErrors.business_type = 'Please select a business type';
     }
-    if (!data.region?.trim()) {
-      newErrors.region = 'Service area is required';
+    if (!data.region || (Array.isArray(data.region) && data.region.length === 0)) {
+      newErrors.region = 'Please select at least one service area';
     }
-    if (data.minimum_guests < 1) {
+    if (!data.minimum_guests || data.minimum_guests < 1) {
       newErrors.minimum_guests = 'Minimum guests must be at least 1';
     }
-    if (data.maximum_guests < data.minimum_guests) {
+    if (!data.maximum_guests || data.maximum_guests < 1) {
+      newErrors.maximum_guests = 'Maximum guests must be at least 1';
+    } else if (data.minimum_guests && data.maximum_guests < data.minimum_guests) {
       newErrors.maximum_guests = 'Maximum guests must be greater than minimum';
     }
     if (data.cuisine_types.length === 0) {
@@ -115,6 +177,15 @@ export function BusinessProfile({ data, updateData, onNext }: BusinessProfilePro
       updateData({ certifications: current.filter((c: string) => c !== cert) });
     } else {
       updateData({ certifications: [...current, cert] });
+    }
+  };
+
+  const toggleServiceArea = (area: string) => {
+    const current = Array.isArray(data.region) ? data.region : (data.region ? [data.region] : []);
+    if (current.includes(area)) {
+      updateData({ region: current.filter((a: string) => a !== area) });
+    } else {
+      updateData({ region: [...current, area] });
     }
   };
 
@@ -249,18 +320,134 @@ export function BusinessProfile({ data, updateData, onNext }: BusinessProfilePro
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Input
-            label="Service Area"
-            required
-            value={data.region || ''}
-            onChange={(e) => updateData({ region: e.target.value })}
-            placeholder="e.g., Dubai, Abu Dhabi"
-            error={errors.region}
-          />
+      <div ref={serviceAreaRef} className="relative">
+        <label className="block text-xs font-semibold text-gray-700 mb-2 tracking-wide uppercase">
+          Service Area <span className="text-red-500">*</span>
+        </label>
+        
+        {/* Selected Areas Display */}
+        {(() => {
+          const current = Array.isArray(data.region) ? data.region : (data.region ? [data.region] : []);
+          return current.length > 0 ? (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {current.map((area: string) => (
+                <span
+                  key={area}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm font-medium"
+                >
+                  <MapPin size={14} className="text-green-600" />
+                  {area}
+                  <button
+                    type="button"
+                    onClick={() => toggleServiceArea(area)}
+                    className="ml-1 hover:bg-green-100 rounded-full p-0.5 transition-colors"
+                  >
+                    <X size={14} className="text-green-600" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : null;
+        })()}
+
+        {/* Searchable Dropdown */}
+        <div className="relative">
+          <div
+            onClick={() => setShowServiceAreaDropdown(!showServiceAreaDropdown)}
+            className={`w-full bg-gray-50/50 border-2 ${
+              errors.region ? 'border-red-300' : 'border-gray-200'
+            } rounded-xl px-4 py-3.5 pl-11 pr-10 text-sm font-medium appearance-none transition-all duration-200 focus:outline-none focus:border-[#268700] focus:bg-white focus:ring-4 focus:ring-[#268700]/10 text-gray-900 hover:border-gray-300 cursor-pointer ${
+              showServiceAreaDropdown ? 'border-[#268700] bg-white ring-4 ring-[#268700]/10' : ''
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className={(() => {
+                const current = Array.isArray(data.region) ? data.region : (data.region ? [data.region] : []);
+                return current.length === 0 ? 'text-gray-400' : 'text-gray-900';
+              })()}>
+                {(() => {
+                  const current = Array.isArray(data.region) ? data.region : (data.region ? [data.region] : []);
+                  return current.length === 0 
+                    ? 'Select service areas (e.g., Dubai, Abu Dhabi)' 
+                    : `${current.length} area${current.length > 1 ? 's' : ''} selected`;
+                })()}
+              </span>
+              <svg
+                className={`w-5 h-5 text-gray-400 transition-transform ${showServiceAreaDropdown ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+          
+          <MapPin className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+
+          {/* Dropdown Menu */}
+          {showServiceAreaDropdown && (
+            <div className="absolute z-50 w-full mt-2 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-80 overflow-hidden">
+              {/* Search Input */}
+              <div className="p-3 border-b border-gray-200">
+                <input
+                  type="text"
+                  value={serviceAreaSearch}
+                  onChange={(e) => setServiceAreaSearch(e.target.value)}
+                  placeholder="Search locations..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-[#268700]"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+
+              {/* Options List */}
+              <div className="max-h-64 overflow-y-auto">
+                {SERVICE_AREAS.filter((area) =>
+                  area.toLowerCase().includes(serviceAreaSearch.toLowerCase())
+                ).map((area) => {
+                  const current = Array.isArray(data.region) ? data.region : (data.region ? [data.region] : []);
+                  const isSelected = current.includes(area);
+                  return (
+                    <button
+                      key={area}
+                      type="button"
+                      onClick={() => {
+                        toggleServiceArea(area);
+                        setServiceAreaSearch('');
+                      }}
+                      className={`w-full px-4 py-3 text-left text-sm font-medium transition-colors flex items-center gap-2 ${
+                        isSelected
+                          ? 'bg-green-50 text-green-700 hover:bg-green-100'
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                        isSelected
+                          ? 'border-green-500 bg-green-500'
+                          : 'border-gray-300'
+                      }`}>
+                        {isSelected && (
+                          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                      <MapPin size={14} className="text-gray-400" />
+                      <span>{area}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
+        {errors.region && (
+          <p className="mt-2 text-sm text-red-600">{errors.region}</p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Maximum Travel Distance
@@ -286,12 +473,41 @@ export function BusinessProfile({ data, updateData, onNext }: BusinessProfilePro
             Minimum Guests <span className="text-red-500">*</span>
           </label>
           <input
-            type="number"
-            min="1"
-            value={data.minimum_guests}
-            onChange={(e) => updateData({ minimum_guests: parseInt(e.target.value) || 0 })}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={data.minimum_guests ? String(data.minimum_guests).replace(/^0+/, '') || '' : ''}
+            onChange={(e) => {
+              const value = e.target.value;
+              // Remove any non-numeric characters
+              const numericValue = value.replace(/[^0-9]/g, '');
+              
+              // Only update if value is empty or a valid number
+              if (numericValue === '') {
+                updateData({ minimum_guests: undefined });
+              } else {
+                const numValue = parseInt(numericValue, 10);
+                if (!isNaN(numValue) && numValue >= 0) {
+                  updateData({ minimum_guests: numValue });
+                }
+              }
+            }}
+            onBlur={(e) => {
+              // Remove leading zeros on blur
+              const value = e.target.value;
+              if (value && !isNaN(Number(value))) {
+                const numValue = parseInt(value, 10);
+                if (!isNaN(numValue)) {
+                  updateData({ minimum_guests: numValue });
+                }
+              }
+            }}
             placeholder="e.g., 10"
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            className={`w-full px-4 py-2.5 border-2 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-4 ${
+              errors.minimum_guests
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-500/10'
+                : 'border-gray-200 focus:border-[#268700] focus:ring-[#268700]/10'
+            } bg-white hover:border-gray-300`}
           />
           {errors.minimum_guests && (
             <p className="mt-1 text-sm text-red-600">{errors.minimum_guests}</p>
@@ -303,12 +519,41 @@ export function BusinessProfile({ data, updateData, onNext }: BusinessProfilePro
             Maximum Guests <span className="text-red-500">*</span>
           </label>
           <input
-            type="number"
-            min="1"
-            value={data.maximum_guests}
-            onChange={(e) => updateData({ maximum_guests: parseInt(e.target.value) || 0 })}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={data.maximum_guests ? String(data.maximum_guests).replace(/^0+/, '') || '' : ''}
+            onChange={(e) => {
+              const value = e.target.value;
+              // Remove any non-numeric characters
+              const numericValue = value.replace(/[^0-9]/g, '');
+              
+              // Only update if value is empty or a valid number
+              if (numericValue === '') {
+                updateData({ maximum_guests: undefined });
+              } else {
+                const numValue = parseInt(numericValue, 10);
+                if (!isNaN(numValue) && numValue >= 0) {
+                  updateData({ maximum_guests: numValue });
+                }
+              }
+            }}
+            onBlur={(e) => {
+              // Remove leading zeros on blur
+              const value = e.target.value;
+              if (value && !isNaN(Number(value))) {
+                const numValue = parseInt(value, 10);
+                if (!isNaN(numValue)) {
+                  updateData({ maximum_guests: numValue });
+                }
+              }
+            }}
             placeholder="e.g., 500"
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            className={`w-full px-4 py-2.5 border-2 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-4 ${
+              errors.maximum_guests
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-500/10'
+                : 'border-gray-200 focus:border-[#268700] focus:ring-[#268700]/10'
+            } bg-white hover:border-gray-300`}
           />
           {errors.maximum_guests && (
             <p className="mt-1 text-sm text-red-600">{errors.maximum_guests}</p>

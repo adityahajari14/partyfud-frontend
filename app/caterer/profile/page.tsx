@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/contexts/AuthContext';
 import { catererApi } from '@/lib/api/caterer.api';
 import { authApi } from '@/lib/api/auth.api';
+import { MapPin, X } from 'lucide-react';
 
 interface FormData {
     // User profile fields
@@ -25,7 +26,7 @@ interface FormData {
     minimum_guests: string;
     maximum_guests: string;
     preparation_time: string;
-    region: string;
+    region: string | string[];
     delivery_only: boolean;
     delivery_plus_setup: boolean;
     full_service: boolean;
@@ -35,6 +36,8 @@ interface FormData {
     registration: File | null;
     existing_food_license_url: string;
     existing_registration_url: string;
+    gallery_images: string[];
+    new_gallery_images: File[];
 }
 
 export default function CatererProfilePage() {
@@ -62,7 +65,7 @@ export default function CatererProfilePage() {
         minimum_guests: '',
         maximum_guests: '',
         preparation_time: '',
-        region: '',
+        region: [],
         delivery_only: false,
         delivery_plus_setup: false,
         full_service: false,
@@ -72,6 +75,8 @@ export default function CatererProfilePage() {
         registration: null,
         existing_food_license_url: '',
         existing_registration_url: '',
+        gallery_images: [],
+        new_gallery_images: [],
     });
 
     const BUSINESS_TYPES = [
@@ -82,16 +87,48 @@ export default function CatererProfilePage() {
         'Home Chef',
     ];
 
-    const REGIONS = [
-        'Abu Dhabi',
+    const SERVICE_AREAS = [
+        // Emirates
         'Dubai',
+        'Abu Dhabi',
         'Sharjah',
         'Ajman',
+        'Umm Al Quwain',
         'Ras Al Khaimah',
         'Fujairah',
-        'Umm Al Quwain',
-        'UAE',
+        'Al Ain',
+        // Dubai Areas
+        'Downtown Dubai',
+        'Dubai Marina',
+        'Jumeirah',
+        'Palm Jumeirah',
+        'Business Bay',
+        'Dubai International Financial Centre (DIFC)',
+        'Dubai Mall Area',
+        'Burj Al Arab Area',
+        'Dubai Festival City',
+        'Dubai Sports City',
+        'Dubai Media City',
+        'Dubai Internet City',
+        'Dubai Knowledge Park',
+        'Dubai Healthcare City',
+        'Dubai World Trade Centre',
+        'Dubai Creek',
+        'Deira',
+        'Bur Dubai',
+        'Al Barsha',
+        'Jumeirah Beach Residence (JBR)',
+        'Dubai Hills',
+        'Arabian Ranches',
+        'Emirates Hills',
+        'Dubai Silicon Oasis',
+        'Dubai Production City',
+        'Dubai Studio City',
     ];
+
+    const [serviceAreaSearch, setServiceAreaSearch] = useState('');
+    const [showServiceAreaDropdown, setShowServiceAreaDropdown] = useState(false);
+    const serviceAreaRef = useRef<HTMLDivElement>(null);
 
     // Redirect if not a caterer
     useEffect(() => {
@@ -106,6 +143,23 @@ export default function CatererProfilePage() {
             fetchCatererInfo();
         }
     }, [user, authLoading]);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (serviceAreaRef.current && !serviceAreaRef.current.contains(event.target as Node)) {
+                setShowServiceAreaDropdown(false);
+            }
+        };
+
+        if (showServiceAreaDropdown) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showServiceAreaDropdown]);
 
     const fetchCatererInfo = async () => {
         setLoading(true);
@@ -138,7 +192,7 @@ export default function CatererProfilePage() {
                     minimum_guests: info.minimum_guests?.toString() || '',
                     maximum_guests: info.maximum_guests?.toString() || '',
                     preparation_time: info.preparation_time?.toString() || '',
-                    region: info.region || '',
+                    region: Array.isArray(info.region) ? info.region : (info.region ? [info.region] : []),
                     delivery_only: info.delivery_only || false,
                     delivery_plus_setup: info.delivery_plus_setup || false,
                     full_service: info.full_service || false,
@@ -148,6 +202,8 @@ export default function CatererProfilePage() {
                     registration: null,
                     existing_food_license_url: info.food_license || '',
                     existing_registration_url: info.Registration || '',
+                    gallery_images: info.gallery_images || [],
+                    new_gallery_images: [],
                 });
             }
         } catch (error) {
@@ -155,6 +211,15 @@ export default function CatererProfilePage() {
             setSubmitError('Failed to load caterer information');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const toggleServiceArea = (area: string) => {
+        const current = Array.isArray(formData.region) ? formData.region : (formData.region ? [formData.region] : []);
+        if (current.includes(area)) {
+            setFormData({ ...formData, region: current.filter((a: string) => a !== area) });
+        } else {
+            setFormData({ ...formData, region: [...current, area] });
         }
     };
 
@@ -167,8 +232,10 @@ export default function CatererProfilePage() {
             // Validate required fields
             if (!formData.first_name || !formData.last_name || !formData.phone || !formData.email ||
                 !formData.business_name || !formData.business_type || !formData.business_description ||
-                !formData.service_area || !formData.minimum_guests || !formData.maximum_guests ||
-                !formData.preparation_time || !formData.region) {
+                !formData.minimum_guests || !formData.maximum_guests ||
+                !formData.preparation_time || 
+                !formData.region || 
+                (Array.isArray(formData.region) && formData.region.length === 0)) {
                 setSubmitError('Please fill in all required fields');
                 setIsSubmitting(false);
                 return;
@@ -212,7 +279,9 @@ export default function CatererProfilePage() {
             catererFormData.append('minimum_guests', formData.minimum_guests);
             catererFormData.append('maximum_guests', formData.maximum_guests);
             catererFormData.append('preparation_time', formData.preparation_time);
-            catererFormData.append('region', formData.region);
+            // Handle region as array
+            const regionArray = Array.isArray(formData.region) ? formData.region : (formData.region ? [formData.region] : []);
+            catererFormData.append('region', JSON.stringify(regionArray));
             catererFormData.append('delivery_only', formData.delivery_only.toString());
             catererFormData.append('delivery_plus_setup', formData.delivery_plus_setup.toString());
             catererFormData.append('full_service', formData.full_service.toString());
@@ -232,6 +301,14 @@ export default function CatererProfilePage() {
                 catererFormData.append('Registration', formData.existing_registration_url);
             }
 
+            // Add new gallery images (files)
+            formData.new_gallery_images.forEach((file) => {
+                catererFormData.append('gallery_images', file);
+            });
+            
+            // Always send existing gallery images as JSON string (even if empty, to allow deletion)
+            catererFormData.append('existing_gallery_images', JSON.stringify(formData.gallery_images));
+
             const catererResponse = await authApi.submitCatererInfo(catererFormData, true);
 
             if (catererResponse.error) {
@@ -240,10 +317,9 @@ export default function CatererProfilePage() {
             } else {
                 setSubmitSuccess('Profile updated successfully!');
                 await refreshUser();
-                // Redirect to dashboard after 2 seconds
-                setTimeout(() => {
-                    router.push('/caterer/dashboard');
-                }, 2000);
+                setIsSubmitting(false);
+                // Refresh the form data to show updated information
+                fetchCatererInfo();
             }
         } catch (error) {
             setSubmitError(error instanceof Error ? error.message : 'An error occurred while updating');
@@ -458,27 +534,126 @@ export default function CatererProfilePage() {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <Input 
-                                    label="Service Area *" 
-                                    value={formData.service_area}
-                                    onChange={(e) => setFormData({ ...formData, service_area: e.target.value })}
-                                />
-
-                                <div className="space-y-1">
-                                    <label className="text-sm font-medium text-gray-700">
-                                        Region *
+                            <div>
+                                <div ref={serviceAreaRef} className="relative">
+                                    <label className="block text-xs font-semibold text-gray-700 mb-2 tracking-wide uppercase">
+                                        Service Area <span className="text-red-500">*</span>
                                     </label>
-                                    <select 
-                                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#268700]"
-                                        value={formData.region}
-                                        onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                                    >
-                                        <option value="">Select region</option>
-                                        {REGIONS.map((region) => (
-                                            <option key={region} value={region}>{region}</option>
-                                        ))}
-                                    </select>
+                                    
+                                    {/* Selected Areas Display */}
+                                    {(() => {
+                                        const current = Array.isArray(formData.region) ? formData.region : (formData.region ? [formData.region] : []);
+                                        return current.length > 0 ? (
+                                            <div className="mb-3 flex flex-wrap gap-2">
+                                                {current.map((area: string) => (
+                                                    <span
+                                                        key={area}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm font-medium"
+                                                    >
+                                                        <MapPin size={14} className="text-green-600" />
+                                                        {area}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toggleServiceArea(area)}
+                                                            className="ml-1 hover:bg-green-100 rounded-full p-0.5 transition-colors"
+                                                        >
+                                                            <X size={14} className="text-green-600" />
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        ) : null;
+                                    })()}
+
+                                    {/* Searchable Dropdown */}
+                                    <div className="relative">
+                                        <div
+                                            onClick={() => setShowServiceAreaDropdown(!showServiceAreaDropdown)}
+                                            className={`w-full bg-gray-50/50 border-2 border-gray-200 rounded-xl px-4 py-3.5 pl-11 pr-10 text-sm font-medium appearance-none transition-all duration-200 focus:outline-none focus:border-[#268700] focus:bg-white focus:ring-4 focus:ring-[#268700]/10 text-gray-900 hover:border-gray-300 cursor-pointer ${
+                                                showServiceAreaDropdown ? 'border-[#268700] bg-white ring-4 ring-[#268700]/10' : ''
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <span className={(() => {
+                                                    const current = Array.isArray(formData.region) ? formData.region : (formData.region ? [formData.region] : []);
+                                                    return current.length === 0 ? 'text-gray-400' : 'text-gray-900';
+                                                })()}>
+                                                    {(() => {
+                                                        const current = Array.isArray(formData.region) ? formData.region : (formData.region ? [formData.region] : []);
+                                                        return current.length === 0 
+                                                            ? 'Select service areas (e.g., Dubai, Abu Dhabi)' 
+                                                            : `${current.length} area${current.length > 1 ? 's' : ''} selected`;
+                                                    })()}
+                                                </span>
+                                                <svg
+                                                    className={`w-5 h-5 text-gray-400 transition-transform ${showServiceAreaDropdown ? 'rotate-180' : ''}`}
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        
+                                        <MapPin className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+
+                                        {/* Dropdown Menu */}
+                                        {showServiceAreaDropdown && (
+                                            <div className="absolute z-50 w-full mt-2 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-80 overflow-hidden">
+                                                {/* Search Input */}
+                                                <div className="p-3 border-b border-gray-200">
+                                                    <input
+                                                        type="text"
+                                                        value={serviceAreaSearch}
+                                                        onChange={(e) => setServiceAreaSearch(e.target.value)}
+                                                        placeholder="Search locations..."
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-[#268700]"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                </div>
+
+                                                {/* Options List */}
+                                                <div className="max-h-64 overflow-y-auto">
+                                                    {SERVICE_AREAS.filter((area) =>
+                                                        area.toLowerCase().includes(serviceAreaSearch.toLowerCase())
+                                                    ).map((area) => {
+                                                        const current = Array.isArray(formData.region) ? formData.region : (formData.region ? [formData.region] : []);
+                                                        const isSelected = current.includes(area);
+                                                        return (
+                                                            <button
+                                                                key={area}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    toggleServiceArea(area);
+                                                                    setServiceAreaSearch('');
+                                                                }}
+                                                                className={`w-full px-4 py-3 text-left text-sm font-medium transition-colors flex items-center gap-2 ${
+                                                                    isSelected
+                                                                        ? 'bg-green-50 text-green-700 hover:bg-green-100'
+                                                                        : 'text-gray-700 hover:bg-gray-50'
+                                                                }`}
+                                                            >
+                                                                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                                                    isSelected
+                                                                        ? 'border-green-500 bg-green-500'
+                                                                        : 'border-gray-300'
+                                                                }`}>
+                                                                    {isSelected && (
+                                                                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                        </svg>
+                                                                    )}
+                                                                </div>
+                                                                <MapPin size={14} className="text-gray-400" />
+                                                                <span>{area}</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -581,6 +756,126 @@ export default function CatererProfilePage() {
                                         <p className="text-sm text-gray-500">Includes setup, service, and cleanup</p>
                                     </div>
                                 </label>
+                            </div>
+                        </div>
+
+                        {/* Gallery Images */}
+                        <div className="border-b pb-6">
+                            <h2 className="text-xl font-semibold text-gray-900 mb-4">Gallery Images</h2>
+                            <p className="text-sm text-gray-600 mb-4">Add multiple images to showcase your catering work. These will be displayed on your public profile page.</p>
+                            
+                            {/* Existing Images */}
+                            {formData.gallery_images.length > 0 && (
+                                <div className="mb-4">
+                                    <label className="text-sm font-medium text-gray-700 mb-2 block">Current Gallery Images</label>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                        {formData.gallery_images.map((imageUrl, index) => (
+                                            <div key={index} className="relative group">
+                                                <img
+                                                    src={imageUrl}
+                                                    alt={`Gallery ${index + 1}`}
+                                                    className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        const newImages = formData.gallery_images.filter((_, i) => i !== index);
+                                                        setFormData({ ...formData, gallery_images: newImages });
+                                                    }}
+                                                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-all z-10"
+                                                    title="Remove image"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* New Images Preview */}
+                            {formData.new_gallery_images.length > 0 && (
+                                <div className="mb-4">
+                                    <label className="text-sm font-medium text-gray-700 mb-2 block">New Images to Upload</label>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                        {formData.new_gallery_images.map((file, index) => (
+                                            <div key={index} className="relative group">
+                                                <img
+                                                    src={URL.createObjectURL(file)}
+                                                    alt={`New ${index + 1}`}
+                                                    className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        const newFiles = formData.new_gallery_images.filter((_, i) => i !== index);
+                                                        setFormData({ ...formData, new_gallery_images: newFiles });
+                                                    }}
+                                                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-all z-10"
+                                                    title="Remove image"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Upload Button */}
+                            <div>
+                                <input
+                                    type="file"
+                                    id="gallery-images-input"
+                                    className="hidden"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={(e) => {
+                                        if (e.target.files) {
+                                            const files = Array.from(e.target.files);
+                                            const validFiles: File[] = [];
+                                            
+                                            files.forEach((file) => {
+                                                if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+                                                    setSubmitError('Only PNG or JPG images are allowed');
+                                                    return;
+                                                }
+                                                if (file.size > 5 * 1024 * 1024) {
+                                                    setSubmitError('Each image must be under 5MB');
+                                                    return;
+                                                }
+                                                validFiles.push(file);
+                                            });
+                                            
+                                            if (validFiles.length > 0) {
+                                                setFormData({
+                                                    ...formData,
+                                                    new_gallery_images: [...formData.new_gallery_images, ...validFiles],
+                                                });
+                                                setSubmitError('');
+                                            }
+                                        }
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const input = document.getElementById('gallery-images-input') as HTMLInputElement;
+                                        input?.click();
+                                    }}
+                                    className="px-4 py-2 bg-[#268700] text-white rounded-md hover:bg-[#1f6b00] transition"
+                                >
+                                    Add Gallery Images
+                                </button>
+                                <p className="text-xs text-gray-500 mt-2">PNG or JPG (max 5MB per image, up to 10 images)</p>
                             </div>
                         </div>
 
