@@ -23,9 +23,9 @@ export default function Plan() {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Navigate with filters to packages page
+        // Navigate with filters to caterers page
         router.push(
-            `/packages?eventType=${form.eventType}&date=${form.date}&location=${form.location}&guests=${form.guests}`
+            `/caterers?eventType=${form.eventType}&date=${form.date}&location=${form.location}&guests=${form.guests}`
         );
     };
 
@@ -36,7 +36,7 @@ export default function Plan() {
                     Plan your Party In a Single Click
                 </h1>
                 <p className="text-gray-400 mb-10">
-                    Fill the Form and Browse Packages
+                    Fill the Form and Browse Caterers
                 </p>
 
                 <form
@@ -147,7 +147,7 @@ export default function Plan() {
                             type="submit"
                             className="bg-[#1ee87a] text-black font-medium px-10 py-3 rounded-full hover:opacity-90 transition"
                         >
-                            Browse Packages
+                            Browse Caterers
                         </button>
                     </div>
                 </form>

@@ -218,13 +218,13 @@ export default function OrdersPage() {
                     <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
                         <ShoppingBag className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                         <h2 className="text-xl font-semibold text-gray-900 mb-2">No orders yet</h2>
-                        <p className="text-gray-600 mb-6">Start shopping to see your orders here</p>
+                        {/* <p className="text-gray-600 mb-6">Start shopping to see your orders here</p>
                         <a
                             href="/packages"
                             className="inline-block bg-[#268700] text-white px-6 py-3 rounded-full hover:bg-[#1f6b00] transition"
                         >
                             Browse Packages
-                        </a>
+                        </a> */}
                     </div>
                 ) : (
                     <div className="space-y-6">

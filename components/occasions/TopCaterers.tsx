@@ -38,7 +38,7 @@ export default function TopCaterers({ occasionId, occasionName }: TopCaterersPro
 
   const handleViewAll = () => {
     if (occasionId) {
-      router.push(`/user/packages?occasion_id=${encodeURIComponent(occasionId)}`);
+      router.push(`/caterers?occasion_id=${encodeURIComponent(occasionId)}`);
     }
   };
 
@@ -86,7 +86,7 @@ export default function TopCaterers({ occasionId, occasionName }: TopCaterersPro
             <div
               key={caterer.id}
               className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => router.push(`/user/caterers/${caterer.id}`)}
+              onClick={() => router.push(`/caterers/${caterer.id}`)}
             >
               {/* Caterer Image */}
               <div className="relative h-[250px] bg-gray-100">

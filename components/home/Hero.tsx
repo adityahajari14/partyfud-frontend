@@ -52,9 +52,9 @@ export default function Hero() {
         if (guests) params.append('min_guests', String(guests));
         if (date) params.append('date', date);
         
-        // Navigate to packages page with filters
+        // Navigate to caterers page with filters
         const queryString = params.toString();
-        router.push(`/packages${queryString ? `?${queryString}` : ''}`);
+        router.push(`/caterers${queryString ? `?${queryString}` : ''}`);
     };
 
     return(

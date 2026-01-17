@@ -4,7 +4,6 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import Hero from '@/components/home/Hero';
 import Occasions from '@/components/home/Occasions';
-import Package from '@/components/home/Package';
 import EventTypes from '@/components/home/EventTypes';
 import WhyChoose from '@/components/home/WhyChoose';
 import Caterers from '@/components/home/Caterers';
@@ -24,7 +23,6 @@ export default function Home() {
         <Hero />
         <HowItWorks />
         <Occasions />
-        <Package />
         <EventTypes />
         <WhyChoose />
         <Caterers />

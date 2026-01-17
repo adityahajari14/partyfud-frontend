@@ -162,7 +162,7 @@ export default function TopCategoriesPage() {
               {cuisineTypes.map((cuisine) => (
                 <Link
                   key={cuisine.id}
-                  href={`/user/packages?cuisine_type_id=${cuisine.id}`}
+                  href={`/caterers?cuisine_type_id=${cuisine.id}`}
                   className="relative h-[280px] min-w-[280px] bg-gray-200 border border-gray-200 rounded-2xl overflow-hidden hover:shadow-lg transition-shadow cursor-pointer block"
                 >
                   {/* Image */}

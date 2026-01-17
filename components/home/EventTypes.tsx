@@ -128,10 +128,10 @@ export default function EventTypes() {
 
     if (matchingOccasion) {
       // Navigate with occasion_name parameter
-      router.push(`/packages?occasion_name=${encodeURIComponent(matchingOccasion.name)}`);
+      router.push(`/caterers?occasion_name=${encodeURIComponent(matchingOccasion.name)}`);
     } else {
       // Fallback: navigate with the event type name as occasion_name
-      router.push(`/packages?occasion_name=${encodeURIComponent(eventTypeName)}`);
+      router.push(`/caterers?occasion_name=${encodeURIComponent(eventTypeName)}`);
     }
   };
 
