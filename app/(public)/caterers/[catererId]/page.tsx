@@ -4,8 +4,8 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useMemo } from 'react';
-import { userApi, type Caterer, type Package, type Dish } from '@/lib/api/user.api';
-import { Star, MapPin, Users, ChefHat, Check, Plus, ArrowRight } from 'lucide-react';
+import { userApi, type Caterer, type Package } from '@/lib/api/user.api';
+import { Star, MapPin, Users, ChefHat, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { EventDetailsForm } from '@/components/user/EventDetailsForm';
 import { PackageCard } from '@/components/user/PackageCard';
@@ -28,7 +28,6 @@ export default function CatererDetailPage() {
   // Data states
   const [caterer, setCaterer] = useState<Caterer | null>(null);
   const [packages, setPackages] = useState<Package[]>([]);
-  const [dishes, setDishes] = useState<Dish[]>([]);
   const [occasions, setOccasions] = useState<Occasion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,8 +35,7 @@ export default function CatererDetailPage() {
   // UI states
   const [activeTab, setActiveTab] = useState<TabType>('packages');
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
-  const [selectedDishes, setSelectedDishes] = useState<Set<string>>(new Set());
-  const [loadingDishes, setLoadingDishes] = useState(false);
+  const [selectedCustomizablePackage, setSelectedCustomizablePackage] = useState<Package | null>(null);
   const [loadingOccasions, setLoadingOccasions] = useState(false);
 
   // Form states
@@ -51,7 +49,6 @@ export default function CatererDetailPage() {
   const [quoteBudget, setQuoteBudget] = useState('');
   const [dietaryPreferences, setDietaryPreferences] = useState<Set<string>>(new Set());
   const [submittingQuote, setSubmittingQuote] = useState(false);
-  const [creatingPackage, setCreatingPackage] = useState(false);
 
   // Fetch initial data
   useEffect(() => {
@@ -79,9 +76,20 @@ export default function CatererDetailPage() {
 
         if (packagesRes.data?.data) {
           setPackages(packagesRes.data.data);
-          if (packagesRes.data.data.length > 0) {
-            setSelectedPackage(packagesRes.data.data[0]);
-            setGuestCount(packagesRes.data.data[0].people_count || 50);
+          // Set initial selected package (prefer fixed, then customizable)
+          const fixedPackages = packagesRes.data.data.filter(
+            (pkg: Package) => pkg.customisation_type === 'FIXED'
+          );
+          const customizablePackages = packagesRes.data.data.filter(
+            (pkg: Package) => pkg.customisation_type === 'CUSTOMISABLE' || pkg.customisation_type === 'CUSTOMIZABLE'
+          );
+          
+          if (fixedPackages.length > 0) {
+            setSelectedPackage(fixedPackages[0]);
+            setGuestCount(fixedPackages[0].people_count || fixedPackages[0].minimum_people || 50);
+          }
+          if (customizablePackages.length > 0) {
+            setSelectedCustomizablePackage(customizablePackages[0]);
           }
         }
 
@@ -98,39 +106,16 @@ export default function CatererDetailPage() {
     fetchData();
   }, [catererId]);
 
-  // Fetch dishes for Build Your Own tab
-  useEffect(() => {
-    if (!catererId || activeTab !== 'buildOwn') return;
+  // Filter packages by type
+  const fixedPackages = useMemo(() => {
+    return packages.filter((pkg) => pkg.customisation_type === 'FIXED');
+  }, [packages]);
 
-    const fetchDishes = async () => {
-      setLoadingDishes(true);
-      try {
-        const res = await userApi.getDishesByCatererId(catererId);
-        if (res.data?.data) {
-          setDishes(res.data.data);
-        }
-      } catch (err) {
-        console.error('Error fetching dishes:', err);
-      } finally {
-        setLoadingDishes(false);
-      }
-    };
-
-    fetchDishes();
-  }, [catererId, activeTab]);
-
-  // Group dishes by category
-  const groupedDishes = useMemo(() => {
-    const groups: { [key: string]: Dish[] } = {};
-    dishes.forEach((dish) => {
-      const category = dish.category?.name || 'Other';
-      if (!groups[category]) {
-        groups[category] = [];
-      }
-      groups[category].push(dish);
-    });
-    return groups;
-  }, [dishes]);
+  const customizablePackages = useMemo(() => {
+    return packages.filter(
+      (pkg) => pkg.customisation_type === 'CUSTOMISABLE' || pkg.customisation_type === 'CUSTOMIZABLE'
+    );
+  }, [packages]);
 
   // Calculate totals
   const packageTotal = useMemo(() => {
@@ -140,30 +125,17 @@ export default function CatererDetailPage() {
     return pricePerPerson * guestCount;
   }, [selectedPackage, guestCount]);
 
-  const buildOwnTotal = useMemo(() => {
-    const dishesTotal = Array.from(selectedDishes).reduce((total, dishId) => {
-      const dish = dishes.find((d) => d.id === dishId);
-      return total + (dish?.price || 0);
-    }, 0);
-    // Multiply by guest count since dish prices are per person
-    return dishesTotal * guestCount;
-  }, [selectedDishes, dishes, guestCount]);
-
-  // Toggle dish selection
-  const toggleDish = (dishId: string) => {
-    const newSelected = new Set(selectedDishes);
-    if (newSelected.has(dishId)) {
-      newSelected.delete(dishId);
-    } else {
-      newSelected.add(dishId);
-    }
-    setSelectedDishes(newSelected);
-  };
+  const customizablePackageTotal = useMemo(() => {
+    if (!selectedCustomizablePackage) return 0;
+    const peopleCount = selectedCustomizablePackage.people_count || selectedCustomizablePackage.minimum_people || 1;
+    const pricePerPerson = selectedCustomizablePackage.price_per_person ?? (selectedCustomizablePackage.total_price / peopleCount);
+    return pricePerPerson * guestCount;
+  }, [selectedCustomizablePackage, guestCount]);
 
   // Validate form for packages
   const isFormValid = eventType && location && guestCount > 0 && eventDate;
 
-  // Handle continue to package details
+  // Handle continue to package details (for fixed packages)
   const handleContinueToPackage = () => {
     if (!selectedPackage || !isFormValid) {
       showToast('error', 'Please fill in all event details');
@@ -180,114 +152,21 @@ export default function CatererDetailPage() {
     router.push(`/caterers/${catererId}/${selectedPackage.id}?${params.toString()}`);
   };
 
-  // Handle create custom package
-  const handleCreatePackage = async () => {
-    if (selectedDishes.size === 0) {
-      showToast('error', 'Please select at least one dish');
+  // Handle continue to customizable package details
+  const handleContinueToCustomizablePackage = () => {
+    if (!selectedCustomizablePackage || !isFormValid) {
+      showToast('error', 'Please fill in all event details');
       return;
     }
 
-    // Validate guest count (required for build your own)
-    if (!guestCount || guestCount <= 0) {
-      showToast('error', 'Please enter number of guests');
-      return;
-    }
+    const params = new URLSearchParams({
+      guests: guestCount.toString(),
+      eventType,
+      location,
+      date: eventDate,
+    });
 
-    // For non-authenticated users adding to cart, event details are required
-    if (!user) {
-      if (!eventType || !location || !eventDate) {
-        showToast('error', 'Please fill in all event details (event type, location, and date)');
-        return;
-      }
-    }
-
-    setCreatingPackage(true);
-    try {
-      const selectedDishIds = Array.from(selectedDishes);
-      const selectedDishObjects = dishes.filter((d) => selectedDishIds.includes(d.id));
-      const totalPrice = buildOwnTotal;
-      const currency = selectedDishObjects[0]?.currency || 'AED';
-
-      if (!user) {
-        // Store in localStorage and add to cart for non-authenticated users
-        const { customPackageStorage } = await import('@/lib/utils/customPackageStorage');
-        const { cartStorage } = await import('@/lib/utils/cartStorage');
-        
-        // Store custom package
-        const catererBusinessName = caterer?.business_name || caterer?.name || 'Caterer';
-        const customPkg = customPackageStorage.addPackage({
-          caterer_id: catererId || '',
-          caterer_name: catererBusinessName,
-          dish_ids: selectedDishIds,
-          people_count: guestCount,
-          dishes: selectedDishObjects.map((d) => ({
-            id: d.id,
-            name: d.name,
-            price: d.price,
-            currency: d.currency,
-            image_url: d.image_url,
-            category: d.category,
-          })),
-          total_price: totalPrice,
-          currency,
-        });
-
-        // Format date
-        const dateObj = new Date(eventDate);
-        dateObj.setHours(18, 0, 0, 0);
-
-        // Add to cart as a custom package
-        cartStorage.addItem({
-          package_id: customPkg.id, // Use custom package ID
-          package: {
-            id: customPkg.id,
-            name: `Custom Package - ${catererBusinessName}`,
-            people_count: guestCount,
-            total_price: totalPrice,
-            price_per_person: totalPrice / guestCount,
-            currency,
-            cover_image_url: selectedDishObjects[0]?.image_url || null,
-            caterer: {
-              id: catererId || '',
-              business_name: caterer?.business_name || null,
-              name: caterer?.name,
-            },
-          },
-          location,
-          guests: guestCount,
-          date: dateObj.toISOString(),
-          price_at_time: totalPrice,
-        });
-
-        showToast('success', 'Custom package added to cart!');
-        setTimeout(() => {
-          router.push('/cart');
-        }, 1000);
-      } else {
-        // Create package on server for authenticated users
-        const res = await userApi.createCustomPackage({
-          dish_ids: selectedDishIds,
-          people_count: guestCount,
-        });
-
-        if (res.error) {
-          showToast('error', res.error);
-          return;
-        }
-
-        if (res.data?.data?.id) {
-          showToast('success', 'Package created successfully!');
-          const packageId = res.data.data.id;
-          setTimeout(() => {
-            router.push(`/mypackages/${packageId}`);
-          }, 1000);
-        }
-      }
-    } catch (err) {
-      showToast('error', 'Failed to create package');
-    } finally {
-      setCreatingPackage(false);
-    }
+    router.push(`/caterers/${catererId}/${selectedCustomizablePackage.id}?${params.toString()}`);
   };
 
   // Handle quote request
@@ -520,21 +399,24 @@ export default function CatererDetailPage() {
             <div className="lg:col-span-2">
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Available Packages
+                  Fixed Menu Packages
                 </h2>
 
-                {packages.length === 0 ? (
+                {fixedPackages.length === 0 ? (
                   <p className="text-gray-500 text-center py-8">
-                    No packages available from this caterer.
+                    No fixed menu packages available from this caterer.
                   </p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {packages.map((pkg) => (
+                    {fixedPackages.map((pkg) => (
                       <PackageCard
                         key={pkg.id}
                         pkg={pkg}
                         isSelected={selectedPackage?.id === pkg.id}
-                        onSelect={() => setSelectedPackage(pkg)}
+                        onSelect={() => {
+                          setSelectedPackage(pkg);
+                          setGuestCount(pkg.people_count || pkg.minimum_people || guestCount);
+                        }}
                         guestCount={guestCount}
                         catererId={catererId}
                       />
@@ -568,216 +450,55 @@ export default function CatererDetailPage() {
 
         {activeTab === 'buildOwn' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Dishes List */}
+            {/* Customizable Packages List */}
             <div className="lg:col-span-2">
               <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Select Dishes
-                  </h2>
-                  {selectedDishes.size > 0 && (
-                    <span className="text-sm text-green-600 font-medium">
-                      {selectedDishes.size} selected
-                    </span>
-                  )}
-                </div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Customizable Menu Packages
+                </h2>
 
-                {loadingDishes ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-3"></div>
-                    <p className="text-gray-500 text-sm">Loading dishes...</p>
-                  </div>
-                ) : Object.keys(groupedDishes).length === 0 ? (
+                {customizablePackages.length === 0 ? (
                   <p className="text-gray-500 text-center py-8">
-                    No dishes available from this caterer.
+                    No customizable menu packages available from this caterer.
                   </p>
                 ) : (
-                  <div className="space-y-6">
-                    {Object.entries(groupedDishes).map(([category, categoryDishes]) => (
-                      <div key={category}>
-                        <h3 className="font-medium text-gray-900 mb-3 pb-2 border-b border-gray-100">
-                          {category}
-                        </h3>
-                        <div className="space-y-2">
-                          {categoryDishes.map((dish) => {
-                            const isSelected = selectedDishes.has(dish.id);
-                            return (
-                              <div
-                                key={dish.id}
-                                onClick={() => toggleDish(dish.id)}
-                                className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition ${isSelected
-                                    ? 'border-green-500 bg-green-50'
-                                    : 'border-gray-200 hover:border-gray-300'
-                                  }`}
-                              >
-                                <div className="flex-1">
-                                  <p className="font-medium text-gray-900 text-sm">
-                                    {dish.name}
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    {dish.cuisine_type?.name} · AED {dish.price.toLocaleString()}
-                                  </p>
-                                </div>
-                                <div className="ml-3">
-                                  {isSelected ? (
-                                    <Check className="w-5 h-5 text-green-600" />
-                                  ) : (
-                                    <Plus className="w-5 h-5 text-gray-400" />
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {customizablePackages.map((pkg) => (
+                      <PackageCard
+                        key={pkg.id}
+                        pkg={pkg}
+                        isSelected={selectedCustomizablePackage?.id === pkg.id}
+                        onSelect={() => {
+                          setSelectedCustomizablePackage(pkg);
+                          setGuestCount(pkg.people_count || pkg.minimum_people || guestCount);
+                        }}
+                        guestCount={guestCount}
+                        catererId={catererId}
+                      />
                     ))}
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Summary Sidebar */}
+            {/* Event Details Sidebar */}
             <div className="lg:col-span-1">
-              <div className="bg-white rounded-xl border border-gray-200 p-5 sticky top-4">
-                <h3 className="font-semibold text-lg mb-4 text-gray-900">
-                  Package Summary
-                </h3>
-
-                {/* Event Details for Build Your Own */}
-                <div className="mb-4 space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Event Type
-                    </label>
-                    <select
-                      value={eventType}
-                      onChange={(e) => setEventType(e.target.value)}
-                      className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                    >
-                      <option value="">Select event type</option>
-                      {occasions.map((occasion) => (
-                        <option key={occasion.id} value={occasion.id}>
-                          {occasion.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Location
-                    </label>
-                    <select
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                    >
-                      <option value="">Select location</option>
-                      <option value="Downtown Dubai">Downtown Dubai</option>
-                      <option value="Dubai Marina">Dubai Marina</option>
-                      <option value="Jumeirah">Jumeirah</option>
-                      <option value="Palm Jumeirah">Palm Jumeirah</option>
-                      <option value="Business Bay">Business Bay</option>
-                      <option value="Dubai International Financial Centre (DIFC)">Dubai International Financial Centre (DIFC)</option>
-                      <option value="Dubai Mall Area">Dubai Mall Area</option>
-                      <option value="Burj Al Arab Area">Burj Al Arab Area</option>
-                      <option value="Dubai Festival City">Dubai Festival City</option>
-                      <option value="Dubai Sports City">Dubai Sports City</option>
-                      <option value="Dubai Media City">Dubai Media City</option>
-                      <option value="Dubai Internet City">Dubai Internet City</option>
-                      <option value="Dubai Knowledge Park">Dubai Knowledge Park</option>
-                      <option value="Dubai Healthcare City">Dubai Healthcare City</option>
-                      <option value="Dubai World Trade Centre">Dubai World Trade Centre</option>
-                      <option value="Dubai Creek">Dubai Creek</option>
-                      <option value="Deira">Deira</option>
-                      <option value="Bur Dubai">Bur Dubai</option>
-                      <option value="Al Barsha">Al Barsha</option>
-                      <option value="Jumeirah Beach Residence (JBR)">Jumeirah Beach Residence (JBR)</option>
-                      <option value="Dubai Hills">Dubai Hills</option>
-                      <option value="Arabian Ranches">Arabian Ranches</option>
-                      <option value="Emirates Hills">Emirates Hills</option>
-                      <option value="Dubai Silicon Oasis">Dubai Silicon Oasis</option>
-                      <option value="Dubai Production City">Dubai Production City</option>
-                      <option value="Dubai Studio City">Dubai Studio City</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Event Date
-                    </label>
-                    <input
-                      type="date"
-                      value={eventDate}
-                      onChange={(e) => setEventDate(e.target.value)}
-                      min={new Date().toISOString().split('T')[0]}
-                      className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Number of Guests
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={guestCount}
-                      onChange={(e) => setGuestCount(Number(e.target.value))}
-                      className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                  </div>
-                </div>
-
-                {selectedDishes.size > 0 && (
-                  <div className="border-t border-gray-100 pt-4 mt-4">
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-600">Selected Dishes</span>
-                      <span className="font-medium">{selectedDishes.size}</span>
-                    </div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-600">Price per person</span>
-                      <span className="font-medium">
-                        AED {Array.from(selectedDishes).reduce((total, dishId) => {
-                          const dish = dishes.find((d) => d.id === dishId);
-                          return total + (dish?.price || 0);
-                        }, 0).toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-600">Number of guests</span>
-                      <span className="font-medium">{guestCount}</span>
-                    </div>
-                    <div className="flex justify-between text-sm pt-2 border-t border-gray-100">
-                      <span className="text-gray-900 font-semibold">Total</span>
-                      <span className="font-bold text-green-600">
-                        AED {buildOwnTotal.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  onClick={handleCreatePackage}
-                  disabled={selectedDishes.size === 0 || creatingPackage}
-                  className={`w-full mt-4 py-3 rounded-lg font-medium transition ${selectedDishes.size === 0 || creatingPackage
-                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                      : 'bg-green-600 text-white hover:bg-green-700'
-                    }`}
-                >
-                  {creatingPackage ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Creating Package...
-                    </span>
-                  ) : (
-                    'Create Package'
-                  )}
-                </button>
-              </div>
+              <EventDetailsForm
+                eventType={eventType}
+                setEventType={setEventType}
+                location={location}
+                setLocation={setLocation}
+                guestCount={guestCount}
+                setGuestCount={setGuestCount}
+                eventDate={eventDate}
+                setEventDate={setEventDate}
+                occasions={occasions}
+                loadingOccasions={loadingOccasions}
+                minGuests={caterer.minimum_guests}
+                maxGuests={caterer.maximum_guests}
+                estimatedTotal={customizablePackageTotal}
+                className="sticky top-4"
+              />
             </div>
           </div>
         )}
@@ -932,7 +653,7 @@ export default function CatererDetailPage() {
         )}
       </div>
 
-      {/* Fixed Bottom Bar */}
+      {/* Fixed Bottom Bar for Set Menu */}
       {activeTab === 'packages' && selectedPackage && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
@@ -945,6 +666,33 @@ export default function CatererDetailPage() {
               </div>
               <button
                 onClick={handleContinueToPackage}
+                disabled={!isFormValid}
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition ${isFormValid
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  }`}
+              >
+                Continue
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fixed Bottom Bar for Build Your Own */}
+      {activeTab === 'buildOwn' && selectedCustomizablePackage && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-40">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Total for {guestCount} guests</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  AED {customizablePackageTotal.toLocaleString()}
+                </p>
+              </div>
+              <button
+                onClick={handleContinueToCustomizablePackage}
                 disabled={!isFormValid}
                 className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition ${isFormValid
                     ? 'bg-green-600 text-white hover:bg-green-700'

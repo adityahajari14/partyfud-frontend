@@ -17,9 +17,11 @@ interface GroupedItems {
       id: string;
       name: string;
       category?: { name: string };
+      price?: number;
     };
     quantity: number;
     is_optional: boolean;
+    price_at_time?: number | null;
   }>;
 }
 
@@ -208,8 +210,15 @@ export default function PackageDetailPage() {
   // Check if user can select more dishes in a category
   const canSelectMoreInCategory = (categoryName: string): boolean => {
     if (!isCustomizable) return false;
+    
+    // If no category selections are defined, allow unlimited selection
+    // This happens when caterer creates a customizable package without specifying limits
+    if (!pkg?.category_selections || pkg.category_selections.length === 0) {
+      return true; // No limits - user can select any number of dishes
+    }
+    
     const limit = categoryLimits[categoryName];
-    if (limit === undefined) return false; // Category not in selections
+    if (limit === undefined) return true; // Category not in selections - allow unlimited
     if (limit === null) return true; // No limit (select all)
     const selected = getSelectedCountForCategory(categoryName);
     return selected < limit;
@@ -218,10 +227,28 @@ export default function PackageDetailPage() {
   // Calculate total price
   const totalPrice = useMemo(() => {
     if (!pkg) return 0;
+    
+    // For customizable packages without category limits, calculate price from selected dishes
+    if (isCustomizable && (!pkg.category_selections || pkg.category_selections.length === 0)) {
+      let selectedTotal = 0;
+      for (const [, items] of Object.entries(groupedItems)) {
+        for (const item of items) {
+          if (selectedDishes.has(item.dish?.id)) {
+            // Use price_at_time from item if available, otherwise use dish price, fallback to 0
+            const dishPrice = Number(item.price_at_time || item.dish?.price || 0);
+            const quantity = item.quantity || 1;
+            selectedTotal += dishPrice * quantity * guestCount;
+          }
+        }
+      }
+      return Math.round(selectedTotal);
+    }
+    
+    // For fixed packages or customizable with limits, use the package total price
     const peopleCount = pkg.people_count || pkg.minimum_people || 1;
     const multiplier = guestCount / peopleCount;
     return Math.round(pkg.total_price * multiplier);
-  }, [pkg, guestCount]);
+  }, [pkg, guestCount, isCustomizable, groupedItems, selectedDishes]);
 
   // Toggle dish selection for customizable packages
   const toggleDish = (dishId: string, categoryName: string) => {
@@ -267,22 +294,31 @@ export default function PackageDetailPage() {
     }
 
     // Validate CUSTOMISABLE package selections
-    if (isCustomizable && pkg.category_selections && pkg.category_selections.length > 0) {
-      for (const selection of pkg.category_selections) {
-        const categoryName = selection.category?.name || '';
-        const limit = selection.num_dishes_to_select;
-        const selectedCount = getSelectedCountForCategory(categoryName);
-        const availableCount = groupedItems[categoryName]?.length || 0;
-        
-        // Require at least one dish to be selected from each category
-        if (selectedCount === 0 && availableCount > 0) {
-          showToast('error', `Please select at least one dish from ${categoryName} category`);
-          return;
+    if (isCustomizable) {
+      if (pkg.category_selections && pkg.category_selections.length > 0) {
+        // Package has category limits - validate against them
+        for (const selection of pkg.category_selections) {
+          const categoryName = selection.category?.name || '';
+          const limit = selection.num_dishes_to_select;
+          const selectedCount = getSelectedCountForCategory(categoryName);
+          const availableCount = groupedItems[categoryName]?.length || 0;
+          
+          // Require at least one dish to be selected from each category
+          if (selectedCount === 0 && availableCount > 0) {
+            showToast('error', `Please select at least one dish from ${categoryName} category`);
+            return;
+          }
+          
+          // Check if limit is exceeded
+          if (limit !== null && selectedCount > limit) {
+            showToast('error', `You can only select up to ${limit} dish${limit === 1 ? '' : 'es'} from ${categoryName} category`);
+            return;
+          }
         }
-        
-        // Check if limit is exceeded
-        if (limit !== null && selectedCount > limit) {
-          showToast('error', `You can only select up to ${limit} dish${limit === 1 ? '' : 'es'} from ${categoryName} category`);
+      } else {
+        // Package has no category limits - just require at least one dish selected
+        if (selectedDishes.size === 0) {
+          showToast('error', 'Please select at least one dish');
           return;
         }
       }
@@ -442,6 +478,11 @@ export default function PackageDetailPage() {
                 <div className="text-right">
                   <p className="text-2xl font-bold text-gray-900">
                     AED {(() => {
+                      // For customizable packages without limits, show price based on selection
+                      if (isCustomizable && (!pkg.category_selections || pkg.category_selections.length === 0)) {
+                        if (selectedDishes.size === 0) return '0';
+                        return (totalPrice / guestCount).toLocaleString();
+                      }
                       const peopleCount = pkg.people_count || pkg.minimum_people || 1;
                       const pricePerPerson = pkg.price_per_person ?? (pkg.total_price / peopleCount);
                       return pricePerPerson.toLocaleString();
@@ -494,7 +535,9 @@ export default function PackageDetailPage() {
                 </h2>
                 <p className="text-sm text-gray-500 mt-1">
                   {isCustomizable 
-                    ? `Choose dishes from each category according to the limits set by the caterer`
+                    ? (pkg.category_selections && pkg.category_selections.length > 0
+                        ? `Choose dishes from each category according to the limits set by the caterer`
+                        : `Select any dishes you want from the menu below`)
                     : `${pkg.items.length} items included for ${pkg.people_count} people`}
                 </p>
               </div>
@@ -503,7 +546,7 @@ export default function PackageDetailPage() {
                 {Object.entries(groupedItems).map(([category, items]) => {
                   const selectedCount = getSelectedCountForCategory(category);
                   const limit = categoryLimits[category];
-                  const limitText = limit === null ? 'all' : limit;
+                  const hasLimits = pkg.category_selections && pkg.category_selections.length > 0;
                   const canSelectMore = canSelectMoreInCategory(category);
                   
                   return (
@@ -511,13 +554,15 @@ export default function PackageDetailPage() {
                       <div className="bg-gray-50 px-4 py-2 font-medium text-sm text-gray-700">
                         <div className="flex items-center justify-between">
                           <span>{category}</span>
-                          {isCustomizable && limit !== undefined && (
-                            <span className={`text-xs font-normal ${selectedCount >= (limit || 0) ? 'text-green-600' : 'text-gray-500'}`}>
-                              {selectedCount} / {limit === null ? items.length : limit} selected
+                          {isCustomizable && (
+                            <span className={`text-xs font-normal ${selectedCount > 0 ? 'text-green-600' : 'text-gray-500'}`}>
+                              {hasLimits && limit !== undefined
+                                ? `${selectedCount} / ${limit === null ? items.length : limit} selected`
+                                : `${selectedCount} selected`}
                             </span>
                           )}
                         </div>
-                        {isCustomizable && limit !== undefined && (
+                        {isCustomizable && hasLimits && limit !== undefined && (
                           <p className="text-xs text-gray-500 mt-1">
                             Select {limit === null ? 'any dishes' : `up to ${limit} dish${limit === 1 ? '' : 'es'}`} from this category
                           </p>
@@ -645,6 +690,11 @@ export default function PackageDetailPage() {
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-gray-600">Price per person</span>
                   <span>AED {(() => {
+                    // For customizable packages without limits, show price based on selection
+                    if (isCustomizable && (!pkg.category_selections || pkg.category_selections.length === 0)) {
+                      if (selectedDishes.size === 0) return '0';
+                      return (totalPrice / guestCount).toLocaleString();
+                    }
                     const peopleCount = pkg.people_count || pkg.minimum_people || 1;
                     const pricePerPerson = pkg.price_per_person ?? (pkg.total_price / peopleCount);
                     return pricePerPerson.toLocaleString();

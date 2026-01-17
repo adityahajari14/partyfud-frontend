@@ -377,8 +377,13 @@ export default function EditPackagePage() {
         return;
       }
       // Validate that each category with selected dishes has a selection limit set
+      // Skip validation for 'uncategorized' category (dishes without categories)
       const categoriesWithDishes = new Set<string>();
       dishesByCategory.forEach(cg => {
+        // Skip uncategorized dishes - they don't need category selection limits
+        if (cg.category.id === 'uncategorized') {
+          return;
+        }
         const selectedInCategory = (formData.package_item_ids || []).filter((id: string) =>
           cg.dishes.some((d: Dish) => d.id === id)
         );
@@ -403,7 +408,20 @@ export default function EditPackagePage() {
 
     setIsSubmitting(true);
 
-    const response = await catererApi.updatePackage(packageId, formData, selectedImage || undefined);
+    // Clean up formData before submission: ensure category_selections only contains valid category IDs
+    // Filter out 'uncategorized' as it's not a real category in the database
+    const cleanedFormData = { ...formData };
+    if (cleanedFormData.category_selections && cleanedFormData.category_selections.length > 0) {
+      const validCategoryIds = new Set(categories.map(cat => cat.id));
+      cleanedFormData.category_selections = cleanedFormData.category_selections.filter(
+        (selection: { category_id: string; num_dishes_to_select: number | null }) => 
+          selection.category_id && 
+          selection.category_id !== 'uncategorized' && 
+          validCategoryIds.has(selection.category_id)
+      );
+    }
+
+    const response = await catererApi.updatePackage(packageId, cleanedFormData, selectedImage || undefined);
 
     if (response.error) {
       setErrors({ general: response.error });

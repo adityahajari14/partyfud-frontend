@@ -247,7 +247,12 @@ export default function CartPage() {
                       {/* Price */}
                       <div className="flex justify-between items-center pt-3 border-t border-gray-100">
                         <span className="text-sm text-gray-500">
-                          {item.package.currency} {item.package.price_per_person?.toLocaleString()}/person
+                          {item.package.currency} {(() => {
+                            const totalPrice = item.price_at_time || item.package.total_price;
+                            const guests = item.guests || item.package.people_count || 1;
+                            const pricePerPerson = totalPrice / guests;
+                            return pricePerPerson.toLocaleString();
+                          })()}/person
                         </span>
                         <span className="font-bold text-green-600">
                           {item.package.currency} {(item.price_at_time || item.package.total_price).toLocaleString()}

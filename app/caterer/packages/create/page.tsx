@@ -310,32 +310,38 @@ export default function CreatePackagePage() {
         return;
       }
     } else if (formData.customisation_type === 'CUSTOMISABLE') {
-      if (!formData.package_item_ids || formData.package_item_ids.length === 0) {
-        setErrors({ package_item_ids: 'At least one dish must be selected for customizable packages' });
-        return;
-      }
-      // Validate that each category with selected dishes has a selection limit set
-      const categoriesWithDishes = new Set<string>();
-      dishesByCategory.forEach(cg => {
-        const selectedInCategory = (formData.package_item_ids || []).filter(id => 
-          cg.dishes.some(d => d.id === id)
+      // For CUSTOMISABLE packages, if no dishes are selected, all dishes will be made available
+      // Users can then select any number of dishes from the complete menu
+      // Only validate category selections if dishes are actually selected
+      if (formData.package_item_ids && formData.package_item_ids.length > 0) {
+        // Validate that each category with selected dishes has a selection limit set
+        // Skip validation for 'uncategorized' category (dishes without categories)
+        const categoriesWithDishes = new Set<string>();
+        dishesByCategory.forEach(cg => {
+          // Skip uncategorized dishes - they don't need category selection limits
+          if (cg.category.id === 'uncategorized') {
+            return;
+          }
+          const selectedInCategory = (formData.package_item_ids || []).filter(id => 
+            cg.dishes.some(d => d.id === id)
+          );
+          if (selectedInCategory.length > 0) {
+            categoriesWithDishes.add(cg.category.id);
+          }
+        });
+        
+        const categoriesWithLimits = new Set(
+          (formData.category_selections || []).map(s => s.category_id)
         );
-        if (selectedInCategory.length > 0) {
-          categoriesWithDishes.add(cg.category.id);
+        
+        const missingLimits = Array.from(categoriesWithDishes).filter(
+          catId => !categoriesWithLimits.has(catId)
+        );
+        
+        if (missingLimits.length > 0) {
+          setErrors({ category_selections: 'Please set selection limits for all categories with selected dishes' });
+          return;
         }
-      });
-      
-      const categoriesWithLimits = new Set(
-        (formData.category_selections || []).map(s => s.category_id)
-      );
-      
-      const missingLimits = Array.from(categoriesWithDishes).filter(
-        catId => !categoriesWithLimits.has(catId)
-      );
-      
-      if (missingLimits.length > 0) {
-        setErrors({ category_selections: 'Please set selection limits for all categories with selected dishes' });
-        return;
       }
 
       // Validate category_selections: filter out invalid category IDs
@@ -360,11 +366,18 @@ export default function CreatePackagePage() {
     setIsSubmitting(true);
 
     // Clean up formData before submission: ensure category_selections only contains valid category IDs
+    // Filter out 'uncategorized' as it's not a real category in the database
     const cleanedFormData = { ...formData };
+    
+    // For CUSTOMISABLE packages, if no dishes are selected, the backend will make all dishes available
+    // We don't pre-select them here - users will select from the full menu
+    
     if (cleanedFormData.category_selections && cleanedFormData.category_selections.length > 0) {
       const validCategoryIds = new Set(categories.map(cat => cat.id));
       cleanedFormData.category_selections = cleanedFormData.category_selections.filter(
-        selection => validCategoryIds.has(selection.category_id)
+        selection => selection.category_id && 
+                     selection.category_id !== 'uncategorized' && 
+                     validCategoryIds.has(selection.category_id)
       );
     }
 
