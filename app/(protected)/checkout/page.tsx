@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Toast, useToast } from '@/components/ui/Toast';
 import { DUBAI_LOCATIONS, getMinEventDate } from '@/lib/constants';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CartItem {
   id: string;
@@ -39,6 +40,14 @@ interface CartItem {
   };
   guests: number | null;
   price_at_time: number | null;
+  // Event details (from localStorage or server)
+  event_date?: string;
+  event_time?: string;
+  event_type?: string;
+  area?: string;
+  // Server fields (legacy)
+  date?: Date | string | null;
+  location?: string | null;
   created_at: Date | string;
   updated_at: Date | string;
 }
@@ -73,6 +82,7 @@ const UAE_CITIES = [
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const { toast, showToast, hideToast } = useToast();
   
   // Cart state
@@ -80,6 +90,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [placingOrder, setPlacingOrder] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [syncingCart, setSyncingCart] = useState(false);
   
   // Checkout step
   const [currentStep, setCurrentStep] = useState<CheckoutStep>('event-details');
@@ -99,7 +110,7 @@ export default function CheckoutPage() {
   const [city, setCity] = useState('Dubai');
   const [area, setArea] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
-  
+
   // Payment form
   const [cardNumber, setCardNumber] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');
@@ -109,30 +120,142 @@ export default function CheckoutPage() {
   const minDate = getMinEventDate();
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (!authLoading) {
+      fetchData();
+    }
+  }, [authLoading, user]);
+
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [cartRes, occasionsRes] = await Promise.all([
-        userApi.getCartItems(),
-        userApi.getOccasions(),
-      ]);
-      
-      if (cartRes.data?.data) {
-        setCartItems(cartRes.data.data);
-        // Set initial guest count from first cart item
-        if (cartRes.data.data.length > 0 && cartRes.data.data[0].guests) {
-          setGuestCount(cartRes.data.data[0].guests);
+      // If user is authenticated, sync localStorage cart first
+      if (user) {
+        const { cartStorage } = await import('@/lib/utils/cartStorage');
+        const localItems = cartStorage.getItems();
+        
+        // If there are items in localStorage, sync them to server
+        if (localItems.length > 0) {
+          setSyncingCart(true);
+          try {
+            await cartStorage.syncToServer();
+            // Wait a bit for server to process
+            await new Promise(resolve => setTimeout(resolve, 500));
+          } catch (syncError) {
+            console.error('Error syncing cart:', syncError);
+            // Continue even if sync fails
+          } finally {
+            setSyncingCart(false);
+          }
         }
-      } else if (cartRes.error) {
-        showToast('error', cartRes.error || 'Failed to load cart');
-        if (cartRes.status === 401) {
+      }
+
+      // Fetch cart items
+      if (user) {
+        // For authenticated users, fetch from server
+        const cartRes = await userApi.getCartItems();
+        
+        if (cartRes.data?.data) {
+          setCartItems(cartRes.data.data);
+          
+          // Set initial guest count from first cart item
+          if (cartRes.data.data.length > 0) {
+            const firstItem = cartRes.data.data[0];
+            if (firstItem.guests) {
+              setGuestCount(firstItem.guests);
+            }
+          }
+          
+          // Load event details immediately
+          const { cartStorage } = await import('@/lib/utils/cartStorage');
+          const savedEventDetails = cartStorage.getEventDetails();
+          const localItems = cartStorage.getItems();
+          const localItemWithDetails = localItems.find(item => 
+            item.event_date || item.event_time || item.event_type || item.area
+          );
+          
+          const firstItem = cartRes.data.data[0];
+          
+          // Priority: savedEventDetails > localItem > server cart item
+          const eventDateValue = savedEventDetails.event_date || 
+                               localItemWithDetails?.event_date ||
+                               firstItem.event_date || 
+                               (firstItem.date ? new Date(firstItem.date).toISOString().split('T')[0] : '');
+          if (eventDateValue) {
+            setEventDate(eventDateValue);
+          }
+          
+          const eventTimeValue = savedEventDetails.event_time || 
+                               localItemWithDetails?.event_time ||
+                               firstItem.event_time;
+          if (eventTimeValue && eventTimeValue.trim() !== '') {
+            setEventTime(eventTimeValue.trim());
+          }
+          
+          const eventTypeValue = savedEventDetails.event_type || 
+                               localItemWithDetails?.event_type ||
+                               firstItem.event_type;
+          if (eventTypeValue && eventTypeValue.trim() !== '') {
+            setEventType(eventTypeValue.trim());
+          }
+          
+          const areaValue = savedEventDetails.area || 
+                          localItemWithDetails?.area ||
+                          firstItem.area || 
+                          firstItem.location;
+          if (areaValue && areaValue.trim() !== '') {
+            setArea(areaValue.trim());
+          }
+        } else if (cartRes.error && cartRes.status !== 401) {
+          showToast('error', cartRes.error || 'Failed to load cart');
+        }
+      } else {
+        // For non-authenticated users, load from localStorage
+        const { cartStorage } = await import('@/lib/utils/cartStorage');
+        const localItems = cartStorage.getItems();
+        setCartItems(localItems as any);
+        
+        // Set initial guest count and event details from first cart item
+        if (localItems.length > 0) {
+          const firstItem = localItems[0];
+          if (firstItem.guests) {
+            setGuestCount(firstItem.guests);
+          }
+          
+          // Also check saved event details storage
+          const savedEventDetails = cartStorage.getEventDetails();
+          
+          // Auto-fill event details - priority: savedEventDetails > cart item
+          const eventDateValue = savedEventDetails.event_date || firstItem.event_date;
+          if (eventDateValue) {
+            setEventDate(eventDateValue);
+          }
+          
+          const eventTimeValue = savedEventDetails.event_time || firstItem.event_time;
+          if (eventTimeValue && eventTimeValue.trim() !== '') {
+            setEventTime(eventTimeValue.trim());
+          }
+          
+          const eventTypeValue = savedEventDetails.event_type || firstItem.event_type;
+          if (eventTypeValue && eventTypeValue.trim() !== '') {
+            setEventType(eventTypeValue.trim());
+          }
+          
+          const areaValue = savedEventDetails.area || firstItem.area;
+          if (areaValue && areaValue.trim() !== '') {
+            setArea(areaValue.trim());
+          }
+        }
+        
+        // If no items in localStorage, redirect to login
+        if (localItems.length === 0) {
           router.push('/login?redirect=/checkout');
+          return;
         }
       }
       
+      // Fetch occasions
+      const occasionsRes = await userApi.getOccasions();
       if (occasionsRes.data?.data) {
         setOccasions(occasionsRes.data.data);
       }
@@ -240,12 +363,14 @@ export default function CheckoutPage() {
     return v;
   };
 
-  if (loading) {
+  if (loading || syncingCart || authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600 mx-auto mb-3"></div>
-          <p className="text-gray-500 text-sm">Loading checkout...</p>
+          <p className="text-gray-500 text-sm">
+            {syncingCart ? 'Syncing your cart...' : authLoading ? 'Loading...' : 'Loading checkout...'}
+          </p>
         </div>
       </div>
     );

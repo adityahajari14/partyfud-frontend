@@ -5,10 +5,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useMemo } from 'react';
 import { userApi, type Caterer, type Package } from '@/lib/api/user.api';
-import { Star, MapPin, Users, ChefHat, ShoppingCart, Plus, Minus, Check } from 'lucide-react';
+import { Star, MapPin, Users, ChefHat, ShoppingCart, Plus, Minus, Check, Calendar, Clock, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Toast, useToast } from '@/components/ui/Toast';
-import { getLogoText } from '@/lib/constants';
+import { getLogoText, getMinEventDate, DUBAI_LOCATIONS } from '@/lib/constants';
 
 type TabType = 'packages' | 'buildOwn' | 'requestQuote';
 
@@ -35,17 +35,23 @@ export default function CatererDetailPage() {
   const [guestCount, setGuestCount] = useState(50);
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
   const [selectedCustomizablePackage, setSelectedCustomizablePackage] = useState<Package | null>(null);
-  
+
   // Dish selection for customizable packages
   const [selectedDishes, setSelectedDishes] = useState<Set<string>>(new Set());
   const [dietaryFilters, setDietaryFilters] = useState<Set<string>>(new Set());
   const [allCatererDishes, setAllCatererDishes] = useState<any[]>([]);
   const [loadingDishes, setLoadingDishes] = useState(false);
 
-  // Quote request states
-  const [eventType, setEventType] = useState('');
-  const [location, setLocation] = useState('');
+  // Event details for add to cart
   const [eventDate, setEventDate] = useState('');
+  const [eventTime, setEventTime] = useState('');
+  const [eventType, setEventType] = useState('');
+  const [area, setArea] = useState('');
+
+  // Quote request states
+  const [quoteEventType, setQuoteEventType] = useState('');
+  const [location, setLocation] = useState('');
+  const [quoteEventDate, setQuoteEventDate] = useState('');
   const [quoteVision, setQuoteVision] = useState('');
   const [quoteBudget, setQuoteBudget] = useState('');
   const [dietaryPreferences, setDietaryPreferences] = useState<Set<string>>(new Set());
@@ -54,6 +60,10 @@ export default function CatererDetailPage() {
   // Cart states
   const [addingToCart, setAddingToCart] = useState(false);
   const [cartPackageIds, setCartPackageIds] = useState<Set<string>>(new Set());
+
+  // Gallery state
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Fetch initial data
   useEffect(() => {
@@ -92,7 +102,7 @@ export default function CatererDetailPage() {
           const customizablePackages = packagesRes.data.data.filter(
             (pkg: Package) => pkg.customisation_type === 'CUSTOMISABLE' || pkg.customisation_type === 'CUSTOMIZABLE'
           );
-          
+
           if (fixedPackages.length > 0) {
             setSelectedPackage(fixedPackages[0]);
           }
@@ -154,14 +164,14 @@ export default function CatererDetailPage() {
     if (selectedCustomizablePackage) {
       setSelectedDishes(new Set());
       setAllCatererDishes([]);
-      
+
       // If package has category_selections but no items, fetch full package details
-      const hasCategorySelections = selectedCustomizablePackage.category_selections && 
+      const hasCategorySelections = selectedCustomizablePackage.category_selections &&
         selectedCustomizablePackage.category_selections.length > 0;
-      const hasItems = selectedCustomizablePackage.items && 
-        Array.isArray(selectedCustomizablePackage.items) && 
+      const hasItems = selectedCustomizablePackage.items &&
+        Array.isArray(selectedCustomizablePackage.items) &&
         selectedCustomizablePackage.items.length > 0;
-      
+
       if (hasCategorySelections && !hasItems) {
         // Fetch full package details to ensure we have items
         const fetchPackageDetails = async () => {
@@ -192,12 +202,12 @@ export default function CatererDetailPage() {
   useEffect(() => {
     const fetchAllDishes = async () => {
       if (!selectedCustomizablePackage || !catererId) return;
-      
+
       // Only fetch all dishes if package has no category_selections
       // (packages with category_selections use dishes from package.items)
-      const hasCategorySelections = selectedCustomizablePackage.category_selections && 
+      const hasCategorySelections = selectedCustomizablePackage.category_selections &&
         selectedCustomizablePackage.category_selections.length > 0;
-      
+
       if (!hasCategorySelections) {
         setLoadingDishes(true);
         try {
@@ -222,14 +232,14 @@ export default function CatererDetailPage() {
   // Group dishes by category for customizable packages
   const groupedDishesByCategory = useMemo(() => {
     if (!selectedCustomizablePackage) return {};
-    
-    const hasCategorySelections = selectedCustomizablePackage.category_selections && 
+
+    const hasCategorySelections = selectedCustomizablePackage.category_selections &&
       selectedCustomizablePackage.category_selections.length > 0;
-    
+
     // If package has category_selections, use dishes from package.items
     // Otherwise, use all caterer dishes
     let dishesToGroup: any[] = [];
-    
+
     if (hasCategorySelections) {
       // Use package items - these are the dishes selected by the caterer
       if (selectedCustomizablePackage.items && Array.isArray(selectedCustomizablePackage.items) && selectedCustomizablePackage.items.length > 0) {
@@ -239,7 +249,7 @@ export default function CatererDetailPage() {
             // API returns category as string (category name) or null
             // Convert to object format for consistency
             const categoryName = item.dish?.category || 'Other';
-            
+
             return {
               id: item.id, // PackageItem ID
               dish: {
@@ -248,10 +258,10 @@ export default function CatererDetailPage() {
                 image_url: item.dish?.image_url,
                 price: item.dish?.price,
                 currency: item.dish?.currency,
-                category: item.dish?.category 
-                  ? (typeof item.dish.category === 'string' 
-                      ? { name: item.dish.category }
-                      : item.dish.category)
+                category: item.dish?.category
+                  ? (typeof item.dish.category === 'string'
+                    ? { name: item.dish.category }
+                    : item.dish.category)
                   : null,
               },
               quantity: item.quantity || 1,
@@ -274,7 +284,7 @@ export default function CatererDetailPage() {
             image_url: dish.image_url,
             price: dish.price,
             currency: dish.currency,
-            category: dish.category ? { 
+            category: dish.category ? {
               id: dish.category.id,
               name: dish.category.name || (typeof dish.category === 'string' ? dish.category : 'Other')
             } : null,
@@ -284,7 +294,7 @@ export default function CatererDetailPage() {
           price_at_time: dish.price,
         }));
     }
-    
+
     const grouped: { [key: string]: any[] } = {};
     dishesToGroup.forEach((item: any) => {
       // Extract category name - API returns category as string (name) or null
@@ -297,7 +307,7 @@ export default function CatererDetailPage() {
           categoryName = item.dish.category.name;
         }
       }
-      
+
       if (!grouped[categoryName]) {
         grouped[categoryName] = [];
       }
@@ -309,7 +319,7 @@ export default function CatererDetailPage() {
   // Get category limits for customizable packages
   const categoryLimits = useMemo(() => {
     if (!selectedCustomizablePackage?.category_selections) return {};
-    
+
     const limits: Record<string, number | null> = {};
     selectedCustomizablePackage.category_selections.forEach((selection: any) => {
       const categoryName = selection.category?.name || '';
@@ -328,12 +338,12 @@ export default function CatererDetailPage() {
   // Check if user can select more dishes in a category
   const canSelectMoreInCategory = (categoryName: string): boolean => {
     if (!selectedCustomizablePackage) return false;
-    
+
     // If no category selections are defined, allow unlimited selection
     if (!selectedCustomizablePackage.category_selections || selectedCustomizablePackage.category_selections.length === 0) {
       return true;
     }
-    
+
     const limit = categoryLimits[categoryName];
     if (limit === undefined) return true; // Category not in selections - allow unlimited
     if (limit === null) return true; // No limit (select all)
@@ -345,7 +355,7 @@ export default function CatererDetailPage() {
   const toggleDish = (dishId: string, categoryName: string) => {
     const newSelected = new Set(selectedDishes);
     const isCurrentlySelected = newSelected.has(dishId);
-    
+
     if (isCurrentlySelected) {
       newSelected.delete(dishId);
     } else {
@@ -353,8 +363,8 @@ export default function CatererDetailPage() {
       if (!canSelectMoreInCategory(categoryName)) {
         const limit = categoryLimits[categoryName];
         showToast('error', `You can only select ${limit === null ? 'all' : limit} dish(es) from ${categoryName}`);
-      return;
-    }
+        return;
+      }
       newSelected.add(dishId);
     }
     setSelectedDishes(newSelected);
@@ -367,26 +377,26 @@ export default function CatererDetailPage() {
       // Ensure we're using Number() to convert from Decimal/string
       return typeof pkg.total_price === 'number' ? pkg.total_price : Number(pkg.total_price || 0);
     }
-    
+
     const isCustomizable = pkg.customisation_type === 'CUSTOMISABLE' || pkg.customisation_type === 'CUSTOMIZABLE';
     const hasCategorySelections = pkg.category_selections && pkg.category_selections.length > 0;
-    
+
     // For customizable packages, calculate from selected dishes
     if (isCustomizable && selectedDishes.size > 0) {
       let selectedTotal = 0;
-      
+
       // Get all available dishes (from package items or all caterer dishes)
-      const allAvailableDishes = hasCategorySelections 
+      const allAvailableDishes = hasCategorySelections
         ? (pkg.items || [])
         : allCatererDishes.map((dish: any) => ({
-            dish: {
-              id: dish.id,
-              price: dish.price,
-            },
-            quantity: 1,
-            price_at_time: dish.price,
-          }));
-      
+          dish: {
+            id: dish.id,
+            price: dish.price,
+          },
+          quantity: 1,
+          price_at_time: dish.price,
+        }));
+
       allAvailableDishes.forEach((item: any) => {
         const dishId = item.dish?.id;
         if (selectedDishes.has(dishId)) {
@@ -395,10 +405,10 @@ export default function CatererDetailPage() {
           selectedTotal += dishPrice * quantity * guestCount;
         }
       });
-      
+
       return Math.round(selectedTotal);
     }
-    
+
     // For fixed packages or customizable without selections, scale price by guest count
     const peopleCount = pkg.people_count || pkg.minimum_people || 1;
     // Ensure we're using Number() to convert from Decimal/string
@@ -426,6 +436,24 @@ export default function CatererDetailPage() {
       return;
     }
 
+    // Validate event details
+    if (!eventDate) {
+      showToast('error', 'Please select an event date');
+      return;
+    }
+    if (!eventTime) {
+      showToast('error', 'Please select an event time');
+      return;
+    }
+    if (!eventType) {
+      showToast('error', 'Please select an event type');
+      return;
+    }
+    if (!area) {
+      showToast('error', 'Please select an area');
+      return;
+    }
+
     // Validate customizable package selections
     const isCustomizable = pkg.customisation_type === 'CUSTOMISABLE' || pkg.customisation_type === 'CUSTOMIZABLE';
     if (isCustomizable) {
@@ -436,13 +464,13 @@ export default function CatererDetailPage() {
           const limit = selection.num_dishes_to_select;
           const selectedCount = getSelectedCountForCategory(categoryName);
           const availableCount = groupedDishesByCategory[categoryName]?.length || 0;
-          
+
           // Require at least one dish to be selected from each category
           if (selectedCount === 0 && availableCount > 0) {
             showToast('error', `Please select at least one dish from ${categoryName} category`);
             return;
           }
-          
+
           // Check if limit is exceeded
           if (limit !== null && selectedCount > limit) {
             showToast('error', `You can only select up to ${limit} dish${limit === 1 ? '' : 'es'} from ${categoryName} category`);
@@ -466,47 +494,112 @@ export default function CatererDetailPage() {
 
       // For customizable packages with selected dishes, create a custom package first
       if (isCustomizable && selectedDishes.size > 0) {
-        if (!user) {
-          showToast('error', 'Please log in to create custom packages');
-          router.push('/login');
-          return;
-        }
-
         // Get dish IDs from selected dishes
         const dishIds = Array.from(selectedDishes);
-        
-        // Create custom package
-        const customPackageRes = await userApi.createCustomPackage({
-          dish_ids: dishIds,
-          people_count: guestCount,
-        });
 
-        if (customPackageRes.error) {
-          showToast('error', customPackageRes.error);
-          return;
-        }
-
-        if (customPackageRes.data?.data) {
-          const customPackage = customPackageRes.data.data;
-          
-          // Add custom package to cart
-          const cartRes = await userApi.createCartItem({
-            package_id: customPackage.id,
-            guests: guestCount,
-            price_at_time: totalPrice,
+        if (user) {
+          // For authenticated users, create custom package on server
+          const customPackageRes = await userApi.createCustomPackage({
+            dish_ids: dishIds,
+            people_count: guestCount,
           });
 
-          if (cartRes.error) {
-            showToast('error', cartRes.error);
+          if (customPackageRes.error) {
+            showToast('error', customPackageRes.error);
             return;
           }
 
-          if (cartRes.data?.success) {
-            showToast('success', 'Custom package added to cart!');
-            setCartPackageIds(prev => new Set([...prev, customPackage.id]));
-            // Dispatch event to update cart count in navbar
-            window.dispatchEvent(new Event('cartUpdated'));
+          if (customPackageRes.data?.data) {
+            const customPackage = customPackageRes.data.data;
+
+            // Add custom package to cart
+            const cartRes = await userApi.createCartItem({
+              package_id: customPackage.id,
+              guests: guestCount,
+              price_at_time: totalPrice,
+              date: eventDate,
+            });
+
+            if (cartRes.error) {
+              showToast('error', cartRes.error);
+              return;
+            }
+
+            if (cartRes.data?.success) {
+              showToast('success', 'Custom package added to cart!');
+              setCartPackageIds(prev => new Set([...prev, customPackage.id]));
+              // Dispatch event to update cart count in navbar
+              window.dispatchEvent(new Event('cartUpdated'));
+            }
           }
+        } else {
+          // For non-authenticated users, store in localStorage
+          // Get dish details for the custom package
+          const hasCategorySelections = pkg.category_selections && pkg.category_selections.length > 0;
+          const allAvailableDishes = hasCategorySelections
+            ? (pkg.items || [])
+            : allCatererDishes;
+
+          const selectedDishDetails = allAvailableDishes
+            .filter((item: any) => {
+              const dishId = item.dish?.id || item.id;
+              return selectedDishes.has(dishId);
+            })
+            .map((item: any) => ({
+              id: item.dish?.id || item.id,
+              name: item.dish?.name || item.name,
+              price: item.dish?.price || item.price,
+              currency: item.dish?.currency || item.currency || 'AED',
+              image_url: item.dish?.image_url || item.image_url,
+              category: item.dish?.category
+                ? (typeof item.dish.category === 'string'
+                  ? { name: item.dish.category }
+                  : item.dish.category)
+                : (item.category ? { name: item.category } : null),
+            }));
+
+          // Store custom package in localStorage
+          const { customPackageStorage } = await import('@/lib/utils/customPackageStorage');
+          const customPackage = customPackageStorage.addPackage({
+            caterer_id: catererId,
+            caterer_name: caterer?.business_name || caterer?.name || 'Unknown',
+            dish_ids: dishIds,
+            people_count: guestCount,
+            dishes: selectedDishDetails,
+            total_price: totalPrice,
+            currency: pkg.currency,
+          });
+
+          // Add to localStorage cart with custom package reference
+          const { cartStorage } = await import('@/lib/utils/cartStorage');
+          cartStorage.addItem({
+            package_id: customPackage.id, // Use custom package ID
+            package: {
+              id: customPackage.id,
+              name: `Custom Package - ${pkg.name}`,
+              people_count: guestCount,
+              total_price: totalPrice,
+              price_per_person: totalPrice / guestCount,
+              currency: pkg.currency,
+              cover_image_url: pkg.cover_image_url,
+              caterer: {
+                id: catererId,
+                business_name: caterer?.business_name || null,
+                name: caterer?.name,
+              },
+            },
+            guests: guestCount,
+            price_at_time: totalPrice,
+            event_date: eventDate,
+            event_time: eventTime,
+            event_type: eventType,
+            area: area,
+          });
+
+          showToast('success', 'Custom package added to cart!');
+          setCartPackageIds(prev => new Set([...prev, customPackage.id]));
+          // Dispatch event to update cart count in navbar
+          window.dispatchEvent(new Event('cartUpdated'));
         }
       } else {
         // For fixed packages or customizable without selections, add original package
@@ -516,6 +609,10 @@ export default function CatererDetailPage() {
             package_id: pkg.id,
             guests: guestCount,
             price_at_time: totalPrice,
+            date: eventDate,
+            event_time: eventTime,
+            event_type: eventType,
+            area: area,
           });
 
           if (res.error) {
@@ -550,6 +647,10 @@ export default function CatererDetailPage() {
             },
             guests: guestCount,
             price_at_time: totalPrice,
+            event_date: eventDate,
+            event_time: eventTime,
+            event_type: eventType,
+            area: area,
           });
 
           showToast('success', `${pkg.name} added to cart!`);
@@ -579,11 +680,11 @@ export default function CatererDetailPage() {
     try {
       const res = await userApi.createProposal({
         caterer_id: catererId,
-        event_type: eventType || undefined,
+        event_type: quoteEventType || undefined,
         location: location || undefined,
         dietary_preferences: Array.from(dietaryPreferences),
         budget_per_person: quoteBudget || undefined,
-        event_date: eventDate || undefined,
+        event_date: quoteEventDate || undefined,
         vision: quoteVision || undefined,
         guest_count: guestCount,
       });
@@ -646,130 +747,160 @@ export default function CatererDetailPage() {
           <span className="text-gray-900">{caterer.name}</span>
         </nav>
 
-        {/* Caterer Header */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-          <div className="flex flex-col sm:flex-row gap-6">
-            {/* Logo/Image */}
-            <div className="relative w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
-              {caterer.image_url ? (
+        <div className={`grid grid-cols-1 ${caterer.gallery_images && caterer.gallery_images.length > 0 ? 'lg:grid-cols-2' : ''} gap-8 mb-8`}>
+          {/* Left Column - Gallery */}
+          {caterer.gallery_images && caterer.gallery_images.length > 0 && (
+            <div className="flex flex-col h-full">
+              <div className="relative w-full aspect-[4/3] lg:aspect-auto lg:flex-1 lg:min-h-0 rounded-2xl overflow-hidden mb-4 cursor-pointer group"
+                onClick={() => setIsGalleryOpen(true)}>
                 <Image
-                  src={caterer.image_url}
-                  alt={caterer.name}
+                  src={caterer.gallery_images[currentImageIndex]}
+                  alt="Main Gallery Image"
                   fill
-                  className="object-contain"
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
                   unoptimized
                 />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-white font-bold text-xl">
-                  {logoText}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+                <div className="absolute bottom-4 right-4 bg-black/50 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-md flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="font-semibold">View Fullscreen</span>
+                </div>
+              </div>
+
+              {/* Thumbnails */}
+              {caterer.gallery_images && caterer.gallery_images.length > 1 && (
+                <div className="grid grid-cols-5 gap-2 flex-shrink-0">
+                  {caterer.gallery_images.slice(0, 5).map((img, idx) => (
+                    <div
+                      key={idx}
+                      className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-100 transition-all ${currentImageIndex === idx ? 'ring-2 ring-green-500 opacity-100' : 'opacity-70'
+                        }`}
+                      onClick={() => {
+                        setCurrentImageIndex(idx);
+                        if (idx === 4 && caterer.gallery_images && caterer.gallery_images.length > 5) {
+                          setIsGalleryOpen(true);
+                        }
+                      }}
+                    >
+                      <Image
+                        src={img}
+                        alt={`Thumbnail ${idx + 1}`}
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                      {idx === 4 && caterer.gallery_images && caterer.gallery_images.length > 5 && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-xs font-bold">
+                          +{caterer.gallery_images.length - 5}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Right Column - Caterer Info */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 h-fit">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <h1 className="text-3xl font-bold text-gray-900">
+                {caterer.name}
+              </h1>
+              <div className="relative w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100 border border-gray-200">
+                {caterer.image_url ? (
+                  <Image
+                    src={caterer.image_url}
+                    alt={caterer.name}
+                    fill
+                    className="object-contain"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-white font-bold text-2xl bg-green-500">
+                    {logoText}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Cuisines */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {caterer.cuisines.map((cuisine) => (
+                <span
+                  key={cuisine}
+                  className="text-xs font-medium bg-green-50 text-green-700 px-3 py-1 rounded-full"
+                >
+                  {cuisine}
+                </span>
+              ))}
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              {packages[0]?.rating && (
+                <div className="flex items-center gap-2 text-gray-700">
+                  <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                  <span className="font-semibold">
+                    {Number(packages[0].rating).toFixed(1)} <span className="text-gray-400 font-normal text-sm">Rating</span>
+                  </span>
+                </div>
+              )}
+              {caterer.location && (
+                <div className="flex items-center gap-2 text-gray-700">
+                  <MapPin className="w-5 h-5 text-gray-400" />
+                  <span className="text-sm font-medium">{caterer.location}</span>
+                </div>
+              )}
+              {(caterer.minimum_guests || caterer.maximum_guests) && (
+                <div className="flex items-center gap-2 text-gray-700 col-span-2">
+                  <Users className="w-5 h-5 text-gray-400" />
+                  <span className="text-sm">
+                    Capacity: <span className="font-semibold">{caterer.minimum_guests || 0} - {caterer.maximum_guests || 'Unlimited'}</span> guests
+                  </span>
                 </div>
               )}
             </div>
 
-            {/* Info */}
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                {caterer.name}
-              </h1>
-
-              {/* Cuisines */}
-              <div className="flex flex-wrap gap-2 mb-3">
-                {caterer.cuisines.map((cuisine) => (
-                  <span
-                    key={cuisine}
-                    className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full"
-                  >
-                    {cuisine}
-                  </span>
-                ))}
-              </div>
-
-              {/* Stats */}
-              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                {packages[0]?.rating && (
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                    <span className="font-medium text-gray-900">
-                      {Number(packages[0].rating).toFixed(1)}
-                    </span>
-                  </div>
-                )}
-                {caterer.location && (
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4 text-gray-400" />
-                    <span>{caterer.location}</span>
-                  </div>
-                )}
-                {(caterer.minimum_guests || caterer.maximum_guests) && (
-                  <div className="flex items-center gap-1">
-                    <Users className="w-4 h-4 text-gray-400" />
-                    <span>
-                      {caterer.minimum_guests && `${caterer.minimum_guests}`}
-                      {caterer.minimum_guests && caterer.maximum_guests && ' - '}
-                      {caterer.maximum_guests && `${caterer.maximum_guests}`} guests
-                    </span>
-                  </div>
-                )}
-              </div>
-
+            <div className="border-t border-gray-100 my-4 pt-4">
               {/* Description */}
               {caterer.description && (
-                <p className="text-sm text-gray-600 mt-3 line-clamp-2">
+                <p className="text-gray-600 text-sm leading-relaxed mb-4">
                   {caterer.description}
                 </p>
               )}
+            </div>
 
-              {/* Price Range */}
-              <p className="font-semibold text-gray-900 mt-3">
-                {caterer.priceRange}
-              </p>
+            {/* Service & Price */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500">Price Range</span>
+                <span className="font-bold text-gray-900">{caterer.priceRange}</span>
+              </div>
 
-              {/* Service Types */}
-              <div className="flex flex-wrap gap-2 mt-3">
+              <div className="flex flex-wrap gap-2">
                 {caterer.delivery_only && (
-                  <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full flex items-center gap-1">
-                    <ChefHat className="w-3 h-3" /> Delivery
+                  <span className="text-xs border border-blue-100 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                    <ChefHat className="w-3.5 h-3.5" /> Delivery
                   </span>
                 )}
                 {caterer.delivery_plus_setup && (
-                  <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full flex items-center gap-1">
-                    <ChefHat className="w-3 h-3" /> Setup
+                  <span className="text-xs border border-blue-100 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                    <ChefHat className="w-3.5 h-3.5" /> Setup
                   </span>
                 )}
                 {caterer.full_service && (
-                  <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full flex items-center gap-1">
-                    <ChefHat className="w-3 h-3" /> Full Service
+                  <span className="text-xs border border-blue-100 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                    <ChefHat className="w-3.5 h-3.5" /> Full Service
                   </span>
                 )}
               </div>
             </div>
           </div>
         </div>
-
-        {/* Gallery Images */}
-        {caterer.gallery_images && caterer.gallery_images.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Gallery</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {caterer.gallery_images.map((imageUrl, index) => (
-                <div key={index} className="relative aspect-square overflow-hidden rounded-lg group cursor-pointer">
-                  <Image
-                    src={imageUrl}
-                    alt={`Gallery image ${index + 1}`}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    unoptimized
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Tabs */}
         <div className="bg-white rounded-xl border border-gray-200 p-1 mb-6">
           <div className="flex gap-1">
-            {[ 
+            {[
               { id: 'packages', label: 'Set Menus' },
               { id: 'buildOwn', label: 'Build Your Own' },
               { id: 'requestQuote', label: 'Customized Menu' },
@@ -778,8 +909,8 @@ export default function CatererDetailPage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
                 className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition ${activeTab === tab.id
-                    ? 'bg-green-600 text-white shadow-sm'
-                    : 'text-gray-600 hover:bg-gray-50'
+                  ? 'bg-green-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-50'
                   }`}
               >
                 {tab.label}
@@ -834,367 +965,605 @@ export default function CatererDetailPage() {
           </div>
         )}
 
-        {/* Tab Content */}
+        {/* Tab Content - Two Column Layout */}
         {activeTab === 'packages' && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                {fixedPackages.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">
-                    No fixed menu packages available from this caterer.
-                  </p>
-                ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {fixedPackages.map((pkg) => {
-                  const isSelected = selectedPackage?.id === pkg.id;
-                  const totalPrice = calculatePrice(pkg);
-                  const pricePerPerson = calculatePricePerPerson(pkg);
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - Packages */}
+            <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6">
+              {fixedPackages.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">
+                  No fixed menu packages available from this caterer.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {fixedPackages.map((pkg) => {
+                    const isSelected = selectedPackage?.id === pkg.id;
+                    const totalPrice = calculatePrice(pkg);
+                    const pricePerPerson = calculatePricePerPerson(pkg);
 
-                  // Get menu summary
-                  const menuSummary: { [key: string]: string[] } = {};
-                  if (pkg.items) {
-                    pkg.items.forEach((item: any) => {
-                      const categoryName = item.dish?.category?.name || 'Other';
-                      if (!menuSummary[categoryName]) {
-                        menuSummary[categoryName] = [];
-                      }
-                      menuSummary[categoryName].push(item.dish?.name || 'Unknown');
-                    });
-                  }
-
-                  return (
-                    <div
-                        key={pkg.id}
-                      onClick={() => setSelectedPackage(pkg)}
-                      className={`relative border-2 rounded-xl p-5 cursor-pointer transition-all ${
-                        isSelected
-                          ? 'border-green-500 bg-green-50 shadow-md'
-                          : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
-                      }`}
-                    >
-                      {/* Selection indicator */}
-                      {isSelected && (
-                        <div className="absolute top-3 right-3 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                          <Check className="w-4 h-4 text-white" />
-                  </div>
-                )}
-
-                      {/* Package Header */}
-                      <div className="flex items-start justify-between mb-3 pr-8">
-                        <div>
-                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                            Fixed Package
-                          </span>
-                          <h3 className="font-semibold text-lg text-gray-900 mt-2">
-                            {pkg.name}
-                          </h3>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xl font-bold text-gray-900">
-                            {pkg.is_custom_price ? (
-                              <>AED {Number(pkg.total_price).toLocaleString()}</>
-                            ) : (
-                              <>AED {pricePerPerson.toLocaleString()}</>
-                            )}
-                          </p>
-                          {!pkg.is_custom_price && (
-                            <p className="text-xs text-gray-500">per person</p>
-                          )}
-              </div>
-            </div>
-
-                      {/* Menu Items */}
-                      {Object.keys(menuSummary).length > 0 && (
-                        <div className="space-y-2 mb-4 text-sm text-gray-600">
-                          {Object.entries(menuSummary).slice(0, 5).map(([category, items]) => (
-                            <div key={category} className="flex items-start gap-2">
-                              <span className="text-green-600">•</span>
-                              <span>
-                                <span className="font-medium text-gray-700">{category}:</span>{' '}
-                                {items.slice(0, 3).join(', ')}
-                                {items.length > 3 && ` +${items.length - 3} more`}
-                              </span>
-            </div>
-                          ))}
-                          {Object.keys(menuSummary).length > 5 && (
-                            <p className="text-gray-400 text-xs italic pl-4">
-                              +{Object.keys(menuSummary).length - 5} more categories
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Price Summary */}
-                      <div className="border-t border-gray-100 pt-4">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Total for {guestCount} guests:</span>
-                          <span className="font-bold text-gray-900">AED {totalPrice.toLocaleString()}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'buildOwn' && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                {customizablePackages.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">
-                    No customizable menu packages available from this caterer.
-                  </p>
-                ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {customizablePackages.map((pkg) => {
-                  const isSelected = selectedCustomizablePackage?.id === pkg.id;
-                  const totalPrice = calculatePrice(pkg);
-                  const pricePerPerson = calculatePricePerPerson(pkg);
-
-                  // Get menu summary
-                  const menuSummary: { [key: string]: string[] } = {};
-                  if (pkg.items) {
-                    pkg.items.forEach((item: any) => {
-                      const categoryName = item.dish?.category?.name || 'Other';
-                      if (!menuSummary[categoryName]) {
-                        menuSummary[categoryName] = [];
-                      }
-                      menuSummary[categoryName].push(item.dish?.name || 'Unknown');
-                    });
-                  }
-
-                  return (
-                    <div
-                        key={pkg.id}
-                      onClick={() => setSelectedCustomizablePackage(pkg)}
-                      className={`relative border-2 rounded-xl p-5 cursor-pointer transition-all ${
-                        isSelected
-                          ? 'border-green-500 bg-green-50 shadow-md'
-                          : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
-                      }`}
-                    >
-                      {/* Selection indicator */}
-                      {isSelected && (
-                        <div className="absolute top-3 right-3 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                          <Check className="w-4 h-4 text-white" />
-                        </div>
-                      )}
-
-                      {/* Package Header */}
-                      <div className="flex items-start justify-between mb-3 pr-8">
-                        <div>
-                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                            Customizable
-                          </span>
-                          <h3 className="font-semibold text-lg text-gray-900 mt-2">
-                            {pkg.name}
-                          </h3>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xl font-bold text-gray-900">
-                            {pkg.is_custom_price ? (
-                              <>AED {Number(pkg.total_price).toLocaleString()}</>
-                            ) : (
-                              <>AED {pricePerPerson.toLocaleString()}</>
-                            )}
-                          </p>
-                          {!pkg.is_custom_price && (
-                            <p className="text-xs text-gray-500">per person</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Description */}
-                      {pkg.description && (
-                        <p className="text-sm text-gray-600 mb-3">{pkg.description}</p>
-                      )}
-
-                      {/* Menu Items */}
-                      {Object.keys(menuSummary).length > 0 && (
-                        <div className="space-y-2 mb-4 text-sm text-gray-600">
-                          {Object.entries(menuSummary).slice(0, 5).map(([category, items]) => (
-                            <div key={category} className="flex items-start gap-2">
-                              <span className="text-blue-600">•</span>
-                              <span>
-                                <span className="font-medium text-gray-700">{category}:</span>{' '}
-                                {items.slice(0, 3).join(', ')}
-                                {items.length > 3 && ` +${items.length - 3} more`}
-                              </span>
-                            </div>
-                          ))}
-                          {Object.keys(menuSummary).length > 5 && (
-                            <p className="text-gray-400 text-xs italic pl-4">
-                              +{Object.keys(menuSummary).length - 5} more categories
-                            </p>
-                          )}
-                  </div>
-                )}
-
-                      {/* Price Summary */}
-                      <div className="border-t border-gray-100 pt-4">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">
-                            {pkg.is_custom_price ? 'Total:' : `Total for ${guestCount} guests:`}
-                          </span>
-                          <span className="font-bold text-gray-900">AED {totalPrice.toLocaleString()}</span>
-              </div>
-            </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Dish Selection Section - Shows when a customizable package is selected */}
-            {selectedCustomizablePackage && (
-              <div className="mt-6 bg-white rounded-xl border border-gray-200 p-6">
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Select Your Dishes
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    {selectedCustomizablePackage.category_selections && selectedCustomizablePackage.category_selections.length > 0
-                      ? 'Choose dishes from each category according to the limits set by the caterer'
-                      : 'Select any dishes you want from the menu below'}
-                  </p>
-            </div>
-
-                {loadingDishes ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-3"></div>
-                      <p className="text-gray-500 text-sm">Loading dishes...</p>
-          </div>
-                  </div>
-                ) : Object.keys(groupedDishesByCategory).length === 0 ? (
-                  <div className="text-center py-12">
-                    <p className="text-gray-500 mb-2">
-                      {selectedCustomizablePackage.category_selections && selectedCustomizablePackage.category_selections.length > 0
-                        ? 'No dishes available for this package. Please contact the caterer.'
-                        : 'No dishes available for selection.'}
-                    </p>
-                    {selectedCustomizablePackage.items && selectedCustomizablePackage.items.length === 0 && (
-                      <p className="text-gray-400 text-sm">
-                        This package has no dishes configured.
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <>
-
-                {/* Dietary Preferences Filters */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Dietary Preferences
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {['Gluten Free', 'Vegan', 'Sugar Free', 'Guilt Free', 'Dairy Free', 'Nuts Free'].map((pref) => {
-                      const isSelected = dietaryFilters.has(pref);
-                      return (
-                        <button
-                          key={pref}
-                          type="button"
-                          onClick={() => {
-                            const newFilters = new Set(dietaryFilters);
-                            if (isSelected) {
-                              newFilters.delete(pref);
-                            } else {
-                              newFilters.add(pref);
-                            }
-                            setDietaryFilters(newFilters);
-                          }}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
-                            isSelected
-                              ? 'bg-green-100 text-green-700 border border-green-300'
-                              : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                          }`}
-                        >
-                          {pref}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Dishes by Category */}
-                <div className="space-y-4">
-                  {Object.entries(groupedDishesByCategory).map(([categoryName, items]) => {
-                    const selectedCount = getSelectedCountForCategory(categoryName);
-                    const limit = categoryLimits[categoryName];
-                    const hasLimits = selectedCustomizablePackage.category_selections && selectedCustomizablePackage.category_selections.length > 0;
-                    const canSelectMore = canSelectMoreInCategory(categoryName);
+                    // Get menu summary
+                    const menuSummary: { [key: string]: string[] } = {};
+                    if (pkg.items) {
+                      pkg.items.forEach((item: any) => {
+                        const categoryName = item.dish?.category?.name || 'Other';
+                        if (!menuSummary[categoryName]) {
+                          menuSummary[categoryName] = [];
+                        }
+                        menuSummary[categoryName].push(item.dish?.name || 'Unknown');
+                      });
+                    }
 
                     return (
-                      <div key={categoryName} className="border border-gray-200 rounded-lg overflow-hidden">
-                        {/* Category Header */}
-                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="font-semibold text-gray-900">{categoryName}</h4>
-                              {hasLimits && limit !== undefined && (
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Select {limit === null ? 'any dishes' : `up to ${limit} dish${limit === 1 ? '' : 'es'}`} from this category
-                                </p>
-                              )}
-                            </div>
-                            <span className={`text-sm font-medium ${
-                              selectedCount > 0 ? 'text-green-600' : 'text-gray-500'
-                            }`}>
-                              {hasLimits && limit !== undefined
-                                ? `${selectedCount} / ${limit === null ? items.length : limit} selected`
-                                : `${selectedCount} selected`}
+                      <div
+                        key={pkg.id}
+                        onClick={() => setSelectedPackage(pkg)}
+                        className={`relative border-2 rounded-xl p-5 cursor-pointer transition-all ${isSelected
+                          ? 'border-green-500 bg-green-50 shadow-md'
+                          : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+                          }`}
+                      >
+                        {/* Selection indicator */}
+                        {isSelected && (
+                          <div className="absolute top-3 right-3 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                            <Check className="w-4 h-4 text-white" />
+                          </div>
+                        )}
+
+                        {/* Package Header */}
+                        <div className="flex items-start justify-between mb-3 pr-8">
+                          <div>
+                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                              Fixed Package
                             </span>
+                            <h3 className="font-semibold text-lg text-gray-900 mt-2">
+                              {pkg.name}
+                            </h3>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-gray-900">
+                              {pkg.is_custom_price ? (
+                                <>AED {Number(pkg.total_price).toLocaleString()}</>
+                              ) : (
+                                <>AED {pricePerPerson.toLocaleString()}</>
+                              )}
+                            </p>
+                            {!pkg.is_custom_price && (
+                              <p className="text-xs text-gray-500">per person</p>
+                            )}
                           </div>
                         </div>
 
-                        {/* Dishes List */}
-                        <div className="divide-y divide-gray-100">
-                          {items.map((item: any) => {
-                            const dishId = item.dish?.id;
-                            const isSelected = selectedDishes.has(dishId);
-                            const isDisabled = !isSelected && !canSelectMore;
-                            const dishPrice = Number(item.price_at_time || item.dish?.price || 0);
-                            const quantity = item.quantity || 1;
-
-                            return (
-                              <div
-                                key={item.id || dishId}
-                                onClick={() => !isDisabled && dishId && toggleDish(dishId, categoryName)}
-                                className={`px-4 py-3 flex items-center justify-between ${
-                                  !isDisabled ? 'cursor-pointer hover:bg-gray-50' : ''
-                                } ${isSelected ? 'bg-green-50' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                              >
-                                <div className="flex-1">
-                                  <p className="text-sm font-medium text-gray-900">
-                                    {item.dish?.name || 'Unknown'}
-                                  </p>
-                                  {quantity > 1 && (
-                                    <p className="text-xs text-gray-500">Quantity: {quantity}</p>
-                                  )}
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    AED {dishPrice.toLocaleString()} per person
-                                  </p>
-                                </div>
-                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 ${
-                                  isSelected
-                                    ? 'bg-green-600 border-green-600'
-                                    : isDisabled
-                                    ? 'border-gray-200 bg-gray-100'
-                                    : 'border-gray-300'
-                                }`}>
-                                  {isSelected && <Check className="w-3 h-3 text-white" />}
-                                </div>
+                        {/* Menu Items */}
+                        {Object.keys(menuSummary).length > 0 && (
+                          <div className="space-y-2 mb-4 text-sm text-gray-600">
+                            {Object.entries(menuSummary).slice(0, 5).map(([category, items]) => (
+                              <div key={category} className="flex items-start gap-2">
+                                <span className="text-green-600">•</span>
+                                <span>
+                                  <span className="font-medium text-gray-700">{category}:</span>{' '}
+                                  {items.slice(0, 3).join(', ')}
+                                  {items.length > 3 && ` +${items.length - 3} more`}
+                                </span>
                               </div>
-                            );
-                          })}
+                            ))}
+                            {Object.keys(menuSummary).length > 5 && (
+                              <p className="text-gray-400 text-xs italic pl-4">
+                                +{Object.keys(menuSummary).length - 5} more categories
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Price Summary */}
+                        <div className="border-t border-gray-100 pt-4">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">Total for {guestCount} guests:</span>
+                            <span className="font-bold text-gray-900">AED {totalPrice.toLocaleString()}</span>
+                          </div>
                         </div>
                       </div>
                     );
                   })}
                 </div>
-                  </>
+              )}
+            </div>
+
+            {/* Right Column - Event Details */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-xl border border-gray-200 p-6 sticky top-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Event Details</h3>
+
+                {/* Event Date */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Calendar className="w-4 h-4 inline mr-1" />
+                    Event Date
+                  </label>
+                  <input
+                    type="date"
+                    value={eventDate}
+                    onChange={(e) => setEventDate(e.target.value)}
+                    min={getMinEventDate()}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  />
+                </div>
+
+                {/* Event Time */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Clock className="w-4 h-4 inline mr-1" />
+                    Event Time
+                  </label>
+                  <select
+                    value={eventTime}
+                    onChange={(e) => setEventTime(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  >
+                    <option value="">Select time</option>
+                    {['10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
+                      '12:00 PM', '12:30 PM', '1:00 PM', '1:30 PM',
+                      '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM',
+                      '4:00 PM', '4:30 PM', '5:00 PM', '5:30 PM',
+                      '6:00 PM', '6:30 PM', '7:00 PM', '7:30 PM',
+                      '8:00 PM', '8:30 PM', '9:00 PM'].map((time) => (
+                        <option key={time} value={time}>{time}</option>
+                      ))}
+                  </select>
+                </div>
+
+                {/* Event Type */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Event Type
+                  </label>
+                  <select
+                    value={eventType}
+                    onChange={(e) => setEventType(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  >
+                    <option value="">Select event type</option>
+                    {occasions.map((occasion) => (
+                      <option key={occasion.id} value={occasion.id}>
+                        {occasion.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Area */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <MapPin className="w-4 h-4 inline mr-1" />
+                    Area
+                  </label>
+                  <select
+                    value={area}
+                    onChange={(e) => setArea(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  >
+                    <option value="">Select area</option>
+                    {DUBAI_LOCATIONS.map((location) => (
+                      <option key={location} value={location}>
+                        {location}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Price Summary */}
+                {selectedPackage && (
+                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm text-gray-600">Total for {guestCount} guests</span>
+                      <span className="text-xl font-bold text-gray-900">
+                        AED {calculatePrice(selectedPackage).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
                 )}
+
+                {/* Add to Cart Button */}
+                <button
+                  onClick={handleAddToCart}
+                  disabled={addingToCart || !eventDate || !eventTime || !eventType || !area || !selectedPackage}
+                  className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {addingToCart ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-5 h-5" />
+                      Add to Cart
+                    </>
+                  )}
+                </button>
               </div>
-            )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'buildOwn' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - Packages */}
+            <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6">
+              {customizablePackages.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">
+                  No customizable menu packages available from this caterer.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {customizablePackages.map((pkg) => {
+                    const isSelected = selectedCustomizablePackage?.id === pkg.id;
+                    const totalPrice = calculatePrice(pkg);
+                    const pricePerPerson = calculatePricePerPerson(pkg);
+
+                    // Get menu summary
+                    const menuSummary: { [key: string]: string[] } = {};
+                    if (pkg.items) {
+                      pkg.items.forEach((item: any) => {
+                        const categoryName = item.dish?.category?.name || 'Other';
+                        if (!menuSummary[categoryName]) {
+                          menuSummary[categoryName] = [];
+                        }
+                        menuSummary[categoryName].push(item.dish?.name || 'Unknown');
+                      });
+                    }
+
+                    return (
+                      <div
+                        key={pkg.id}
+                        onClick={() => setSelectedCustomizablePackage(pkg)}
+                        className={`relative border-2 rounded-xl p-5 cursor-pointer transition-all ${isSelected
+                          ? 'border-green-500 bg-green-50 shadow-md'
+                          : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+                          }`}
+                      >
+                        {/* Selection indicator */}
+                        {isSelected && (
+                          <div className="absolute top-3 right-3 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                            <Check className="w-4 h-4 text-white" />
+                          </div>
+                        )}
+
+                        {/* Package Header */}
+                        <div className="flex items-start justify-between mb-3 pr-8">
+                          <div>
+                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                              Customizable
+                            </span>
+                            <h3 className="font-semibold text-lg text-gray-900 mt-2">
+                              {pkg.name}
+                            </h3>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-gray-900">
+                              {pkg.is_custom_price ? (
+                                <>AED {Number(pkg.total_price).toLocaleString()}</>
+                              ) : (
+                                <>AED {pricePerPerson.toLocaleString()}</>
+                              )}
+                            </p>
+                            {!pkg.is_custom_price && (
+                              <p className="text-xs text-gray-500">per person</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        {pkg.description && (
+                          <p className="text-sm text-gray-600 mb-3">{pkg.description}</p>
+                        )}
+
+                        {/* Menu Items */}
+                        {Object.keys(menuSummary).length > 0 && (
+                          <div className="space-y-2 mb-4 text-sm text-gray-600">
+                            {Object.entries(menuSummary).slice(0, 5).map(([category, items]) => (
+                              <div key={category} className="flex items-start gap-2">
+                                <span className="text-blue-600">•</span>
+                                <span>
+                                  <span className="font-medium text-gray-700">{category}:</span>{' '}
+                                  {items.slice(0, 3).join(', ')}
+                                  {items.length > 3 && ` +${items.length - 3} more`}
+                                </span>
+                              </div>
+                            ))}
+                            {Object.keys(menuSummary).length > 5 && (
+                              <p className="text-gray-400 text-xs italic pl-4">
+                                +{Object.keys(menuSummary).length - 5} more categories
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Price Summary */}
+                        <div className="border-t border-gray-100 pt-4">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">
+                              {pkg.is_custom_price ? 'Total:' : `Total for ${guestCount} guests:`}
+                            </span>
+                            <span className="font-bold text-gray-900">AED {totalPrice.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Dish Selection Section - Shows when a customizable package is selected */}
+              {selectedCustomizablePackage && (
+                <div className="mt-6 bg-white rounded-xl border border-gray-200 p-6">
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      Select Your Dishes
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {selectedCustomizablePackage.category_selections && selectedCustomizablePackage.category_selections.length > 0
+                        ? 'Choose dishes from each category according to the limits set by the caterer'
+                        : 'Select any dishes you want from the menu below'}
+                    </p>
+                  </div>
+
+                  {loadingDishes ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-3"></div>
+                        <p className="text-gray-500 text-sm">Loading dishes...</p>
+                      </div>
+                    </div>
+                  ) : Object.keys(groupedDishesByCategory).length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-gray-500 mb-2">
+                        {selectedCustomizablePackage.category_selections && selectedCustomizablePackage.category_selections.length > 0
+                          ? 'No dishes available for this package. Please contact the caterer.'
+                          : 'No dishes available for selection.'}
+                      </p>
+                      {selectedCustomizablePackage.items && selectedCustomizablePackage.items.length === 0 && (
+                        <p className="text-gray-400 text-sm">
+                          This package has no dishes configured.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+
+                      {/* Dietary Preferences Filters */}
+                      <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                          Dietary Preferences
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {['Gluten Free', 'Vegan', 'Sugar Free', 'Guilt Free', 'Dairy Free', 'Nuts Free'].map((pref) => {
+                            const isSelected = dietaryFilters.has(pref);
+                            return (
+                              <button
+                                key={pref}
+                                type="button"
+                                onClick={() => {
+                                  const newFilters = new Set(dietaryFilters);
+                                  if (isSelected) {
+                                    newFilters.delete(pref);
+                                  } else {
+                                    newFilters.add(pref);
+                                  }
+                                  setDietaryFilters(newFilters);
+                                }}
+                                className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${isSelected
+                                  ? 'bg-green-100 text-green-700 border border-green-300'
+                                  : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                                  }`}
+                              >
+                                {pref}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Dishes by Category */}
+                      <div className="space-y-4">
+                        {Object.entries(groupedDishesByCategory).map(([categoryName, items]) => {
+                          const selectedCount = getSelectedCountForCategory(categoryName);
+                          const limit = categoryLimits[categoryName];
+                          const hasLimits = selectedCustomizablePackage.category_selections && selectedCustomizablePackage.category_selections.length > 0;
+                          const canSelectMore = canSelectMoreInCategory(categoryName);
+
+                          return (
+                            <div key={categoryName} className="border border-gray-200 rounded-lg overflow-hidden">
+                              {/* Category Header */}
+                              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <h4 className="font-semibold text-gray-900">{categoryName}</h4>
+                                    {hasLimits && limit !== undefined && (
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        Select {limit === null ? 'any dishes' : `up to ${limit} dish${limit === 1 ? '' : 'es'}`} from this category
+                                      </p>
+                                    )}
+                                  </div>
+                                  <span className={`text-sm font-medium ${selectedCount > 0 ? 'text-green-600' : 'text-gray-500'
+                                    }`}>
+                                    {hasLimits && limit !== undefined
+                                      ? `${selectedCount} / ${limit === null ? items.length : limit} selected`
+                                      : `${selectedCount} selected`}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Dishes List */}
+                              <div className="divide-y divide-gray-100">
+                                {items.map((item: any) => {
+                                  const dishId = item.dish?.id;
+                                  const isSelected = selectedDishes.has(dishId);
+                                  const isDisabled = !isSelected && !canSelectMore;
+                                  const dishPrice = Number(item.price_at_time || item.dish?.price || 0);
+                                  const quantity = item.quantity || 1;
+
+                                  return (
+                                    <div
+                                      key={item.id || dishId}
+                                      onClick={() => !isDisabled && dishId && toggleDish(dishId, categoryName)}
+                                      className={`px-4 py-3 flex items-center justify-between ${!isDisabled ? 'cursor-pointer hover:bg-gray-50' : ''
+                                        } ${isSelected ? 'bg-green-50' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    >
+                                      <div className="flex-1">
+                                        <p className="text-sm font-medium text-gray-900">
+                                          {item.dish?.name || 'Unknown'}
+                                        </p>
+                                        {quantity > 1 && (
+                                          <p className="text-xs text-gray-500">Quantity: {quantity}</p>
+                                        )}
+                                        <p className="text-xs text-gray-500 mt-1">
+                                          AED {dishPrice.toLocaleString()} per person
+                                        </p>
+                                      </div>
+                                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 ${isSelected
+                                        ? 'bg-green-600 border-green-600'
+                                        : isDisabled
+                                          ? 'border-gray-200 bg-gray-100'
+                                          : 'border-gray-300'
+                                        }`}>
+                                        {isSelected && <Check className="w-3 h-3 text-white" />}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Right Column - Event Details */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-xl border border-gray-200 p-6 sticky top-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Event Details</h3>
+
+                {/* Event Date */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Calendar className="w-4 h-4 inline mr-1" />
+                    Event Date
+                  </label>
+                  <input
+                    type="date"
+                    value={eventDate}
+                    onChange={(e) => setEventDate(e.target.value)}
+                    min={getMinEventDate()}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  />
+                </div>
+
+                {/* Event Time */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Clock className="w-4 h-4 inline mr-1" />
+                    Event Time
+                  </label>
+                  <select
+                    value={eventTime}
+                    onChange={(e) => setEventTime(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  >
+                    <option value="">Select time</option>
+                    {['10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
+                      '12:00 PM', '12:30 PM', '1:00 PM', '1:30 PM',
+                      '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM',
+                      '4:00 PM', '4:30 PM', '5:00 PM', '5:30 PM',
+                      '6:00 PM', '6:30 PM', '7:00 PM', '7:30 PM',
+                      '8:00 PM', '8:30 PM', '9:00 PM'].map((time) => (
+                        <option key={time} value={time}>{time}</option>
+                      ))}
+                  </select>
+                </div>
+
+                {/* Event Type */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Event Type
+                  </label>
+                  <select
+                    value={eventType}
+                    onChange={(e) => setEventType(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  >
+                    <option value="">Select event type</option>
+                    {occasions.map((occasion) => (
+                      <option key={occasion.id} value={occasion.id}>
+                        {occasion.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Area */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <MapPin className="w-4 h-4 inline mr-1" />
+                    Area
+                  </label>
+                  <select
+                    value={area}
+                    onChange={(e) => setArea(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  >
+                    <option value="">Select area</option>
+                    {DUBAI_LOCATIONS.map((location) => (
+                      <option key={location} value={location}>
+                        {location}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Price Summary */}
+                {selectedCustomizablePackage && (
+                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm text-gray-600">Total for {guestCount} guests</span>
+                      <span className="text-xl font-bold text-gray-900">
+                        AED {calculatePrice(selectedCustomizablePackage).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Add to Cart Button */}
+                <button
+                  onClick={handleAddToCart}
+                  disabled={addingToCart || !eventDate || !eventTime || !eventType || !area || !selectedCustomizablePackage}
+                  className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {addingToCart ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-5 h-5" />
+                      Add to Cart
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -1215,8 +1584,8 @@ export default function CatererDetailPage() {
                     Event Type
                   </label>
                   <select
-                    value={eventType}
-                    onChange={(e) => setEventType(e.target.value)}
+                    value={quoteEventType}
+                    onChange={(e) => setQuoteEventType(e.target.value)}
                     className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                   >
                     <option value="">Select Event Type</option>
@@ -1249,8 +1618,8 @@ export default function CatererDetailPage() {
                   </label>
                   <input
                     type="date"
-                    value={eventDate}
-                    onChange={(e) => setEventDate(e.target.value)}
+                    value={quoteEventDate}
+                    onChange={(e) => setQuoteEventDate(e.target.value)}
                     className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
@@ -1307,8 +1676,8 @@ export default function CatererDetailPage() {
                             setDietaryPreferences(newPrefs);
                           }}
                           className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${isSelected
-                              ? 'bg-green-100 text-green-700 border border-green-300'
-                              : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                            ? 'bg-green-100 text-green-700 border border-green-300'
+                            : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
                             }`}
                         >
                           {pref}
@@ -1337,8 +1706,8 @@ export default function CatererDetailPage() {
                 onClick={handleRequestQuote}
                 disabled={submittingQuote}
                 className={`w-full py-3 rounded-lg font-medium transition ${submittingQuote
-                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    : 'bg-green-600 text-white hover:bg-green-700'
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-green-600 text-white hover:bg-green-700'
                   }`}
               >
                 {submittingQuote ? 'Submitting...' : 'Submit Quote Request'}
@@ -1347,55 +1716,84 @@ export default function CatererDetailPage() {
           </div>
         )}
 
-        {/* Fixed Bottom Bar - Add to Cart */}
-        {((activeTab === 'packages' && selectedPackage) || (activeTab === 'buildOwn' && selectedCustomizablePackage)) && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-40">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                  <p className="text-sm text-gray-500">
-                    {(() => {
-                      const pkg = activeTab === 'packages' ? selectedPackage : selectedCustomizablePackage;
-                      return pkg?.is_custom_price ? 'Total' : `Total for ${guestCount} guests`;
-                    })()}
-                  </p>
-                <p className="text-2xl font-bold text-gray-900">
-                    AED {(() => {
-                      const pkg = activeTab === 'packages' ? selectedPackage : selectedCustomizablePackage;
-                      return pkg ? calculatePrice(pkg).toLocaleString() : '0';
-                    })()}
-                </p>
-              </div>
-              <button
-                  onClick={handleAddToCart}
-                  disabled={addingToCart}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition ${
-                    addingToCart
-                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                      : 'bg-green-600 text-white hover:bg-green-700'
-                  }`}
-                >
-                  {addingToCart ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500"></div>
-                      Adding...
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart className="w-4 h-4" />
-                      Add to Cart
-                    </>
-                  )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       </div>
 
       {/* Toast */}
       {toast && (
         <Toast type={toast.type} message={toast.message} onClose={hideToast} />
+      )}
+      {/* Image Viewer Modal */}
+      {isGalleryOpen && caterer.gallery_images && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm"
+          onClick={() => setIsGalleryOpen(false)}
+        >
+          {/* Close button */}
+          <button
+            className="absolute top-4 right-4 text-white/70 hover:text-white p-2 z-50 transition-colors"
+            onClick={() => setIsGalleryOpen(false)}
+          >
+            <X size={32} />
+          </button>
+
+          <div
+            className="relative w-full max-w-6xl max-h-[90vh] flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Previous button */}
+            <button
+              className="absolute left-4 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed z-10"
+              onClick={(e) => {
+                e.stopPropagation();
+                const galleryImages = caterer.gallery_images;
+                if (galleryImages) {
+                  setCurrentImageIndex((prev) =>
+                    prev === 0 ? galleryImages.length - 1 : prev - 1
+                  );
+                }
+              }}
+            >
+              <ChevronLeft size={32} />
+            </button>
+
+            {/* Image */}
+            <div className="relative w-full h-[80vh]">
+              {caterer.gallery_images && (
+                <Image
+                  src={caterer.gallery_images[currentImageIndex]}
+                  alt={`Gallery image ${currentImageIndex + 1}`}
+                  fill
+                  className="object-contain select-none"
+                  priority
+                  unoptimized
+                />
+              )}
+            </div>
+
+            {/* Next button */}
+            <button
+              className="absolute right-4 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed z-10"
+              onClick={(e) => {
+                e.stopPropagation();
+                const galleryImages = caterer.gallery_images;
+                if (galleryImages) {
+                  setCurrentImageIndex((prev) =>
+                    prev === galleryImages.length - 1 ? 0 : prev + 1
+                  );
+                }
+              }}
+            >
+              <ChevronRight size={32} />
+            </button>
+
+            {/* Image counter */}
+            {caterer.gallery_images && (
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 px-4 py-1 rounded-full text-white text-sm backdrop-blur-md">
+                {currentImageIndex + 1} / {caterer.gallery_images.length}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </section>
   );

@@ -318,6 +318,9 @@ export const userApi = {
     location?: string;
     guests?: number;
     date?: string;
+    event_time?: string;
+    event_type?: string;
+    area?: string;
     price_at_time?: number;
   }) => {
     const response = await apiRequest<{ success: boolean; data: any }>(
