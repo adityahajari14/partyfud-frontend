@@ -183,7 +183,7 @@ export default function PackagesPage() {
     <>
       <Header
         onAddClick={catererStatus === 'PENDING' ? undefined : () => router.push('/caterer/packages/create')}
-        addButtonText={catererStatus === 'PENDING' ? 'Awaiting Approval' : '+ Create Menu'}
+        addButtonText={catererStatus === 'PENDING' ? 'Awaiting Approval' : '+ Create Package'}
         showAddButton={true}
       />
       <main className="flex-1 p-4 lg:p-6 pt-20 lg:pt-24 bg-gray-50 min-h-screen">

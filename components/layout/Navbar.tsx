@@ -103,48 +103,34 @@ export function Navbar() {
 
     return (
         <header className="w-full">
-            {/* Top Promo Bar */}
-            <div className="bg-black text-white text-sm px-6 py-2 flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                    ⭐ Get 5% Off your first order, Promo: <b>ORDERS</b>
-                </span>
-
-                <span className="flex items-center gap-1 text-gray-300">
-                    <MapPin size={14} />
-                    Palm Jumeirah, Dubai
-                    <button className="ml-1 underline text-white">Change</button>
-                </span>
-            </div>
-
             {/* Main Navbar */}
-            <div className="bg-white border-b border-gray-200 px-8 py-5 flex items-center justify-between relative">
+            <div className="bg-white border-b border-gray-200 px-8 py-2 flex items-center justify-between relative">
                 {/* Left - Logo */}
                 <div className="flex items-center">
                     <Link href="/" className="flex items-center gap-2">
                         <Image
                             src="/logo_partyfud.svg"
                             alt="PartyFud Logo"
-                            width={120}
-                            height={120}
+                            width={100}
+                            height={100}
                         />
                     </Link>
                 </div>
 
                 {/* Center - Nav Links */}
-                <nav className="hidden md:flex items-center gap-10 absolute left-1/2 transform -translate-x-1/2">
+                <nav className="hidden md:flex items-center gap-8 absolute left-1/2 transform -translate-x-1/2">
                     <Link
                         href="/"
-                        className={`text-base font-medium transition-colors duration-200 py-2 ${
-                            pathname === '/' 
-                                ? 'text-[#268700] font-semibold' 
-                                : 'text-gray-700 hover:text-[#268700]'
-                        }`}
+                        className={`text-sm font-medium transition-colors duration-200 py-2 ${pathname === '/'
+                            ? 'text-[#268700] font-semibold'
+                            : 'text-gray-700 hover:text-[#268700]'
+                            }`}
                     >
                         Home
                     </Link>
                     {/* <Link
                         href="/packages"
-                        className={`text-base font-medium transition-colors duration-200 py-2 ${
+                        className={`text-sm font-medium transition-colors duration-200 py-2 ${
                             pathname === '/packages' || pathname?.startsWith('/packages/')
                                 ? 'text-[#268700] font-semibold' 
                                 : 'text-gray-700 hover:text-[#268700]'
@@ -154,38 +140,37 @@ export function Navbar() {
                     </Link> */}
                     <Link
                         href="/caterers"
-                        className={`text-base font-medium transition-colors duration-200 py-2 ${
-                            pathname === '/caterers' || pathname?.startsWith('/caterers/')
-                                ? 'text-[#268700] font-semibold' 
-                                : 'text-gray-700 hover:text-[#268700]'
-                        }`}
+                        className={`text-sm font-medium transition-colors duration-200 py-2 ${pathname === '/caterers' || pathname?.startsWith('/caterers/')
+                            ? 'text-[#268700] font-semibold'
+                            : 'text-gray-700 hover:text-[#268700]'
+                            }`}
                     >
                         Caterers
                     </Link>
                 </nav>
 
                 {/* Right Section (Icons + User + Actions) */}
-                <div className="flex items-center gap-5 ml-auto">
+                <div className="flex items-center gap-4 ml-auto">
                     <Link
                         href="/cart"
                         className="relative text-gray-600 hover:text-[#268700] transition-colors"
                     >
-                        <ShoppingCart size={22} className="cursor-pointer" />
+                        <ShoppingCart size={20} className="cursor-pointer" />
                         {cartItemCount > 0 && (
                             <span className="absolute -top-2 -right-2 bg-[#268700] text-white text-xs font-semibold rounded-full w-5 h-5 flex items-center justify-center">
                                 {cartItemCount > 9 ? '9+' : cartItemCount}
                             </span>
                         )}
                     </Link>
-                    {/* <Mail className="text-gray-600 cursor-pointer hover:text-[#268700] transition-colors" size={22} /> */}
+                    {/* <Mail className="text-gray-600 cursor-pointer hover:text-[#268700] transition-colors" size={20} /> */}
 
                     {user ? (
                         <div className="relative" ref={dropdownRef}>
                             <button
                                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                className="w-10 h-10 rounded-full bg-[#268700] flex items-center justify-center cursor-pointer hover:bg-[#1f6b00] transition-all duration-200 shadow-sm hover:shadow-md"
+                                className="w-8 h-8 rounded-full bg-[#268700] flex items-center justify-center cursor-pointer hover:bg-[#1f6b00] transition-all duration-200 shadow-sm hover:shadow-md"
                             >
-                                <span className="text-white font-semibold">
+                                <span className="text-white font-semibold text-sm">
                                     {user.first_name?.[0]?.toUpperCase() || 'U'}
                                 </span>
                             </button>
@@ -265,10 +250,10 @@ export function Navbar() {
                     ) : (
                         <Link
                             href="/login"
-                            className="group flex items-center gap-2 text-gray-700 hover:text-[#268700] transition-all duration-200 font-bold py-2 px-3 rounded-xl hover:bg-gray-50 active:scale-95"
+                            className="group flex items-center gap-2 text-gray-700 hover:text-[#268700] transition-all duration-200 font-bold py-1.5 px-3 rounded-xl hover:bg-gray-50 active:scale-95"
                         >
-                            <div className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#268700]/10 group-hover:text-[#268700] transition-colors">
-                                <User size={18} />
+                            <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#268700]/10 group-hover:text-[#268700] transition-colors">
+                                <User size={16} />
                             </div>
                             <span className="text-sm whitespace-nowrap tracking-tight">Sign In</span>
                         </Link>
@@ -276,7 +261,7 @@ export function Navbar() {
 
                     <Link
                         href="/onboarding"
-                        className="bg-[#268700] text-white text-[11px] font-black uppercase tracking-widest px-8 py-3.5 rounded-xl hover:bg-[#1f6b00] transition-all duration-300 shadow-[0_10px_20px_-10px_rgba(38,135,0,0.3)] hover:shadow-[0_15px_25px_-10px_rgba(38,135,0,0.4)] active:scale-95"
+                        className="bg-[#268700] text-white text-[10px] font-black uppercase tracking-widest px-6 py-2.5 rounded-xl hover:bg-[#1f6b00] transition-all duration-300 shadow-[0_10px_20px_-10px_rgba(38,135,0,0.3)] hover:shadow-[0_15px_25px_-10px_rgba(38,135,0,0.4)] active:scale-95"
                     >
                         Partner with Us
                     </Link>

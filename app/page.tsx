@@ -13,8 +13,6 @@ import Testimonials from '@/components/home/Testimonials';
 import HowItWorks from '@/components/home/HowItWorks';
 
 export default function Home() {
-  // Home page is accessible to all users (USER, CATERER, ADMIN)
-  // Dashboard links are available in the Navbar for CATERER and ADMIN users
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -22,11 +20,11 @@ export default function Home() {
       <main>
         <Hero />
         <HowItWorks />
-        <Occasions />
         <EventTypes />
+        <Occasions />
         <WhyChoose />
-        <Caterers />
-        <Categories />
+        {/* <Caterers />
+        <Categories /> */}
         <Partner />
         <Testimonials />
       </main>
