@@ -366,7 +366,7 @@ export default function PackageDetailsPage() {
         selectedDishes.forEach((dishId) => {
             const dish = getAllDishesFromPackage().find(d => d.id === dishId);
             if (dish) {
-                total += Number(dish.price) * guests;
+                total += Math.round(Number(dish.price)) * guests;
             }
         });
         return total;
@@ -594,7 +594,7 @@ export default function PackageDetailsPage() {
                                                     <div className="flex-1">
                                                         <p className="font-medium text-gray-900">{dish.name}</p>
                                                         <p className="text-sm text-gray-600 flex items-center gap-1">
-                                                            {dish.cuisine_type?.name || 'Cuisine'} • <img src="/dirham.svg" alt="AED" className="w-3 h-3" />{Number(dish.price).toLocaleString()}/person
+                                                            {dish.cuisine_type?.name || 'Cuisine'} • <img src="/dirham.svg" alt="AED" className="w-3 h-3" />{Math.round(Number(dish.price)).toLocaleString()}/person
                                                         </p>
                                                     </div>
                                                     <div className="ml-4">

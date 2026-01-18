@@ -1,8 +1,7 @@
 'use client';
 
 import { Package } from '@/lib/api/user.api';
-import { Check, Eye } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Check } from 'lucide-react';
 
 interface PackageCardProps {
   pkg: Package;
@@ -10,7 +9,6 @@ interface PackageCardProps {
   onSelect: () => void;
   guestCount: number;
   showCustomBadge?: boolean;
-  catererId?: string;
 }
 
 export function PackageCard({
@@ -19,17 +17,7 @@ export function PackageCard({
   onSelect,
   guestCount,
   showCustomBadge = false,
-  catererId,
 }: PackageCardProps) {
-  const router = useRouter();
-
-  const handleViewAllDishes = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card selection
-    if (catererId) {
-      router.push(`/caterers/${catererId}/${pkg.id}`);
-    }
-  };
-  
   // Format menu items for display
   const getMenuSummary = () => {
     if (!pkg.items || pkg.items.length === 0) {
@@ -104,15 +92,6 @@ export function PackageCard({
               +{Object.keys(menuSummary).length - 4} more categories
             </p>
           )}
-          {catererId && (
-            <button
-              onClick={handleViewAllDishes}
-              className="flex items-center gap-1.5 mt-2 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              View all dishes
-            </button>
-          )}
         </div>
       )}
 
@@ -120,15 +99,19 @@ export function PackageCard({
       <div className="border-t border-gray-100 pt-3 mt-auto">
         <div className="flex items-baseline justify-between">
           <div>
-            <p className="text-xs text-gray-500 mb-0.5">Starting from</p>
+            {!pkg.is_custom_price && (
+              <p className="text-xs text-gray-500 mb-0.5">Starting from</p>
+            )}
             <span className="text-lg font-bold text-gray-900">
-              AED {typeof pkg.total_price === 'number' ? pkg.total_price.toLocaleString() : parseFloat(pkg.total_price || '0').toLocaleString()}
+              AED {typeof pkg.total_price === 'number' ? pkg.total_price.toLocaleString() : parseInt(String(pkg.total_price || '0'), 10).toLocaleString()}
             </span>
           </div>
         </div>
-        <p className="text-xs text-gray-500 mt-1">
-          For minimum {(pkg as any).minimum_people || (pkg as any).people_count || 1} people
-        </p>
+        {!pkg.is_custom_price && (
+          <p className="text-xs text-gray-500 mt-1">
+            For minimum {(pkg as any).minimum_people || (pkg as any).people_count || 1} people
+          </p>
+        )}
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { userApi } from '@/lib/api/user.api';
+import { cartStorage } from '@/lib/utils/cartStorage';
 
 // Main Navbar component for the application
 export function Navbar() {
@@ -57,7 +58,9 @@ export function Navbar() {
     useEffect(() => {
         const fetchCartCount = async () => {
             if (!user) {
-                setCartItemCount(0);
+                // For non-authenticated users, get count from localStorage
+                const localItems = cartStorage.getItems();
+                setCartItemCount(localItems.length);
                 return;
             }
 
@@ -76,7 +79,26 @@ export function Navbar() {
         // Refresh cart count periodically (every 5 seconds)
         const interval = setInterval(fetchCartCount, 5000);
 
-        return () => clearInterval(interval);
+        // Listen for storage events (when cart is updated in another tab/window)
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'partyfud_cart_items') {
+                fetchCartCount();
+            }
+        };
+
+        // Listen for custom cart update events (when cart is updated in same tab)
+        const handleCartUpdate = () => {
+            fetchCartCount();
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        window.addEventListener('cartUpdated', handleCartUpdate);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('storage', handleStorageChange);
+            window.removeEventListener('cartUpdated', handleCartUpdate);
+        };
     }, [user]);
 
     return (

@@ -48,7 +48,8 @@ export interface Package {
   minimum_people: number; // Minimum number of people for this package
   people_count?: number; // Legacy field - kept for backward compatibility during migration
   cover_image_url?: string;
-  total_price: number; // Starting price calculated from dishes × minimum_people × quantity
+  total_price: number; // Price set by caterer or calculated from dishes × minimum_people × quantity
+  is_custom_price?: boolean; // True if price was manually set by caterer (won't scale with guest count)
   price_per_person?: number; // Calculated field: total_price / minimum_people (for backward compatibility)
   currency: string;
   rating?: number;

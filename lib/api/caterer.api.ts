@@ -54,7 +54,8 @@ export interface Package {
   name: string;
   people_count: number;
   cover_image_url?: string;
-  total_price: number;
+  total_price: number; // Price set by caterer or calculated from dishes
+  is_custom_price?: boolean; // True if price was manually set by caterer (won't scale with guest count)
   currency: string;
   rating?: number;
   is_active: boolean;
@@ -74,7 +75,8 @@ export interface CreatePackageRequest {
   name: string;
   minimum_people?: number; // Optional - defaults to caterer's minimum_guests
   cover_image_url?: string;
-  total_price?: number; // Optional - will be calculated from items automatically
+  total_price?: number; // Optional - if provided, this price is used (regardless of number of people); if not provided, will be calculated from items
+  is_custom_price?: boolean; // True if total_price was manually set by caterer (won't scale with guest count)
   currency?: string;
   // rating?: number;
   occassion: string[];
@@ -91,7 +93,8 @@ export interface UpdatePackageRequest {
   description?: string;
   minimum_people?: number; // Optional - defaults to caterer's minimum_guests
   cover_image_url?: string;
-  total_price?: number; // Optional - will be recalculated from items automatically
+  total_price?: number; // Optional - if provided, this price is used (regardless of number of people); if not provided, will be recalculated from items
+  is_custom_price?: boolean; // True if total_price was manually set by caterer (won't scale with guest count)
   currency?: string;
   rating?: number;
   occassion?: string[];
@@ -277,9 +280,12 @@ export const catererApi = {
     if (data.minimum_people !== undefined) {
       formData.append('minimum_people', data.minimum_people.toString());
     }
-    // total_price is optional and will be calculated from items if not provided
-    if (data.total_price !== undefined) {
+    // total_price is optional - if provided, this price is used; if not provided, will be calculated from items
+    if (data.total_price !== undefined && data.total_price !== null) {
       formData.append('total_price', data.total_price.toString());
+      formData.append('is_custom_price', 'true'); // Mark as custom price
+    } else {
+      formData.append('is_custom_price', 'false'); // Not a custom price, calculate from items
     }
     if (data.currency) {
       formData.append('currency', data.currency);
@@ -337,8 +343,16 @@ export const catererApi = {
     if (data.minimum_people !== undefined) {
       formData.append('minimum_people', data.minimum_people.toString());
     }
-    if (data.total_price !== undefined) {
+    // Handle total_price and is_custom_price
+    if (data.is_custom_price !== undefined) {
+      formData.append('is_custom_price', data.is_custom_price.toString());
+      if (data.is_custom_price && data.total_price !== undefined && data.total_price !== null) {
+        formData.append('total_price', data.total_price.toString());
+      }
+    } else if (data.total_price !== undefined && data.total_price !== null) {
+      // Legacy: if total_price is provided but is_custom_price is not, assume it's custom
       formData.append('total_price', data.total_price.toString());
+      formData.append('is_custom_price', 'true');
     }
     if (data.currency !== undefined) {
       formData.append('currency', data.currency);
@@ -355,8 +369,11 @@ export const catererApi = {
     if (data.cover_image_url !== undefined) {
       formData.append('cover_image_url', data.cover_image_url);
     }
-    if (data.package_item_ids && data.package_item_ids.length > 0) {
-      formData.append('package_item_ids', data.package_item_ids.join(','));
+    // Always send package_item_ids (empty array for CUSTOMISABLE packages means all dishes available)
+    if (data.package_item_ids !== undefined) {
+      formData.append('package_item_ids', data.package_item_ids.length > 0 
+        ? data.package_item_ids.join(',') 
+        : '');
     }
     if (data.customisation_type !== undefined) {
       formData.append('customisation_type', data.customisation_type);

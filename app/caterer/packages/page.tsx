@@ -273,7 +273,7 @@ export default function PackagesPage() {
                         <div className="text-right">
                           <p className="text-xs text-gray-500 mb-0.5">Starting from</p>
                           <p className="text-xl font-bold text-gray-900">
-                            {pkg.currency} {typeof pkg.total_price === 'number' ? pkg.total_price.toFixed(2) : parseFloat(pkg.total_price || '0').toFixed(2)}
+                            {pkg.currency} {typeof pkg.total_price === 'number' ? pkg.total_price.toLocaleString() : parseInt(String(pkg.total_price || '0'), 10).toLocaleString()}
                           </p>
                         </div>
                       </div>

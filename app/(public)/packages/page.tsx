@@ -673,7 +673,7 @@ export default function PackagesPage() {
                                                     <div>
                                                         <div className="text-xs text-gray-500 mb-0.5">Starting from</div>
                                                         <div className="text-2xl font-black text-gray-900">
-                                                            AED {typeof pkg.price === 'number' ? pkg.price.toLocaleString() : parseFloat(pkg.price || '0').toLocaleString()}
+                                                            AED {typeof pkg.price === 'number' ? pkg.price.toLocaleString() : parseInt(String(pkg.price || '0'), 10).toLocaleString()}
                                                         </div>
                                                         <div className="text-xs text-gray-400 font-medium mt-0.5">for {minimumPeople} people</div>
                                                     </div>

@@ -1,14 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { userApi } from '@/lib/api/user.api';
 import { useAuth } from '@/contexts/AuthContext';
-import { Trash2, ShoppingBag, Calendar, MapPin, Users, ChevronRight, Lock } from 'lucide-react';
+import { Trash2, ShoppingBag, Users, ChevronRight, Lock, Minus, Plus } from 'lucide-react';
 import { Toast, useToast } from '@/components/ui/Toast';
-import { formatDate } from '@/lib/constants';
 
 interface CartItem {
   id: string;
@@ -26,9 +25,7 @@ interface CartItem {
       name?: string;
     };
   };
-  location: string | null;
   guests: number | null;
-  date: Date | string | null;
   price_at_time: number | null;
   created_at: Date | string;
   updated_at: Date | string;
@@ -41,6 +38,7 @@ export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading) {
@@ -92,6 +90,8 @@ export default function CartPage() {
       }
       setCartItems((prev) => prev.filter((item) => item.id !== itemId));
       showToast('success', 'Item removed from cart');
+      // Dispatch event to update cart count in navbar
+      window.dispatchEvent(new Event('cartUpdated'));
     } catch (err) {
       showToast('error', 'Failed to remove item');
     } finally {
@@ -99,8 +99,51 @@ export default function CartPage() {
     }
   };
 
-  const handleCheckout = () => {
+  const handleUpdateGuests = async (itemId: string, newGuests: number) => {
+    if (newGuests < 1) return;
+    
+    setUpdatingId(itemId);
+    try {
+      const item = cartItems.find(i => i.id === itemId);
+      if (!item) return;
+
+      const pricePerPerson = item.package.price_per_person || 
+        (item.package.total_price / (item.package.people_count || 1));
+      const newPrice = Math.round(pricePerPerson * newGuests);
+
+      if (user) {
+        // Update on server for authenticated users
+        const res = await userApi.updateCartItem(itemId, {
+          guests: newGuests,
+          price_at_time: newPrice,
+        });
+        if (res.error) {
+          showToast('error', res.error);
+          return;
+        }
+      } else {
+        // Update in localStorage for non-authenticated users
+        const { cartStorage } = await import('@/lib/utils/cartStorage');
+        cartStorage.updateGuestCount(itemId, newGuests, newPrice);
+      }
+
+      setCartItems((prev) =>
+        prev.map((item) =>
+          item.id === itemId
+            ? { ...item, guests: newGuests, price_at_time: newPrice }
+            : item
+        )
+      );
+    } catch (err) {
+      showToast('error', 'Failed to update guests');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleCheckout = async () => {
     if (!user) {
+      // Sync localStorage cart to server after login
       showToast('error', 'Please log in to proceed to checkout');
       router.push(`/login?redirect=${encodeURIComponent('/checkout')}`);
       return;
@@ -114,9 +157,17 @@ export default function CartPage() {
     router.push('/checkout');
   };
 
-  const subtotal = cartItems.reduce((sum, item) => {
-    return sum + (item.price_at_time || item.package.total_price || 0);
-  }, 0);
+  // Calculate price for an item
+  const calculateItemPrice = (item: CartItem) => {
+    const guests = item.guests || item.package.people_count || 1;
+    const pricePerPerson = item.package.price_per_person || 
+      (item.package.total_price / (item.package.people_count || 1));
+    return Math.round(pricePerPerson * guests);
+  };
+
+  const subtotal = useMemo(() => {
+    return cartItems.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+  }, [cartItems]);
 
   if (loading || authLoading) {
     return (
@@ -179,89 +230,99 @@ export default function CartPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-4">
-              {cartItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition"
-                >
-                  <div className="flex flex-col sm:flex-row">
-                    {/* Image */}
-                    <div className="relative w-full sm:w-40 h-40 sm:h-auto shrink-0 bg-gray-50">
-                      <Image
-                        src={item.package.cover_image_url || '/logo2.svg'}
-                        alt={item.package.name}
-                        fill
-                        className="object-contain p-2"
-                      />
-                    </div>
+              {cartItems.map((item) => {
+                const guests = item.guests || item.package.people_count || 1;
+                const pricePerPerson = item.package.price_per_person || 
+                  (item.package.total_price / (item.package.people_count || 1));
+                const totalPrice = calculateItemPrice(item);
 
-                    {/* Content */}
-                    <div className="flex-1 p-4 sm:p-5">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-semibold text-gray-900">
-                            {item.package.name}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            {item.package.caterer?.business_name || item.package.caterer?.name || 'Caterer'}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          disabled={deletingId === item.id}
-                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
-                          title="Remove"
-                        >
-                          {deletingId === item.id ? (
-                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-500"></div>
-                          ) : (
-                            <Trash2 className="w-5 h-5" />
-                          )}
-                        </button>
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition"
+                  >
+                    <div className="flex flex-col sm:flex-row">
+                      {/* Image */}
+                      <div className="relative w-full sm:w-40 h-40 sm:h-auto shrink-0 bg-gray-50">
+                        <Image
+                          src={item.package.cover_image_url || '/logo2.svg'}
+                          alt={item.package.name}
+                          fill
+                          className="object-contain p-2"
+                        />
                       </div>
 
-                      {/* Details */}
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-                        <div className="flex items-center gap-2 text-sm">
+                      {/* Content */}
+                      <div className="flex-1 p-4 sm:p-5">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="font-semibold text-gray-900">
+                              {item.package.name}
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                              {item.package.caterer?.business_name || item.package.caterer?.name || 'Caterer'}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            disabled={deletingId === item.id}
+                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
+                            title="Remove"
+                          >
+                            {deletingId === item.id ? (
+                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-500"></div>
+                            ) : (
+                              <Trash2 className="w-5 h-5" />
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Guest Count Adjuster */}
+                        <div className="flex items-center gap-3 mb-4">
                           <Users className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-600">
-                            {item.guests || item.package.people_count} guests
-                          </span>
+                          <span className="text-sm text-gray-600">Guests:</span>
+                          <div className="flex items-center border border-gray-200 rounded-lg">
+                            <button
+                              onClick={() => handleUpdateGuests(item.id, guests - 10)}
+                              disabled={updatingId === item.id || guests <= 10}
+                              className="px-2 py-1 text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <input
+                              type="number"
+                              value={guests}
+                              onChange={(e) => handleUpdateGuests(item.id, Math.max(1, Number(e.target.value)))}
+                              className="w-16 text-center py-1 text-sm focus:outline-none"
+                              min={1}
+                            />
+                            <button
+                              onClick={() => handleUpdateGuests(item.id, guests + 10)}
+                              disabled={updatingId === item.id}
+                              className="px-2 py-1 text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                          {updatingId === item.id && (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                          )}
                         </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <MapPin className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-600 truncate">
-                            {item.location || 'Not set'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-600">
-                            {item.date
-                              ? formatDate(item.date, false)
-                              : 'Not set'}
-                          </span>
-                        </div>
-                      </div>
 
-                      {/* Price */}
-                      <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                        <span className="text-sm text-gray-500">
-                          {item.package.currency} {(() => {
-                            const totalPrice = item.price_at_time || item.package.total_price;
-                            const guests = item.guests || item.package.people_count || 1;
-                            const pricePerPerson = totalPrice / guests;
-                            return pricePerPerson.toLocaleString();
-                          })()}/person
-                        </span>
-                        <span className="font-bold text-green-600">
-                          {item.package.currency} {(item.price_at_time || item.package.total_price).toLocaleString()}
-                        </span>
+                        {/* Price */}
+                        <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                          <span className="text-sm text-gray-500">
+                            AED {pricePerPerson.toLocaleString()}/person
+                          </span>
+                          <span className="font-bold text-green-600">
+                            AED {totalPrice.toLocaleString()}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Order Summary */}
@@ -282,11 +343,15 @@ export default function CartPage() {
                     <span className="text-gray-600">Delivery Fee</span>
                     <span className="text-gray-500">Calculated at checkout</span>
                   </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Service Fee</span>
+                    <span className="text-gray-500">Calculated at checkout</span>
+                  </div>
                 </div>
 
                 <div className="border-t border-gray-100 pt-4 mb-6">
                   <div className="flex justify-between">
-                    <span className="font-semibold text-gray-900">Total</span>
+                    <span className="font-semibold text-gray-900">Subtotal</span>
                     <span className="text-xl font-bold text-green-600">
                       AED {subtotal.toLocaleString()}
                     </span>
@@ -311,6 +376,10 @@ export default function CartPage() {
                 >
                   Continue Shopping
                 </Link>
+
+                <p className="text-xs text-gray-500 text-center mt-4">
+                  Event details and delivery address will be collected at checkout
+                </p>
               </div>
             </div>
           </div>

@@ -1,453 +1,657 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
 import { catererApi, UpdatePackageRequest, Package, Dish } from '@/lib/api/caterer.api';
 import { userApi } from '@/lib/api/user.api';
 
-// Component for dish card with image
-interface DishCardProps {
+// ============================================================================
+// TYPES
+// ============================================================================
+
+interface CategoryGroup {
+  category: { id: string; name: string; description?: string | null };
+  dishes: Dish[];
+}
+
+interface CategorySelection {
+  category_id: string;
+  num_dishes_to_select: number | null;
+}
+
+interface FormData {
+  name: string;
+  description: string;
+  minimum_people: number | undefined;
+  cover_image_url: string;
+  currency: string;
+  occassion: string[];
+  is_active: boolean;
+  is_available: boolean;
+  customisation_type: 'FIXED' | 'CUSTOMISABLE';
+  additional_info: string;
+  package_item_ids: string[];
+  category_selections: CategorySelection[];
+  total_price: number | undefined;
+  is_custom_price: boolean;
+}
+
+interface FormErrors {
+  [key: string]: string;
+}
+
+// ============================================================================
+// COMPONENTS
+// ============================================================================
+
+const DishCard: React.FC<{
   dish: Dish;
   isSelected: boolean;
   onToggle: () => void;
-}
-
-const DishCard: React.FC<DishCardProps> = ({ dish, isSelected, onToggle }) => {
-  return (
-    <label
-      className={`block bg-white rounded-lg shadow overflow-hidden transition-all cursor-pointer ${isSelected
-        ? 'ring-2 ring-[#268700] ring-offset-2'
-        : 'hover:shadow-md'
-        }`}
-    >
-      {/* Content */}
-      <div className="p-4">
-        <div className="flex items-start gap-3 mb-2">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={onToggle}
-            onClick={(e) => e.stopPropagation()}
-            className="mt-1 w-4 h-4 text-[#268700] border-gray-300 rounded focus:ring-[#268700] flex-shrink-0 cursor-pointer"
-          />
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-lg text-gray-900 mb-1">{dish.name}</h3>
-            <p className="text-sm text-gray-700">
-              {dish.price ? `${dish.currency || 'AED'} ${Number(dish.price).toFixed(2)}` : 'Price not set'}
-            </p>
-          </div>
+}> = ({ dish, isSelected, onToggle }) => (
+  <label
+    className={`block bg-white rounded-lg shadow overflow-hidden transition-all cursor-pointer ${
+      isSelected ? 'ring-2 ring-[#268700] ring-offset-2' : 'hover:shadow-md'
+    }`}
+  >
+    <div className="p-4">
+      <div className="flex items-start gap-3 mb-2">
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={onToggle}
+          onClick={(e) => e.stopPropagation()}
+          className="mt-1 w-4 h-4 text-[#268700] border-gray-300 rounded focus:ring-[#268700] flex-shrink-0 cursor-pointer"
+        />
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-lg text-gray-900 mb-1">{dish.name}</h3>
+          <p className="text-sm text-gray-700">
+            {dish.price ? `${dish.currency || 'AED'} ${Number(dish.price).toLocaleString()}` : 'Price not set'}
+          </p>
         </div>
-        {isSelected && (
-          <div className="mt-2 pt-2 border-t border-gray-200">
-            <span className="inline-flex items-center px-2.5 py-1 bg-[#e8f5e0] text-[#1a5a00] rounded-full text-xs font-semibold">
-              ✓ Selected
-            </span>
-          </div>
-        )}
       </div>
-    </label>
-  );
-};
-
-// Component for dish image with fallback in modal
-const DishImageInModal: React.FC<{ imageUrl: string | null | undefined; dishName: string }> = ({ imageUrl, dishName }) => {
-  const [imageError, setImageError] = React.useState(false);
-  const [fallbackError, setFallbackError] = React.useState(false);
-
-  const fallbackImage = '/logo2.svg';
-
-  return (
-    <div className="w-full h-32 bg-gray-200 flex items-center justify-center overflow-hidden rounded mb-2 relative flex-shrink-0">
-      {imageUrl && !imageError ? (
-        <img
-          src={imageUrl}
-          alt={dishName}
-          className="w-full h-full object-cover"
-          onError={() => setImageError(true)}
-        />
-      ) : !fallbackError ? (
-        <img
-          src={fallbackImage}
-          alt={dishName}
-          className="w-full h-full object-cover"
-          onError={() => setFallbackError(true)}
-        />
-      ) : (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
-          <svg
-            className="w-10 h-10 text-gray-400 mb-1"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
-          <p className="text-xs text-gray-500 font-medium text-center px-2 line-clamp-2">{dishName}</p>
+      {isSelected && (
+        <div className="mt-2 pt-2 border-t border-gray-200">
+          <span className="inline-flex items-center px-2.5 py-1 bg-[#e8f5e0] text-[#1a5a00] rounded-full text-xs font-semibold">
+            ✓ Selected
+          </span>
         </div>
       )}
     </div>
-  );
-};
+  </label>
+);
+
+const LoadingSpinner: React.FC = () => (
+  <div className="flex-1 flex items-center justify-center">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#268700]"></div>
+  </div>
+);
+
+const ErrorMessage: React.FC<{ message: string }> = ({ message }) => (
+  <div className="mb-4 bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded">
+    {message}
+  </div>
+);
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
 
 export default function EditPackagePage() {
   const router = useRouter();
   const params = useParams();
   const packageId = params.id as string;
 
-  const [packageData, setPackageData] = useState<Package | null>(null);
-  const [formData, setFormData] = useState<any>({
+  // ============================================================================
+  // STATE
+  // ============================================================================
+
+  const [originalPackage, setOriginalPackage] = useState<Package | null>(null);
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     description: '',
-    minimum_people: undefined, // Will be set from caterer's minimum_guests or package data
+    minimum_people: undefined,
     cover_image_url: '',
     currency: 'AED',
-    // rating: undefined,
-    occassion: [] as string[],
+    occassion: [],
     is_active: true,
     is_available: true,
     customisation_type: 'FIXED',
-    additional_info: '', // Extra pricing and services information
+    additional_info: '',
     package_item_ids: [],
     category_selections: [],
+    total_price: undefined,
+    is_custom_price: false,
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const [hasCustomPrice, setHasCustomPrice] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMetadata, setIsLoadingMetadata] = useState(true);
+
   const [occasions, setOccasions] = useState<Array<{ id: string; name: string }>>([]);
-  const [categories, setCategories] = useState<Array<{ id: string; name: string; description?: string | null }>>([]);
-  const [dishesByCategory, setDishesByCategory] = useState<Array<{
-    category: { id: string; name: string; description?: string | null };
-    dishes: Array<Dish>;
-  }>>([]);
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [dishesByCategory, setDishesByCategory] = useState<CategoryGroup[]>([]);
   const [minimumGuests, setMinimumGuests] = useState<number | null>(null);
-  const DEFAULT_COVER = "/cover.png";
+
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(DEFAULT_COVER);
-  const [loadingMetadata, setLoadingMetadata] = useState(true);
+  const [imagePreview, setImagePreview] = useState<string | null>('/cover.png');
 
-  useEffect(() => {
-    fetchPackage();
-  }, [packageId]);
+  // ============================================================================
+  // COMPUTED VALUES
+  // ============================================================================
 
-  useEffect(() => {
-    if (packageData) {
-      fetchMetadata();
+  const allDishes = useMemo(() => {
+    return dishesByCategory.flatMap((cg) => cg.dishes || []);
+  }, [dishesByCategory]);
+
+  const selectedDishes = useMemo(() => {
+    return allDishes.filter((dish) => formData.package_item_ids.includes(dish.id));
+  }, [allDishes, formData.package_item_ids]);
+
+  const calculatedPrice = useMemo(() => {
+    if (hasCustomPrice && formData.total_price !== undefined) {
+      return formData.total_price;
     }
-  }, [packageData]);
 
-  const fetchPackage = async () => {
-    setLoading(true);
-    console.log('🔍 Fetching package:', packageId);
-    const response = await catererApi.getPackageById(packageId);
-    console.log('📦 Package response:', response);
+    const minPeople = formData.minimum_people || minimumGuests || 1;
+    if (selectedDishes.length === 0 || minPeople <= 0) {
+      return 0;
+    }
 
-    // Handle both response structures: direct data or nested data
-    const pkg = (response.data as any)?.data || response.data;
+    return selectedDishes.reduce((total, dish) => {
+      const price = typeof dish.price === 'number' ? Math.round(dish.price) : Math.round(Number(dish.price) || 0);
+      return total + price * minPeople;
+    }, 0);
+  }, [hasCustomPrice, formData.total_price, formData.minimum_people, minimumGuests, selectedDishes]);
 
-    if (pkg && pkg.id) {
-      console.log('✅ Package data received:', pkg);
-      setPackageData(pkg);
+  // ============================================================================
+  // DATA FETCHING
+  // ============================================================================
 
-      // Extract occasion IDs from the package occasions array
-      const occasionIds = pkg.occasions?.map((occ: any) => {
-        // Handle both possible structures: { occassion: { id, name } } or { id, name }
-        return occ.occassion?.id || occ.id;
-      }).filter(Boolean) || [];
+  const fetchPackage = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await catererApi.getPackageById(packageId);
+      const pkg = (response.data as any)?.data || response.data;
 
-      // Initialize form with current package data
-      // Support both minimum_people and people_count during migration
+      if (!pkg?.id) {
+        setErrors({ general: 'Failed to load package data.' });
+        return;
+      }
+
+      setOriginalPackage(pkg);
+
+      // Extract occasion IDs
+      const occasionIds = (pkg.occasions || [])
+        .map((occ: any) => occ.occassion?.id || occ.id)
+        .filter(Boolean);
+
+      // Extract dish IDs from package items
       const packageItems = pkg.items || pkg.package_items || [];
-      // Extract dish IDs from package items (for both FIXED and CUSTOMISABLE)
-      const dishIds = packageItems.map((item: any) => item.dish?.id || item.dish_id).filter(Boolean);
-      const categorySelections = pkg.category_selections || [];
-      
-      const initialFormData = {
+      const dishIds = packageItems
+        .map((item: any) => item.dish?.id || item.dish_id)
+        .filter(Boolean);
+
+      // Set form data
+      const isCustom = pkg.is_custom_price || false;
+      setHasCustomPrice(isCustom);
+
+      setFormData({
         name: pkg.name || '',
-        description: (pkg as any).description || '',
-        minimum_people: (pkg as any).minimum_people || pkg.people_count || undefined,
+        description: pkg.description || '',
+        minimum_people: pkg.minimum_people || pkg.people_count || undefined,
         cover_image_url: pkg.cover_image_url || '',
         currency: pkg.currency || 'AED',
         occassion: occasionIds,
         is_active: pkg.is_active ?? true,
         is_available: pkg.is_available ?? true,
         customisation_type: pkg.customisation_type || 'FIXED',
-        additional_info: pkg.additional_info || '', // Extra pricing and services information
-        package_item_ids: dishIds, // Store dish IDs, not package item IDs
-        category_selections: categorySelections,
-      };
-      console.log('📝 Setting form data:', initialFormData);
-      console.log('📦 Package items:', packageItems);
-      console.log('📦 Dish IDs:', dishIds);
-      console.log('📦 Category selections:', categorySelections);
-      setFormData(initialFormData);
+        additional_info: pkg.additional_info || '',
+        package_item_ids: dishIds,
+        category_selections: pkg.category_selections || [],
+        total_price: pkg.total_price !== undefined ? Number(pkg.total_price) : undefined,
+        is_custom_price: isCustom,
+      });
 
-      // Set image preview
       if (pkg.cover_image_url) {
         setImagePreview(pkg.cover_image_url);
       }
-    } else if (response.error) {
-      console.error('❌ Error loading package:', response.error);
+    } catch (error) {
+      console.error('Error fetching package:', error);
       setErrors({ general: 'Failed to load package. Please try again.' });
-    } else {
-      console.error('❌ Invalid package response structure:', response);
-      setErrors({ general: 'Failed to load package data.' });
+    } finally {
+      setIsLoading(false);
     }
-    setLoading(false);
-  };
+  }, [packageId]);
 
-  const fetchMetadata = async () => {
-    setLoadingMetadata(true);
+  const fetchMetadata = useCallback(async () => {
     try {
-      // Fetch caterer info to get minimum_guests
-      try {
-        const catererInfoResponse = await catererApi.getCatererInfo();
-        if (catererInfoResponse.data) {
-          const info = (catererInfoResponse.data as any).data || catererInfoResponse.data;
-          if (info.minimum_guests) {
-            setMinimumGuests(info.minimum_guests);
-            // Pre-fill form with caterer's minimum_guests if package doesn't have minimum_people set
-            setFormData((prev: any) => ({
-              ...prev,
-              minimum_people: prev.minimum_people || info.minimum_guests
-            }));
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching caterer info:', error);
+      setIsLoadingMetadata(true);
+
+      // Fetch caterer info
+      const catererResponse = await catererApi.getCatererInfo();
+      const catererInfo = (catererResponse.data as any)?.data || catererResponse.data;
+      if (catererInfo?.minimum_guests) {
+        setMinimumGuests(catererInfo.minimum_guests);
+        setFormData((prev) => ({
+          ...prev,
+          minimum_people: prev.minimum_people || catererInfo.minimum_guests,
+        }));
       }
 
       // Fetch occasions
       const occasionsResponse = await userApi.getOccasions();
       if (occasionsResponse.data?.data) {
-        setOccasions(occasionsResponse.data.data.map((occ: any) => ({
-          id: occ.id,
-          name: occ.name,
-        })));
+        setOccasions(
+          occasionsResponse.data.data.map((occ: any) => ({
+            id: occ.id,
+            name: occ.name,
+          }))
+        );
       }
 
-      // Fetch categories
-      const categoriesResponse = await catererApi.getCategories();
-      if (categoriesResponse.data) {
-        const categoriesData = categoriesResponse.data as any;
-        if (categoriesData.data && Array.isArray(categoriesData.data)) {
-          setCategories(categoriesData.data);
-        } else if (Array.isArray(categoriesData)) {
-          setCategories(categoriesData);
-        }
-      }
-
-      // Fetch dishes grouped by category
-      await fetchDishes();
-    } catch (error) {
-      console.error('Error fetching metadata:', error);
-    } finally {
-      setLoadingMetadata(false);
-    }
-  };
-
-  const fetchDishes = async () => {
-    try {
-      const response = await catererApi.getAllDishes({ group_by_category: true });
-      if (response.data) {
-        const data = response.data as any;
+      // Fetch dishes
+      const dishesResponse = await catererApi.getAllDishes({ group_by_category: true });
+      if (dishesResponse.data) {
+        const data = dishesResponse.data as any;
         const responseData = data.data || data;
 
         if (responseData.categories && Array.isArray(responseData.categories)) {
           setDishesByCategory(responseData.categories);
         } else {
-          const dishesList = Array.isArray(data) ? data : (data.data || []);
-          setDishesByCategory([{
-            category: { id: 'all', name: 'All Dishes', description: null },
-            dishes: Array.isArray(dishesList) ? dishesList : []
-          }]);
+          const dishesList = Array.isArray(data) ? data : data.data || [];
+          setDishesByCategory([
+            {
+              category: { id: 'all', name: 'All Dishes', description: null },
+              dishes: Array.isArray(dishesList) ? dishesList : [],
+            },
+          ]);
         }
       }
     } catch (error) {
-      console.error('Error fetching dishes:', error);
-      setDishesByCategory([]);
+      console.error('Error fetching metadata:', error);
+    } finally {
+      setIsLoadingMetadata(false);
     }
-  };
+  }, []);
 
-  // Helper function to get all dishes from all categories
-  const getAllDishes = () => {
-    return dishesByCategory.flatMap(category =>
-      Array.isArray(category.dishes) ? category.dishes : []
-    );
-  };
+  useEffect(() => {
+    fetchPackage();
+  }, [fetchPackage]);
 
-  // Filter dishes based on search query
-  const getFilteredDishesByCategory = () => {
-    let filteredCategories = dishesByCategory;
-
-    // Apply search filter if query exists
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      filteredCategories = dishesByCategory
-        .map(categoryGroup => ({
-          ...categoryGroup,
-          dishes: categoryGroup.dishes.filter((dish: Dish) =>
-            dish.name.toLowerCase().includes(query)
-          )
-        }));
+  useEffect(() => {
+    if (originalPackage) {
+      fetchMetadata();
     }
+  }, [originalPackage, fetchMetadata]);
 
-    // Always filter out categories with 0 dishes
-    return filteredCategories.filter(categoryGroup => categoryGroup.dishes.length > 0);
-  };
+  // ============================================================================
+  // EVENT HANDLERS
+  // ============================================================================
 
-  // Calculate package price from selected dishes
-  const calculatePackagePrice = (): number => {
-    const minPeople = formData.minimum_people || minimumGuests;
-    if (!formData.package_item_ids || formData.package_item_ids.length === 0 || !minPeople || minPeople <= 0) {
-      return 0;
-    }
+  const handleInputChange = useCallback(
+    (field: keyof FormData, value: any) => {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+      if (errors[field]) {
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors[field];
+          return newErrors;
+        });
+      }
+    },
+    [errors]
+  );
 
-    const allDishes = getAllDishes();
-    const selectedDishes = allDishes.filter((dish: Dish) => formData.package_item_ids?.includes(dish.id));
-    
-    let totalPrice = 0;
-    selectedDishes.forEach((dish) => {
-      // Calculate price: dish.price * minimum_people
-      // Note: This is a simplified calculation - backend will handle actual calculation
-      const price = typeof dish.price === 'number' ? dish.price : Number(dish.price) || 0;
-      totalPrice += price * (minPeople || 1);
-    });
-
-    return totalPrice;
-  };
-
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    setSelectedImage(file);
-    setImagePreview(URL.createObjectURL(file));
-  };
-
-  const handleDishToggle = (dishId: string) => {
-    const currentIds = formData.package_item_ids || [];
-    if (currentIds.includes(dishId)) {
-      setFormData({
-        ...formData,
-        package_item_ids: currentIds.filter((id: string) => id !== dishId),
-      });
-    } else {
-      setFormData({
-        ...formData,
-        package_item_ids: [...currentIds, dishId],
-      });
+    if (file) {
+      setSelectedImage(file);
+      setImagePreview(URL.createObjectURL(file));
     }
-  };
+  }, []);
 
+  const handleDishToggle = useCallback((dishId: string) => {
+    setFormData((prev) => {
+      const currentIds = prev.package_item_ids;
+      const isSelected = currentIds.includes(dishId);
+      const newIds = isSelected
+        ? currentIds.filter((id) => id !== dishId)
+        : [...currentIds, dishId];
 
+      return { ...prev, package_item_ids: newIds };
+    });
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
+  const handleOccasionToggle = useCallback((occasionId: string) => {
+    setFormData((prev) => {
+      const currentOccasions = prev.occassion;
+      const isSelected = currentOccasions.includes(occasionId);
+      const newOccasions = isSelected
+        ? currentOccasions.filter((id) => id !== occasionId)
+        : [...currentOccasions, occasionId];
 
-    // Validation
+      return { ...prev, occassion: newOccasions };
+    });
+  }, []);
+
+  const handleCustomPriceToggle = useCallback(
+    (enabled: boolean) => {
+      setHasCustomPrice(enabled);
+      if (!enabled) {
+        setFormData((prev) => ({
+          ...prev,
+          total_price: undefined,
+          is_custom_price: false,
+        }));
+      } else {
+        // Initialize with calculated price if no custom price set
+        const initialPrice = formData.total_price ?? calculatedPrice;
+        setFormData((prev) => ({
+          ...prev,
+          total_price: initialPrice > 0 ? initialPrice : undefined,
+          is_custom_price: true,
+        }));
+      }
+    },
+    [calculatedPrice, formData.total_price]
+  );
+
+  const handleCategorySelectionChange = useCallback(
+    (categoryId: string, numDishes: number | null) => {
+      setFormData((prev) => {
+        const existing = prev.category_selections.findIndex(
+          (s) => s.category_id === categoryId
+        );
+        const updated = [...prev.category_selections];
+
+        if (existing >= 0) {
+          updated[existing] = { category_id: categoryId, num_dishes_to_select: numDishes };
+        } else {
+          updated.push({ category_id: categoryId, num_dishes_to_select: numDishes });
+        }
+
+        return { ...prev, category_selections: updated };
+      });
+    },
+    []
+  );
+
+  // ============================================================================
+  // FORM VALIDATION
+  // ============================================================================
+
+  const validateForm = useCallback((): boolean => {
+    const newErrors: FormErrors = {};
+
+    // Name validation
     if (!formData.name.trim()) {
-      setErrors({ name: 'Package name is required' });
-      return;
+      newErrors.name = 'Package name is required';
     }
+
+    // Minimum people validation
     const minPeople = formData.minimum_people || minimumGuests;
     if (!minPeople || minPeople <= 0) {
-      setErrors({ minimum_people: 'Minimum people must be greater than 0' });
-      return;
+      newErrors.minimum_people = 'Minimum people must be greater than 0';
     }
-    // Validation based on package type
+
+    // Custom price validation
+    if (hasCustomPrice) {
+      if (
+        formData.total_price === undefined ||
+        formData.total_price === null ||
+        formData.total_price <= 0
+      ) {
+        newErrors.total_price = 'Please enter a valid custom price';
+      }
+    }
+
+    // FIXED package validation
     if (formData.customisation_type === 'FIXED') {
-      if (!formData.package_item_ids || formData.package_item_ids.length === 0) {
-        setErrors({ package_item_ids: 'At least one dish must be selected for fixed packages' });
+      if (formData.package_item_ids.length === 0) {
+        newErrors.package_item_ids = 'At least one dish must be selected for fixed packages';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [formData, hasCustomPrice, minimumGuests]);
+
+  // ============================================================================
+  // FORM SUBMISSION
+  // ============================================================================
+
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+
+      // Clear previous errors
+      setErrors({});
+
+      // Validate form
+      if (!validateForm()) {
         return;
       }
-    } else if (formData.customisation_type === 'CUSTOMISABLE') {
-      if (!formData.package_item_ids || formData.package_item_ids.length === 0) {
-        setErrors({ package_item_ids: 'At least one dish must be selected for customizable packages' });
-        return;
-      }
-      // Validate that each category with selected dishes has a selection limit set
-      // Skip validation for 'uncategorized' category (dishes without categories)
-      const categoriesWithDishes = new Set<string>();
-      dishesByCategory.forEach(cg => {
-        // Skip uncategorized dishes - they don't need category selection limits
-        if (cg.category.id === 'uncategorized') {
+
+      setIsSubmitting(true);
+
+      try {
+        // Prepare package item IDs
+        // For CUSTOMISABLE packages with no dishes selected, send empty array
+        // Backend will keep existing items (all dishes available)
+        const packageItemIds = [...formData.package_item_ids];
+
+        // Prepare request data
+        const requestData: UpdatePackageRequest = {
+          name: formData.name.trim(),
+          description: formData.description.trim(),
+          minimum_people: formData.minimum_people || minimumGuests || undefined,
+          currency: formData.currency,
+          occassion: formData.occassion,
+          is_active: formData.is_active,
+          is_available: formData.is_available,
+          customisation_type: formData.customisation_type,
+          additional_info: formData.additional_info.trim(),
+          package_item_ids: packageItemIds,
+          category_selections: formData.category_selections.filter(
+            (s) => s.category_id && s.category_id !== 'uncategorized'
+          ),
+        };
+
+        // Handle pricing
+        if (hasCustomPrice && formData.total_price !== undefined && formData.total_price > 0) {
+          requestData.is_custom_price = true;
+          requestData.total_price = formData.total_price;
+        } else {
+          requestData.is_custom_price = false;
+          // Don't send total_price - backend will calculate
+        }
+
+        // Make API call
+        const response = await catererApi.updatePackage(
+          packageId,
+          requestData,
+          selectedImage || undefined
+        );
+
+        // Handle response
+        if (response.error) {
+          setErrors({ general: response.error });
           return;
         }
-        const selectedInCategory = (formData.package_item_ids || []).filter((id: string) =>
-          cg.dishes.some((d: Dish) => d.id === id)
-        );
-        if (selectedInCategory.length > 0) {
-          categoriesWithDishes.add(cg.category.id);
+
+        // Check for success
+        if (response.data && (response.data as any).success !== false) {
+          router.push('/caterer/packages');
+        } else {
+          setErrors({ general: 'Failed to update package. Please try again.' });
         }
-      });
-      
-      const categoriesWithLimits = new Set(
-        (formData.category_selections || []).map((s: { category_id: string; num_dishes_to_select: number | null }) => s.category_id)
-      );
-      
-      const missingLimits = Array.from(categoriesWithDishes).filter(
-        catId => !categoriesWithLimits.has(catId)
-      );
-      
-      if (missingLimits.length > 0) {
-        setErrors({ category_selections: 'Please set selection limits for all categories with selected dishes' });
-        return;
+      } catch (error: any) {
+        console.error('Error updating package:', error);
+        setErrors({ general: error.message || 'Failed to update package. Please try again.' });
+      } finally {
+        setIsSubmitting(false);
       }
-    }
+    },
+    [
+      formData,
+      hasCustomPrice,
+      validateForm,
+      allDishes,
+      minimumGuests,
+      packageId,
+      selectedImage,
+      router,
+    ]
+  );
 
-    setIsSubmitting(true);
+  // ============================================================================
+  // RENDER HELPERS
+  // ============================================================================
 
-    // Clean up formData before submission: ensure category_selections only contains valid category IDs
-    // Filter out 'uncategorized' as it's not a real category in the database
-    const cleanedFormData = { ...formData };
-    if (cleanedFormData.category_selections && cleanedFormData.category_selections.length > 0) {
-      const validCategoryIds = new Set(categories.map(cat => cat.id));
-      cleanedFormData.category_selections = cleanedFormData.category_selections.filter(
-        (selection: { category_id: string; num_dishes_to_select: number | null }) => 
-          selection.category_id && 
-          selection.category_id !== 'uncategorized' && 
-          validCategoryIds.has(selection.category_id)
+  const renderDishesSection = () => {
+    if (isLoadingMetadata) {
+      return (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#268700]"></div>
+        </div>
       );
     }
 
-    const response = await catererApi.updatePackage(packageId, cleanedFormData, selectedImage || undefined);
-
-    if (response.error) {
-      setErrors({ general: response.error });
-      setIsSubmitting(false);
-      return;
+    if (allDishes.length === 0) {
+      return (
+        <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
+          <p className="text-gray-500">No dishes available. Please add dishes to your menu first.</p>
+        </div>
+      );
     }
 
-    // Success - redirect to packages page
-    router.push('/caterer/packages');
-  };
+    const filteredCategories = dishesByCategory.filter((cg) => cg.dishes.length > 0);
 
-  if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#268700]"></div>
+      <div className="space-y-6">
+        {filteredCategories.map((categoryGroup) => {
+          const categoryDishIds = categoryGroup.dishes.map((d) => d.id);
+          const selectedInCategory = formData.package_item_ids.filter((id) =>
+            categoryDishIds.includes(id)
+          );
+          const existingSelection = formData.category_selections.find(
+            (s) => s.category_id === categoryGroup.category.id
+          );
+
+          return (
+            <div
+              key={categoryGroup.category.id}
+              className={`space-y-4 ${
+                formData.customisation_type === 'CUSTOMISABLE'
+                  ? 'p-4 border-2 border-gray-200 rounded-lg'
+                  : ''
+              }`}
+            >
+              {/* Category Header */}
+              <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {categoryGroup.category.name}
+                  </h3>
+                  <span className="text-sm text-gray-500">
+                    ({categoryGroup.dishes.length}{' '}
+                    {categoryGroup.dishes.length === 1 ? 'dish' : 'dishes'})
+                  </span>
+                </div>
+
+                {/* Selection limit dropdown for CUSTOMISABLE packages */}
+                {formData.customisation_type === 'CUSTOMISABLE' &&
+                  selectedInCategory.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-gray-600 whitespace-nowrap">
+                        Users must select:
+                      </label>
+                      <select
+                        value={
+                          existingSelection?.num_dishes_to_select === null
+                            ? 'all'
+                            : existingSelection?.num_dishes_to_select?.toString() || 'all'
+                        }
+                        onChange={(e) => {
+                          const value =
+                            e.target.value === 'all' ? null : parseInt(e.target.value, 10);
+                          handleCategorySelectionChange(categoryGroup.category.id, value);
+                        }}
+                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] bg-white text-gray-900 min-w-[120px]"
+                      >
+                        <option value="all">All selected</option>
+                        {Array.from(
+                          { length: Math.min(selectedInCategory.length, 10) },
+                          (_, i) => i + 1
+                        ).map((num) => (
+                          <option key={num} value={num.toString()}>
+                            {num} {num === 1 ? 'dish' : 'dishes'}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+              </div>
+
+              {/* Dishes Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {categoryGroup.dishes.map((dish) => (
+                  <DishCard
+                    key={dish.id}
+                    dish={dish}
+                    isSelected={formData.package_item_ids.includes(dish.id)}
+                    onToggle={() => handleDishToggle(dish.id)}
+                  />
+                ))}
+              </div>
+
+              {/* Info message for CUSTOMISABLE packages */}
+              {formData.customisation_type === 'CUSTOMISABLE' &&
+                selectedInCategory.length > 0 && (
+                  <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-xs text-blue-700">
+                      {selectedInCategory.length} dish
+                      {selectedInCategory.length === 1 ? '' : 'es'} selected. Users will be able
+                      to choose{' '}
+                      {existingSelection?.num_dishes_to_select === null
+                        ? 'all of them'
+                        : `${existingSelection?.num_dishes_to_select} dish${
+                            existingSelection?.num_dishes_to_select === 1 ? '' : 'es'
+                          }`}{' '}
+                      from this category.
+                    </p>
+                  </div>
+                )}
+            </div>
+          );
+        })}
       </div>
     );
+  };
+
+  // ============================================================================
+  // LOADING STATE
+  // ============================================================================
+
+  if (isLoading) {
+    return <LoadingSpinner />;
   }
 
-  if (!packageData) {
+  if (!originalPackage) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <p className="text-gray-500">Package not found</p>
       </div>
     );
   }
+
+  // ============================================================================
+  // MAIN RENDER
+  // ============================================================================
 
   return (
     <div className="flex-1 p-6 bg-gray-50 min-h-screen">
@@ -461,12 +665,14 @@ export default function EditPackagePage() {
 
         {/* Back Button and Title */}
         <div className="flex items-center gap-4 mb-6">
-          <button
-            onClick={() => router.back()}
-            className="text-gray-600 hover:text-gray-900"
-          >
+          <button onClick={() => router.back()} className="text-gray-600 hover:text-gray-900">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
           </button>
           <h1 className="text-3xl font-bold text-gray-900">Edit Menu</h1>
@@ -477,11 +683,7 @@ export default function EditPackagePage() {
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-5">General Information</h2>
 
-            {errors.general && (
-              <div className="mb-4 bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded">
-                {errors.general}
-              </div>
-            )}
+            {errors.general && <ErrorMessage message={errors.general} />}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Left Column - Form Fields */}
@@ -490,7 +692,7 @@ export default function EditPackagePage() {
                   <Input
                     label="Package Name"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
                     placeholder="Enter package name"
                     error={errors.name}
                   />
@@ -498,83 +700,49 @@ export default function EditPackagePage() {
                     label="Minimum People"
                     type="number"
                     min="1"
-                    value={formData.minimum_people !== undefined && formData.minimum_people !== null ? formData.minimum_people.toString() : ''}
+                    value={formData.minimum_people?.toString() || ''}
                     onChange={(e) => {
                       const value = e.target.value.trim();
-                      if (value === '') {
-                        // Allow clearing - will use default when submitting
-                        setFormData({ ...formData, minimum_people: undefined });
-                      } else {
-                        const numValue = parseInt(value, 10);
-                        if (!isNaN(numValue)) {
-                          setFormData({ ...formData, minimum_people: numValue });
-                        }
-                      }
+                      handleInputChange(
+                        'minimum_people',
+                        value === '' ? undefined : parseInt(value, 10)
+                      );
                     }}
-                    placeholder={minimumGuests ? `${minimumGuests} (default from profile)` : 'Enter minimum number of people'}
+                    placeholder={
+                      minimumGuests
+                        ? `${minimumGuests} (default from profile)`
+                        : 'Enter minimum number of people'
+                    }
                     error={errors.minimum_people}
                   />
                 </div>
+
+                {/* Occasions */}
                 <div>
-                  {/* Occasions - Multiple Selection with Checkboxes */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Occasions <span className="text-gray-500 text-xs">(Select all that apply)</span>
-                    </label>
-                    <div className="grid grid-cols-2 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      {occasions.length === 0 ? (
-                        <p className="col-span-2 text-sm text-gray-500">Loading occasions...</p>
-                      ) : (
-                        occasions.map((occasion) => (
-                          <label
-                            key={occasion.id}
-                            className="flex items-center gap-2 cursor-pointer hover:bg-white p-2 rounded transition"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={Array.isArray(formData.occassion) && formData.occassion.includes(occasion.id)}
-                              onChange={(e) => {
-                                const currentOccasions = Array.isArray(formData.occassion) ? formData.occassion : [];
-                                if (e.target.checked) {
-                                  setFormData({ ...formData, occassion: [...currentOccasions, occasion.id] });
-                                } else {
-                                  setFormData({ ...formData, occassion: currentOccasions.filter((id: string) => id !== occasion.id) });
-                                }
-                              }}
-                              className="w-4 h-4 text-[#268700] border-gray-300 rounded focus:ring-[#268700]"
-                            />
-                            <span className="text-sm text-gray-700">{occasion.name}</span>
-                          </label>
-                        ))
-                      )}
-                    </div>
-                    {errors.occassion && (
-                      <p className="mt-1 text-sm text-red-600">{errors.occassion}</p>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Occasions{' '}
+                    <span className="text-gray-500 text-xs">(Select all that apply)</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    {occasions.length === 0 ? (
+                      <p className="col-span-2 text-sm text-gray-500">Loading occasions...</p>
+                    ) : (
+                      occasions.map((occasion) => (
+                        <label
+                          key={occasion.id}
+                          className="flex items-center gap-2 cursor-pointer hover:bg-white p-2 rounded transition"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={formData.occassion.includes(occasion.id)}
+                            onChange={() => handleOccasionToggle(occasion.id)}
+                            className="w-4 h-4 text-[#268700] border-gray-300 rounded focus:ring-[#268700]"
+                          />
+                          <span className="text-sm text-gray-700">{occasion.name}</span>
+                        </label>
+                      ))
                     )}
                   </div>
-
-
-                  {/* <Input
-                    label="Rating (Optional)"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="5"
-                    value={formData.rating?.toString() || ''}
-                    onChange={(e) => setFormData({ ...formData, rating: e.target.value ? parseFloat(e.target.value) : undefined })}
-                    placeholder="0.0 - 5.0"
-                  /> */}
-                </div>
-                <div>
-                  {/* <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Image URL (Optional)
-                  </label>
-                  <Input
-                    type="url"
-                    value={formData.cover_image_url || ''}
-                    onChange={(e) => setFormData({ ...formData, cover_image_url: e.target.value })}
-                    placeholder="https://example.com/image.jpg"
-                  /> */}
                 </div>
               </div>
 
@@ -583,32 +751,37 @@ export default function EditPackagePage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Cover Image
                 </label>
-
                 <div className="relative">
                   <img
-                    src={imagePreview || DEFAULT_COVER}
+                    src={imagePreview || '/cover.png'}
                     alt="Cover Preview"
                     className="w-full h-40 object-cover rounded-lg border border-gray-300"
                   />
-
-                  {/* Remove only if user uploaded */}
                   {selectedImage && (
                     <button
                       type="button"
                       onClick={() => {
                         setSelectedImage(null);
-                        setImagePreview(packageData?.cover_image_url || DEFAULT_COVER);
+                        setImagePreview(originalPackage?.cover_image_url || '/cover.png');
                       }}
                       className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
                       </svg>
                     </button>
                   )}
                 </div>
-
-                {/* Upload Button */}
                 <label className="mt-3 flex items-center justify-center w-full px-3 py-2 bg-[#268700] text-white rounded-lg cursor-pointer hover:bg-[#1f6b00] transition-colors text-sm">
                   <svg
                     className="w-4 h-4 mr-2"
@@ -632,7 +805,6 @@ export default function EditPackagePage() {
                   />
                 </label>
               </div>
-
             </div>
           </div>
 
@@ -641,7 +813,9 @@ export default function EditPackagePage() {
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">
-                  {formData.customisation_type === 'FIXED' ? 'Package Items' : 'Category Selections'}
+                  {formData.customisation_type === 'FIXED'
+                    ? 'Package Items'
+                    : 'Category Selections'}
                 </h2>
                 <p className="text-sm text-gray-600 mt-1">
                   {formData.customisation_type === 'FIXED'
@@ -651,296 +825,142 @@ export default function EditPackagePage() {
               </div>
             </div>
 
-            {/* FIXED Package: Selected Dishes Summary */}
-            {formData.customisation_type === 'FIXED' && formData.package_item_ids && formData.package_item_ids.length > 0 && (
+            {/* Selected Dishes Summary */}
+            {selectedDishes.length > 0 && (
               <div className="mb-4 p-3 bg-[#e8f5e0] rounded-lg border border-[#268700]/20">
                 <p className="text-sm font-semibold text-[#1a5a00] mb-2">
-                  {formData.package_item_ids.length} dish(es) selected
+                  {selectedDishes.length} dish{selectedDishes.length === 1 ? '' : 'es'} selected
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {getAllDishes()
-                    .filter((dish: Dish) => formData.package_item_ids?.includes(dish.id))
-                    .map((dish: Dish) => (
-                      <span
-                        key={dish.id}
-                        className="inline-flex items-center gap-2 px-3 py-1 bg-white text-[#1a5a00] rounded-full text-sm border border-[#268700]/30"
+                  {selectedDishes.map((dish) => (
+                    <span
+                      key={dish.id}
+                      className="inline-flex items-center gap-2 px-3 py-1 bg-white text-[#1a5a00] rounded-full text-sm border border-[#268700]/30"
+                    >
+                      {dish.name}
+                      <button
+                        type="button"
+                        onClick={() => handleDishToggle(dish.id)}
+                        className="text-[#268700] hover:text-[#1a5a00] font-bold"
                       >
-                        {dish.name}
-                        <button
-                          type="button"
-                          onClick={() => handleDishToggle(dish.id)}
-                          className="text-[#268700] hover:text-[#1a5a00] font-bold"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
+                        ×
+                      </button>
+                    </span>
+                  ))}
                 </div>
               </div>
             )}
 
-            {/* CUSTOMISABLE Package: Summary */}
-            {formData.customisation_type === 'CUSTOMISABLE' && formData.package_item_ids && formData.package_item_ids.length > 0 && (
-              <div className="mb-4 p-3 bg-[#e8f5e0] rounded-lg border border-[#268700]/20">
-                <p className="text-sm font-semibold text-[#1a5a00] mb-2">
-                  {formData.package_item_ids.length} dish{formData.package_item_ids.length === 1 ? '' : 'es'} selected across {formData.category_selections?.length || 0} categor{formData.category_selections?.length === 1 ? 'y' : 'ies'}
-                </p>
-                {formData.category_selections && formData.category_selections.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.category_selections.map((selection: { category_id: string; num_dishes_to_select: number | null }, idx: number) => {
-                      const category = categories.find(c => c.id === selection.category_id);
-                      const categoryDishIds = dishesByCategory.find(cg => cg.category.id === selection.category_id)?.dishes.map((d: Dish) => d.id) || [];
-                      const selectedInCategory = (formData.package_item_ids || []).filter((id: string) => categoryDishIds.includes(id));
-                      return (
-                        <span
-                          key={idx}
-                          className="inline-flex items-center gap-2 px-3 py-1 bg-white text-[#1a5a00] rounded-full text-sm border border-[#268700]/30"
-                        >
-                          {category?.name || 'Unknown'}: {selectedInCategory.length} available, select {selection.num_dishes_to_select === null ? 'all' : selection.num_dishes_to_select}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+            {errors.package_item_ids && (
+              <div className="mb-4 text-sm text-red-600">{errors.package_item_ids}</div>
             )}
 
-            {/* FIXED Package: Dishes List - Grouped by Category */}
-            {formData.customisation_type === 'FIXED' && (
-              <>
-                {loadingMetadata ? (
-                  <div className="flex justify-center items-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#268700]"></div>
-                  </div>
-                ) : getAllDishes().length === 0 ? (
-                  <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
-                    <p className="text-gray-500">No dishes available. Please add dishes to your menu first.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {getFilteredDishesByCategory().map((categoryGroup) => (
-                      <div key={categoryGroup.category.id} className="space-y-4">
-                        {/* Category Header */}
-                        <div className="flex items-center justify-between pb-2 border-b border-gray-200">
-                          <div className="flex items-center gap-3">
-                            <h3 className="text-lg font-semibold text-gray-900">
-                              {categoryGroup.category.name}
-                            </h3>
-                            <span className="text-sm text-gray-500">
-                              ({categoryGroup.dishes.length} {categoryGroup.dishes.length === 1 ? 'dish' : 'dishes'})
-                            </span>
-                            {categoryGroup.category.description && (
-                              <span className="text-sm text-gray-400 italic">
-                                - {categoryGroup.category.description}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Dishes Grid for this Category */}
-                        {categoryGroup.dishes.length === 0 ? (
-                          <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50">
-                            <p className="text-sm text-gray-400">No dishes in this category</p>
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {categoryGroup.dishes.map((dish) => (
-                              <DishCard
-                                key={dish.id}
-                                dish={dish}
-                                isSelected={formData.package_item_ids?.includes(dish.id) || false}
-                                onToggle={() => handleDishToggle(dish.id)}
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    {getFilteredDishesByCategory().length === 0 && searchQuery.trim() && (
-                      <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
-                        <p className="text-gray-500">No dishes found matching "{searchQuery}"</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* CUSTOMISABLE Package: Dishes List - Grouped by Category with Selection Limits */}
-            {formData.customisation_type === 'CUSTOMISABLE' && (
-              <>
-                {loadingMetadata ? (
-                  <div className="flex justify-center items-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#268700]"></div>
-                  </div>
-                ) : getAllDishes().length === 0 ? (
-                  <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
-                    <p className="text-gray-500">No dishes available. Please add dishes to your menu first.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {getFilteredDishesByCategory().map((categoryGroup) => {
-                      // Get selected dishes for this category
-                      const categoryDishIds = categoryGroup.dishes.map((d: Dish) => d.id);
-                      const selectedDishesInCategory = (formData.package_item_ids || []).filter((id: string) => categoryDishIds.includes(id));
-                      const existingSelection = formData.category_selections?.find((s: { category_id: string; num_dishes_to_select: number | null }) => s.category_id === categoryGroup.category.id);
-                      
-                      return (
-                        <div key={categoryGroup.category.id} className="space-y-4 p-4 border-2 border-gray-200 rounded-lg">
-                          {/* Category Header with Selection Limit */}
-                          <div className="flex items-center justify-between pb-2 border-b border-gray-200">
-                            <div className="flex items-center gap-3">
-                              <h3 className="text-lg font-semibold text-gray-900">
-                                {categoryGroup.category.name}
-                              </h3>
-                              <span className="text-sm text-gray-500">
-                                ({categoryGroup.dishes.length} {categoryGroup.dishes.length === 1 ? 'dish' : 'dishes'})
-                              </span>
-                              {categoryGroup.category.description && (
-                                <span className="text-sm text-gray-400 italic">
-                                  - {categoryGroup.category.description}
-                                </span>
-                              )}
-                            </div>
-                            
-                            {/* Selection Limit Dropdown */}
-                            {selectedDishesInCategory.length > 0 && (
-                              <div className="flex items-center gap-2">
-                                <label className="text-sm text-gray-600 whitespace-nowrap">Users must select:</label>
-                                <select
-                                  value={existingSelection?.num_dishes_to_select === null ? 'all' : existingSelection?.num_dishes_to_select?.toString() || 'all'}
-                                  onChange={(e) => {
-                                    const value = e.target.value === 'all' ? null : parseInt(e.target.value, 10);
-                                    const currentSelections = formData.category_selections || [];
-                                    const existingIdx = currentSelections.findIndex((s: { category_id: string; num_dishes_to_select: number | null }) => s.category_id === categoryGroup.category.id);
-                                    
-                                    let updated;
-                                    if (existingIdx >= 0) {
-                                      updated = [...currentSelections];
-                                      updated[existingIdx] = { category_id: categoryGroup.category.id, num_dishes_to_select: value };
-                                    } else {
-                                      updated = [...currentSelections, { category_id: categoryGroup.category.id, num_dishes_to_select: value }];
-                                    }
-                                    
-                                    setFormData({ ...formData, category_selections: updated });
-                                  }}
-                                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] bg-white text-gray-900 min-w-[120px]"
-                                >
-                                  <option value="all">All selected</option>
-                                  {Array.from({ length: Math.min(selectedDishesInCategory.length, 10) }, (_, i) => i + 1).map((num: number) => (
-                                    <option key={num} value={num.toString()}>
-                                      {num} {num === 1 ? 'dish' : 'dishes'}
-                                    </option>
-                                  ))}
-                                </select>
-                                <span className="text-xs text-gray-500">
-                                  (from {selectedDishesInCategory.length} available)
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Dishes Grid for this Category */}
-                          {categoryGroup.dishes.length === 0 ? (
-                            <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50">
-                              <p className="text-sm text-gray-400">No dishes in this category</p>
-                            </div>
-                          ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              {categoryGroup.dishes.map((dish) => (
-                                <DishCard
-                                  key={dish.id}
-                                  dish={dish}
-                                  isSelected={formData.package_item_ids?.includes(dish.id) || false}
-                                  onToggle={() => {
-                                    const currentIds = formData.package_item_ids || [];
-                                    const isCurrentlySelected = currentIds.includes(dish.id);
-                                    const newIds = isCurrentlySelected
-                                      ? currentIds.filter((id: string) => id !== dish.id)
-                                      : [...currentIds, dish.id];
-                                    
-                                    // Update category selections based on selected dishes
-                                    const categoryDishIds = categoryGroup.dishes.map((d: Dish) => d.id);
-                                    const selectedInCategory = newIds.filter((id: string) => categoryDishIds.includes(id));
-                                    const currentSelections = formData.category_selections || [];
-                                    const hasCategorySelection = currentSelections.some((s: { category_id: string; num_dishes_to_select: number | null }) => s.category_id === categoryGroup.category.id);
-                                    
-                                    let updatedSelections = [...currentSelections];
-                                    
-                                    if (selectedInCategory.length > 0 && !hasCategorySelection) {
-                                      // First dish in category selected, add category selection
-                                      updatedSelections.push({ category_id: categoryGroup.category.id, num_dishes_to_select: null });
-                                    } else if (selectedInCategory.length === 0 && hasCategorySelection) {
-                                      // All dishes removed from category, remove category selection
-                                      updatedSelections = updatedSelections.filter((s: { category_id: string; num_dishes_to_select: number | null }) => s.category_id !== categoryGroup.category.id);
-                                    }
-                                    
-                                    setFormData({
-                                      ...formData,
-                                      package_item_ids: newIds,
-                                      category_selections: updatedSelections
-                                    });
-                                  }}
-                                />
-                              ))}
-                            </div>
-                          )}
-                          
-                          {/* Info message when dishes are selected */}
-                          {selectedDishesInCategory.length > 0 && (
-                            <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
-                              <p className="text-xs text-blue-700">
-                                {selectedDishesInCategory.length} dish{selectedDishesInCategory.length === 1 ? '' : 'es'} selected. 
-                                Users will be able to choose {existingSelection?.num_dishes_to_select === null 
-                                  ? 'all of them' 
-                                  : `${existingSelection?.num_dishes_to_select} dish${existingSelection?.num_dishes_to_select === 1 ? '' : 'es'}`} from this category.
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                    {getFilteredDishesByCategory().length === 0 && searchQuery.trim() && (
-                      <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
-                        <p className="text-gray-500">No dishes found matching "{searchQuery}"</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
+            {renderDishesSection()}
           </div>
 
-          {/* Price Information */}
+          {/* Pricing & Status */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-5">Pricing & Status</h2>
             <div className="grid grid-cols-1 gap-6">
+              {/* Custom Price Toggle */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Pricing Mode
+                    </label>
+                    <p className="text-xs text-gray-500">
+                      {hasCustomPrice
+                        ? 'Set a fixed price that applies regardless of guest count'
+                        : 'Price will be automatically calculated from selected dishes'}
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hasCustomPrice}
+                      onChange={(e) => handleCustomPriceToggle(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#268700]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#268700]"></div>
+                    <span className="ml-3 text-sm font-medium text-gray-700">
+                      {hasCustomPrice ? 'Custom Price' : 'Auto Calculate'}
+                    </span>
+                  </label>
+                </div>
+
+                {/* Custom Price Input */}
+                {hasCustomPrice && (
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Custom Price <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <img
+                        src="/dirham.svg"
+                        alt="AED"
+                        className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 z-10"
+                      />
+                      <Input
+                        type="number"
+                        step="1"
+                        min="0"
+                        value={formData.total_price?.toString() || ''}
+                        onChange={(e) => {
+                          const value = e.target.value.trim();
+                          handleInputChange(
+                            'total_price',
+                            value === '' ? undefined : parseInt(value, 10)
+                          );
+                        }}
+                        placeholder="Enter custom price"
+                        className="pl-12"
+                        error={errors.total_price}
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                      This price will be used as a fixed price regardless of the number of
+                      guests.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Calculated Price Display */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Starting Price (Calculated)
+                  {hasCustomPrice ? 'Package Price (Custom)' : 'Starting Price (Calculated)'}
                 </label>
                 <div className="relative">
-                  <img src="/dirham.svg" alt="AED" className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                  <img
+                    src="/dirham.svg"
+                    alt="AED"
+                    className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2"
+                  />
                   <div className="pl-12 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-700">
                     <span className="text-sm text-gray-500">Starting </span>
                     <span className="text-lg font-semibold">
-                      AED {calculatePackagePrice().toFixed(2)}
+                      AED {calculatedPrice.toLocaleString()}
                     </span>
                     <p className="text-xs text-gray-500 mt-1">
-                      Price is automatically calculated from selected dishes × {formData.minimum_people || minimumGuests || 'minimum'} people × quantity
+                      {hasCustomPrice
+                        ? 'Using custom price set by caterer (fixed price regardless of guest count)'
+                        : `Price is automatically calculated from selected dishes × ${
+                            formData.minimum_people || minimumGuests || 'minimum'
+                          } people`}
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Additional Information Textarea */}
+              {/* Additional Information */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Additional Information
                 </label>
                 <textarea
-                  value={formData.additional_info || ''}
-                  onChange={(e) => setFormData({ ...formData, additional_info: e.target.value })}
+                  value={formData.additional_info}
+                  onChange={(e) => handleInputChange('additional_info', e.target.value)}
                   placeholder="For example: Crockery not included or per person crockery 20 AED, cleaning services extra charge of 10 AED per person etc"
                   rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-transparent resize-none"
@@ -957,27 +977,27 @@ export default function EditPackagePage() {
             <div>
               <span className="text-sm text-gray-600">Starting Price: </span>
               <span className="text-2xl font-bold text-gray-900 ml-2">
-                AED {calculatePackagePrice().toFixed(2)}
+                AED {calculatedPrice.toFixed(2)}
               </span>
-              {formData.package_item_ids && formData.package_item_ids.length > 0 && (formData.minimum_people || minimumGuests) && (formData.minimum_people || minimumGuests || 0) > 0 && (
+              {hasCustomPrice ? (
                 <p className="text-xs text-gray-500 mt-1">
-                  Price will be calculated from selected items for {formData.minimum_people || minimumGuests} people
+                  Using custom price (fixed price regardless of guest count)
                 </p>
+              ) : (
+                selectedDishes.length > 0 &&
+                (formData.minimum_people || minimumGuests) && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Price will be calculated from selected items for{' '}
+                    {formData.minimum_people || minimumGuests} people
+                  </p>
+                )
               )}
             </div>
             <div className="flex gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.back()}
-              >
+              <Button type="button" variant="outline" onClick={() => router.back()}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                variant="primary"
-                isLoading={isSubmitting}
-              >
+              <Button type="submit" variant="primary" isLoading={isSubmitting}>
                 Save Package
               </Button>
             </div>
@@ -987,4 +1007,3 @@ export default function EditPackagePage() {
     </div>
   );
 }
-

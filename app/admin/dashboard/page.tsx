@@ -121,7 +121,7 @@ export default function AdminDashboard() {
                     <h4 className="font-semibold text-gray-900 truncate">{name}</h4>
                     <div className="flex items-center gap-3 mt-1">
                         <p className="text-sm font-medium text-gray-700">
-                            {currency} {price.toFixed(2)}
+                            {currency} {price.toLocaleString()}
                         </p>
                         {status !== undefined && (
                             <span
@@ -684,7 +684,7 @@ export default function AdminDashboard() {
                                     <span className="text-gray-600">Avg Order Value</span>
                                     <span className="font-semibold text-green-600 flex items-center gap-1">
                                         <img src="/dirham.svg" alt="AED" className="w-4 h-4" />
-                                        {(stats?.avgOrderValue || 0).toFixed(2)}
+                                        {(stats?.avgOrderValue || 0).toLocaleString()}
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center">

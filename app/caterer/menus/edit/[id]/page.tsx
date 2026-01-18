@@ -335,7 +335,7 @@ export default function EditMenuItemPage() {
                   <img src="/dirham.svg" alt="AED" className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5" />
                   <input
                     type="number"
-                    step="0.01"
+                    step="1"
                     value={formData.price || ''}
                     onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
                     placeholder="0.00"

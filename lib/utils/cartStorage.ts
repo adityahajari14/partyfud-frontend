@@ -17,10 +17,8 @@ export interface LocalCartItem {
       name?: string;
     };
   };
-  location: string | null;
-  guests: number | null;
-  date: string | null;
-  price_at_time: number | null;
+  guests: number; // Number of guests for this package
+  price_at_time: number; // Calculated price based on guests
   created_at: string;
   updated_at: string;
 }
@@ -45,6 +43,21 @@ export const cartStorage = {
   // Add item to localStorage cart
   addItem: (item: Omit<LocalCartItem, 'id' | 'created_at' | 'updated_at'>): LocalCartItem => {
     const items = cartStorage.getItems();
+    
+    // Check if same package already exists in cart
+    const existingIndex = items.findIndex(i => i.package_id === item.package_id);
+    if (existingIndex !== -1) {
+      // Update existing item with new guest count
+      items[existingIndex] = {
+        ...items[existingIndex],
+        guests: item.guests,
+        price_at_time: item.price_at_time,
+        updated_at: new Date().toISOString(),
+      };
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+      return items[existingIndex];
+    }
+    
     const newItem: LocalCartItem = {
       ...item,
       id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -54,6 +67,22 @@ export const cartStorage = {
     items.push(newItem);
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
     return newItem;
+  },
+
+  // Update guest count for an item
+  updateGuestCount: (itemId: string, guests: number, priceAtTime: number): LocalCartItem | null => {
+    const items = cartStorage.getItems();
+    const index = items.findIndex(item => item.id === itemId);
+    if (index === -1) return null;
+    
+    items[index] = {
+      ...items[index],
+      guests,
+      price_at_time: priceAtTime,
+      updated_at: new Date().toISOString(),
+    };
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+    return items[index];
   },
 
   // Remove item from localStorage cart
@@ -117,10 +146,8 @@ export const cartStorage = {
         
         await userApi.createCartItem({
           package_id: packageId,
-          location: item.location || undefined,
-          guests: item.guests || undefined,
-          date: item.date || undefined,
-          price_at_time: item.price_at_time || undefined,
+          guests: item.guests,
+          price_at_time: item.price_at_time,
         });
       } catch (err) {
         console.error('Error syncing cart item to server:', err);
