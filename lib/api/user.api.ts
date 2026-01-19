@@ -4,6 +4,8 @@ import { apiRequest } from './config';
 export interface FilterCaterersParams {
   location?: string;
   guests?: number;
+  minGuests?: number;
+  maxGuests?: number;
   date?: string;
   minBudget?: number;
   maxBudget?: number;
@@ -13,6 +15,8 @@ export interface FilterCaterersParams {
     liveStations?: boolean;
   };
   search?: string;
+  occasionId?: string;
+  dietaryNeeds?: string[];
 }
 
 export interface Caterer {
@@ -288,6 +292,34 @@ export const userApi = {
   getOccasions: async () => {
     const response = await apiRequest<{ success: boolean; data: Array<{ id: string; name: string; image_url?: string | null; description?: string | null; created_at: string; updated_at: string }>; count: number }>(
       '/api/user/occasions',
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Get all package types (Menu Types)
+   * GET /api/user/metadata/package-types
+   */
+  getPackageTypes: async () => {
+    const response = await apiRequest<{ success: boolean; data: Array<{ id: string; name: string; description?: string }> }>(
+      '/api/user/metadata/package-types',
+      {
+        method: 'GET',
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Get all dietary needs
+   * GET /api/user/metadata/dietary-needs
+   */
+  getDietaryNeeds: async () => {
+    const response = await apiRequest<{ success: boolean; data: Array<{ id: string; name: string }> }>(
+      '/api/user/metadata/dietary-needs',
       {
         method: 'GET',
       }

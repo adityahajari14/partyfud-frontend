@@ -3,20 +3,30 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { userApi, type Caterer } from '@/lib/api/user.api';
+import { userApi, type Caterer, type Occasion } from '@/lib/api/user.api';
+import { Calendar, X, Filter, ChevronDown, Check } from 'lucide-react';
 
 export default function BrowseCaterersPage() {
   const [search, setSearch] = useState('');
-  const [location, setLocation] = useState('All');
-  const [guests, setGuests] = useState<number | undefined>(undefined);
-  const [date, setDate] = useState('');
-  const [budget, setBudget] = useState(500);
-  const [menuType, setMenuType] = useState({
-    fixed: true,
-    customizable: true,
-    liveStations: true,
-  });
-  const [caterers, setCaterers] = useState<Caterer[]>([]);
+
+  // Dropdown Data States
+  const [occasions, setOccasions] = useState<Occasion[]>([]);
+  const [menuTypeOptions, setMenuTypeOptions] = useState<any[]>([]);
+  const [dietaryOptions, setDietaryOptions] = useState<any[]>([]);
+
+  // Filter States
+  const [selectedEventType, setSelectedEventType] = useState('All events');
+  const [eventDate, setEventDate] = useState('');
+  const [guestMin, setGuestMin] = useState<string>('');
+  const [guestMax, setGuestMax] = useState<string>('');
+  const [budgetMin, setBudgetMin] = useState<string>('');
+  const [budgetMax, setBudgetMax] = useState<string>('');
+
+  // Dynamic Checkbox States (store IDs as keys with boolean values)
+  const [selectedMenuTypes, setSelectedMenuTypes] = useState<Record<string, boolean>>({});
+  const [selectedDietaryNeeds, setSelectedDietaryNeeds] = useState<Record<string, boolean>>({});
+
+  const [filteredCaterers, setFilteredCaterers] = useState<Caterer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,55 +39,176 @@ export default function BrowseCaterersPage() {
     return name.substring(0, 2).toUpperCase();
   };
 
-  // Fetch caterers when filters change
+  // Fetch initial data (metadata only, caterers will be fetched via filters)
   useEffect(() => {
-    const fetchCaterers = async () => {
+    const fetchInitialData = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await userApi.filterCaterers({
-          location: location !== 'All' ? location : undefined,
-          guests,
-          date: date || undefined,
-          maxBudget: budget < 500 ? budget : undefined,
-          menuType: {
-            fixed: menuType.fixed,
-            customizable: menuType.customizable,
-            liveStations: menuType.liveStations,
-          },
-          search: search || undefined,
-        });
+        const [occasionsRes, packageTypesRes, dietaryRes] = await Promise.all([
+          userApi.getOccasions(),
+          userApi.getPackageTypes(),
+          userApi.getDietaryNeeds(),
+        ]);
 
-        if (response.error) {
-          setError(response.error);
-          setCaterers([]);
-        } else if (response.data?.data) {
-          const fetchedCaterers = response.data.data;
-          setCaterers(fetchedCaterers);
-
-          // Check if any caterer has customizable packages and update checkbox state
-          // Only update if customizable is currently false and we have customizable packages
-          const hasCustomizablePackages = fetchedCaterers.some((caterer: Caterer) =>
-            caterer.packages?.some((pkg: any) =>
-              pkg.customisation_type === 'CUSTOMISABLE' || pkg.customisation_type === 'CUSTOMIZABLE'
-            )
-          );
-
-          // Only update if the value would actually change to prevent infinite loop
-          if (hasCustomizablePackages && !menuType.customizable) {
-            setMenuType(prev => ({ ...prev, customizable: true }));
-          }
+        // Handle occasions response
+        if (occasionsRes.error) {
+          console.error('Error fetching occasions:', occasionsRes.error);
+        } else if (occasionsRes.data) {
+          // Response structure: { data: { success: true, data: [...] } }
+          const occasionsData = occasionsRes.data.data || occasionsRes.data;
+          setOccasions(Array.isArray(occasionsData) ? occasionsData : []);
         }
+
+        // Handle package types response
+        if (packageTypesRes.error) {
+          console.error('Error fetching package types:', packageTypesRes.error);
+        } else if (packageTypesRes.data) {
+          // Response structure: { data: { success: true, data: [...] } }
+          const packageTypesData = packageTypesRes.data.data || packageTypesRes.data;
+          setMenuTypeOptions(Array.isArray(packageTypesData) ? packageTypesData : []);
+        }
+
+        // Handle dietary needs response
+        if (dietaryRes.error) {
+          console.error('Error fetching dietary needs:', dietaryRes.error);
+        } else if (dietaryRes.data) {
+          // Response structure: { data: { success: true, data: [...] } }
+          const dietaryData = dietaryRes.data.data || dietaryRes.data;
+          setDietaryOptions(Array.isArray(dietaryData) ? dietaryData : []);
+        }
+
+        // Fetch initial caterers with no filters
+        const caterersRes = await userApi.filterCaterers({});
+        if (caterersRes.error) setError(caterersRes.error);
+        if (caterersRes.data?.data) {
+          setFilteredCaterers(caterersRes.data.data);
+        }
+
       } catch (err) {
-        setError('Failed to fetch caterers');
-        setCaterers([]);
+        console.error("Error fetching data:", err);
+        setError('Failed to fetch data');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCaterers();
-  }, [search, location, guests, date, budget, menuType]);
+    fetchInitialData();
+  }, []);
+
+  // Filter Caterers Logic - Now using server-side filtering
+  const fetchAndFilterCaterers = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Build menu type filter object
+      const activeMenuTypeIds = Object.entries(selectedMenuTypes)
+        .filter(([_, isSelected]) => isSelected)
+        .map(([id]) => id);
+
+      const menuTypeFilter: { fixed?: boolean; customizable?: boolean; liveStations?: boolean } = {};
+      if (activeMenuTypeIds.length > 0) {
+        activeMenuTypeIds.forEach(id => {
+          if (id === 'fixed') menuTypeFilter.fixed = true;
+          if (id === 'customizable') menuTypeFilter.customizable = true;
+          if (id === 'liveStations') menuTypeFilter.liveStations = true;
+        });
+      }
+
+      // Build dietary needs array
+      const activeDietaryIds = Object.entries(selectedDietaryNeeds)
+        .filter(([_, isSelected]) => isSelected)
+        .map(([id]) => id);
+
+      // Parse guest count min/max
+      const gMin = guestMin && guestMin.trim() !== '' ? parseInt(guestMin) : undefined;
+      const gMax = guestMax && guestMax.trim() !== '' ? parseInt(guestMax) : undefined;
+
+      // Parse budget min/max
+      const bMin = budgetMin && budgetMin.trim() !== '' ? parseInt(budgetMin) : undefined;
+      const bMax = budgetMax && budgetMax.trim() !== '' ? parseInt(budgetMax) : undefined;
+
+      // Build filter params for API
+      const filterParams: any = {
+        search: search || undefined,
+        minGuests: gMin !== undefined && !isNaN(gMin) ? gMin : undefined,
+        maxGuests: gMax !== undefined && !isNaN(gMax) ? gMax : undefined,
+        date: eventDate || undefined,
+        minBudget: bMin !== undefined && !isNaN(bMin) ? bMin : undefined,
+        maxBudget: bMax !== undefined && !isNaN(bMax) ? bMax : undefined,
+        occasionId: selectedEventType && selectedEventType !== 'All events' ? selectedEventType : undefined,
+        menuType: Object.keys(menuTypeFilter).length > 0 ? menuTypeFilter : undefined,
+        dietaryNeeds: activeDietaryIds.length > 0 ? activeDietaryIds : undefined,
+      };
+
+      // Remove undefined values
+      Object.keys(filterParams).forEach(key => {
+        if (filterParams[key] === undefined) {
+          delete filterParams[key];
+        }
+      });
+
+      // Call API with filters
+      const response = await userApi.filterCaterers(filterParams);
+
+      if (response.error) {
+        setError(response.error);
+        setFilteredCaterers([]);
+      } else if (response.data?.data) {
+        setFilteredCaterers(response.data.data);
+      } else {
+        setFilteredCaterers([]);
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Error filtering caterers');
+      setFilteredCaterers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Trigger filters when any filter changes (debounced for search)
+  useEffect(() => {
+    // Skip initial render to avoid double fetch
+    const timeoutId = setTimeout(() => {
+      fetchAndFilterCaterers();
+    }, search ? 500 : 0); // Debounce search by 500ms
+
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, guestMin, guestMax, budgetMin, budgetMax, selectedEventType, eventDate, selectedMenuTypes, selectedDietaryNeeds]);
+
+  const handleApplyFilters = () => {
+    fetchAndFilterCaterers();
+  };
+
+  const clearFilters = () => {
+    setSelectedEventType('All events');
+    setEventDate('');
+    setGuestMin('');
+    setGuestMax('');
+    setBudgetMin('');
+    setBudgetMax('');
+    setSelectedMenuTypes({});
+    setSelectedDietaryNeeds({});
+    setSearch('');
+    // Filters will be applied automatically via useEffect
+  };
+
+  const toggleMenuType = (id: string) => {
+    setSelectedMenuTypes(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  const toggleDietaryNeed = (id: string) => {
+    setSelectedDietaryNeeds(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
 
   return (
     <section className="bg-white min-h-screen">
@@ -86,119 +217,156 @@ export default function BrowseCaterersPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
           {/* LEFT FILTERS */}
-          <aside className="bg-gray-50 rounded-2xl p-6 h-fit border border-gray-100">
+          <aside className="bg-white rounded-lg p-6 h-fit border border-gray-200 shadow-sm">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="font-semibold text-gray-900">Filters</h3>
-              <button
-                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-                onClick={() => {
-                  setSearch('');
-                  setLocation('All');
-                  setGuests(undefined);
-                  setDate('');
-                  setBudget(500);
-                  setMenuType({ fixed: true, customizable: true, liveStations: true });
-                }}
-              >
-                Clear
-              </button>
+              <div className="flex items-center gap-2">
+                <Filter className="w-5 h-5 text-gray-500" />
+                <h3 className="font-semibold text-gray-900">Filters</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  className="text-sm text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1"
+                  onClick={clearFilters}
+                >
+                  <X className="w-4 h-4" />
+                  Clear
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-6">
+              {/* Event Type */}
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Location</label>
-                <select
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-transparent"
-                >
-                  <option>All</option>
-                  <option>Dubai</option>
-                  <option>Abu Dhabi</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Guests</label>
-                <select
-                  value={guests || ''}
-                  onChange={(e) => setGuests(e.target.value ? Number(e.target.value) : undefined)}
-                  className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-transparent"
-                >
-                  <option value="">All</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
-                  <option value="120">120</option>
-                  <option value="200">200</option>
-                  <option value="300">300</option>
-                  <option value="500">500</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Date</label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Budget (Per Person)</label>
-                <input
-                  type="range"
-                  min={0}
-                  max={500}
-                  step={10}
-                  value={budget}
-                  onChange={(e) => setBudget(Number(e.target.value))}
-                  className="w-full mt-2 accent-[#268700]"
-                />
-                <p className="text-sm text-gray-600 mt-2 flex items-center gap-1"><img src="/dirham.svg" alt="AED" className="w-3 h-3" />0 – <img src="/dirham.svg" alt="AED" className="w-3 h-3" />{budget}</p>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-3 block">Menu Type</label>
-                <div className="space-y-2.5">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={menuType.fixed}
-                      onChange={(e) =>
-                        setMenuType({ ...menuType, fixed: e.target.checked })
-                      }
-                      className="w-4 h-4 accent-[#268700] cursor-pointer"
-                    />
-                    <span className="text-sm text-gray-700">Fixed</span>
-                  </label>
-
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={menuType.customizable}
-                      onChange={(e) =>
-                        setMenuType({ ...menuType, customizable: e.target.checked })
-                      }
-                      className="w-4 h-4 accent-[#268700] cursor-pointer"
-                    />
-                    <span className="text-sm text-gray-700">Customizable</span>
-                  </label>
-
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={menuType.liveStations}
-                      onChange={(e) =>
-                        setMenuType({ ...menuType, liveStations: e.target.checked })
-                      }
-                      className="w-4 h-4 accent-[#268700] cursor-pointer"
-                    />
-                    <span className="text-sm text-gray-700">Live Stations</span>
-                  </label>
+                <label className="text-sm font-semibold text-gray-900 mb-2 block">Event Type</label>
+                <div className="relative">
+                  <select
+                    value={selectedEventType}
+                    onChange={(e) => setSelectedEventType(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-transparent text-gray-600 appearance-none cursor-pointer"
+                  >
+                    <option>All events</option>
+                    {occasions.map((occ) => (
+                      <option key={occ.id} value={occ.id}>{occ.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                 </div>
               </div>
+
+              {/* Date & Time */}
+              <div>
+                <label className="text-sm font-semibold text-gray-900 mb-2 block">Date & Time</label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={eventDate}
+                    onChange={(e) => setEventDate(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-transparent text-gray-600 appearance-none"
+                  />
+                  <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Guest Count */}
+              <div>
+                <label className="text-sm font-semibold text-gray-900 mb-2 block">Guest Count</label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={guestMin}
+                    onChange={(e) => setGuestMin(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-transparent placeholder-gray-400"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={guestMax}
+                    onChange={(e) => setGuestMax(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-transparent placeholder-gray-400"
+                  />
+                </div>
+              </div>
+
+              {/* Budget */}
+              <div>
+                <label className="text-sm font-semibold text-gray-900 mb-2 block">Budget (per person)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    placeholder="AED 0"
+                    value={budgetMin}
+                    onChange={(e) => setBudgetMin(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-transparent placeholder-gray-400"
+                  />
+                  <input
+                    type="number"
+                    placeholder="AED 500"
+                    value={budgetMax}
+                    onChange={(e) => setBudgetMax(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-transparent placeholder-gray-400"
+                  />
+                </div>
+              </div>
+
+              {/* Menu Type */}
+              <div>
+                <label className="text-sm font-semibold text-gray-900 mb-3 block">Menu Type</label>
+                <div className="space-y-2">
+                  {menuTypeOptions.length > 0 ? (
+                    menuTypeOptions.map((item) => (
+                      <label key={item.id} className="flex items-center gap-3 cursor-pointer group">
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedMenuTypes[item.id] ? 'bg-[#268700] border-[#268700]' : 'border-gray-300 bg-white'}`}>
+                          {selectedMenuTypes[item.id] && <Check className="w-3 h-3 text-white" />}
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={!!selectedMenuTypes[item.id]}
+                          onChange={() => toggleMenuType(item.id)}
+                          className="hidden"
+                        />
+                        <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">{item.name}</span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="text-xs text-gray-400 italic">No menu types available</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Dietary Needs */}
+              <div>
+                <label className="text-sm font-semibold text-gray-900 mb-3 block">Dietary Needs</label>
+                <div className="space-y-2">
+                  {dietaryOptions.length > 0 ? (
+                    dietaryOptions.map((item) => (
+                      <label key={item.id} className="flex items-center gap-3 cursor-pointer group">
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedDietaryNeeds[item.id] ? 'bg-[#268700] border-[#268700]' : 'border-gray-300 bg-white'}`}>
+                          {selectedDietaryNeeds[item.id] && <Check className="w-3 h-3 text-white" />}
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={!!selectedDietaryNeeds[item.id]}
+                          onChange={() => toggleDietaryNeed(item.id)}
+                          className="hidden"
+                        />
+                        <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">{item.name}</span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="text-xs text-gray-400 italic">No dietary options available</p>
+                  )}
+                </div>
+              </div>
+
+              <button
+                onClick={handleApplyFilters}
+                className="w-full bg-[#5FB244] hover:bg-[#4ea035] text-white font-semibold py-3 rounded-lg transition-colors"
+                style={{ backgroundColor: '#69B645' }}
+              >
+                Refresh Results
+              </button>
+
             </div>
           </aside>
 
@@ -234,14 +402,14 @@ export default function BrowseCaterersPage() {
             {/* Caterer Grid */}
             {!loading && !error && (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {caterers.length === 0 ? (
+                {filteredCaterers.length === 0 ? (
                   <div className="col-span-full text-center py-20">
                     <p className="text-gray-500">No caterers found matching your filters.</p>
                   </div>
                 ) : (
-                  caterers.map((c) => {
+                  filteredCaterers.map((c) => {
                     const initials = getInitials(c.name);
-                    const rating = c.packages.length > 0 && c.packages[0]?.rating
+                    const rating = c.packages && c.packages.length > 0 && c.packages[0]?.rating
                       ? typeof c.packages[0].rating === 'number'
                         ? c.packages[0].rating.toFixed(1)
                         : parseFloat(String(c.packages[0].rating)).toFixed(1)
