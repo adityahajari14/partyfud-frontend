@@ -27,6 +27,20 @@ interface CartItem {
   };
   guests: number | null;
   price_at_time: number | null;
+  // Add-ons
+  add_ons?: Array<{
+    id: string;
+    add_on_id: string;
+    quantity: number;
+    price_at_time: number | null;
+    add_on: {
+      id: string;
+      name: string;
+      description?: string | null;
+      price: number;
+      currency: string;
+    };
+  }>;
   created_at: Date | string;
   updated_at: Date | string;
 }
@@ -109,7 +123,14 @@ export default function CartPage() {
 
       const pricePerPerson = item.package.price_per_person || 
         (item.package.total_price / (item.package.people_count || 1));
-      const newPrice = Math.round(pricePerPerson * newGuests);
+      const packagePrice = Math.round(pricePerPerson * newGuests);
+      
+      // Add add-ons prices (add-ons are fixed price, not multiplied by guest count)
+      const addOnsPrice = item.add_ons && item.add_ons.length > 0
+        ? item.add_ons.reduce((sum, addOn) => sum + (addOn.add_on.price * addOn.quantity), 0)
+        : 0;
+      
+      const newPrice = packagePrice + addOnsPrice;
 
       if (user) {
         // Update on server for authenticated users
@@ -162,7 +183,14 @@ export default function CartPage() {
     const guests = item.guests || item.package.people_count || 1;
     const pricePerPerson = item.package.price_per_person || 
       (item.package.total_price / (item.package.people_count || 1));
-    return Math.round(pricePerPerson * guests);
+    const packagePrice = Math.round(pricePerPerson * guests);
+    
+    // Add add-ons prices (add-ons are fixed price, not multiplied by guest count)
+    const addOnsPrice = item.add_ons && item.add_ons.length > 0
+      ? item.add_ons.reduce((sum, addOn) => sum + (addOn.add_on.price * addOn.quantity), 0)
+      : 0;
+    
+    return packagePrice + addOnsPrice;
   };
 
   const subtotal = useMemo(() => {
@@ -308,6 +336,26 @@ export default function CartPage() {
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
                           )}
                         </div>
+
+                        {/* Add-ons display */}
+                        {item.add_ons && item.add_ons.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <p className="text-xs font-medium text-gray-700 mb-2">Add-ons:</p>
+                            <div className="space-y-1">
+                              {item.add_ons.map((cartAddOn) => (
+                                <div key={cartAddOn.id} className="flex items-center justify-between text-xs text-gray-600">
+                                  <span className="flex items-center gap-1.5">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-green-600"></div>
+                                    {cartAddOn.add_on.name}
+                                  </span>
+                                  <span className="text-gray-900">
+                                    {cartAddOn.add_on.currency} {cartAddOn.add_on.price.toLocaleString()}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
                         {/* Price */}
                         <div className="flex justify-between items-center pt-3 border-t border-gray-100">

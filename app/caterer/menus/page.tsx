@@ -381,9 +381,9 @@ export default function MenusPage() {
                   </div>
                   <div className="p-2 md:p-3 flex flex-col flex-grow">
                     <h3 className="font-semibold text-sm md:text-base text-gray-900 mb-1 line-clamp-2 min-h-[2rem] md:min-h-[2.5rem]">{dish.name}</h3>
-                    {dish.quantity_in_gm && (
+                    {dish.quantity && (
                       <p className="text-xs text-gray-600 mb-1 md:mb-2">
-                        {dish.quantity_in_gm} gm
+                        {dish.quantity}
                       </p>
                     )}
                     <div className="flex items-center justify-between mb-2 mt-auto gap-1">
@@ -544,16 +544,16 @@ export default function MenusPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
-                    label="Quantity (gm)"
-                    type="number"
-                    value={createFormData.quantity_in_gm || ''}
+                    label="Quantity"
+                    type="text"
+                    value={createFormData.quantity || ''}
                     onChange={(e) =>
                       setCreateFormData({
                         ...createFormData,
-                        quantity_in_gm: e.target.value || undefined,
+                        quantity: e.target.value || undefined,
                       })
                     }
-                    placeholder="Enter quantity in grams"
+                    placeholder="Enter quantity"
                   />
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">

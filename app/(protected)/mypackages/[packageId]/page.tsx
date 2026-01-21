@@ -5,8 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import React from 'react';
 import { userApi, type Package } from '@/lib/api/user.api';
-import { Check, Plus } from 'lucide-react';
+import { Check, Plus, Minus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { UAE_EMIRATES } from '@/lib/constants';
 // import { Testimonials } from '@/user/Testimonials';
 
 interface Occasion {
@@ -42,6 +43,14 @@ export default function PackageDetailsPage() {
     const [selectedDishes, setSelectedDishes] = useState<Set<string>>(new Set());
     const [savingCustomPackage, setSavingCustomPackage] = useState(false);
     const [showCustomizeSection, setShowCustomizeSection] = useState(false);
+    
+    // Add-ons selection state (only for FIXED packages) - simple checkbox selection
+    const [selectedAddOns, setSelectedAddOns] = useState<Set<string>>(new Set()); // Set<addOnId>
+    
+    // Reset selected add-ons when package changes
+    useEffect(() => {
+        setSelectedAddOns(new Set());
+    }, [pkg?.id]);
 
     const params = useParams();
     const packageId = params.packageId as string;
@@ -205,12 +214,19 @@ export default function PackageDetailsPage() {
             const priceMultiplier = guests / peopleCount;
             const calculatedPrice = pkg.total_price * priceMultiplier;
 
+            // Prepare add-ons array for API (quantity is always 1 for checkbox selection)
+            const addOnsArray = Array.from(selectedAddOns).map((addOnId) => ({
+                add_on_id: addOnId,
+                quantity: 1,
+            }));
+
             const cartData = {
                 package_id: pkg.id,
                 location: location,
                 guests: guests,
                 date: isoDate,
                 price_at_time: calculatedPrice,
+                add_ons: addOnsArray.length > 0 ? addOnsArray : undefined,
             };
 
             const response = await userApi.createCartItem(cartData);
@@ -701,32 +717,11 @@ export default function PackageDetailsPage() {
                                 className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#268700]"
                             >
                                 <option value="" className="text-black">Select Location</option>
-                                <option value="Downtown Dubai" className="text-black">Downtown Dubai</option>
-                                <option value="Dubai Marina" className="text-black">Dubai Marina</option>
-                                <option value="Jumeirah" className="text-black">Jumeirah</option>
-                                <option value="Palm Jumeirah" className="text-black">Palm Jumeirah</option>
-                                <option value="Business Bay" className="text-black">Business Bay</option>
-                                <option value="Dubai International Financial Centre (DIFC)" className="text-black">Dubai International Financial Centre (DIFC)</option>
-                                <option value="Dubai Mall Area" className="text-black">Dubai Mall Area</option>
-                                <option value="Burj Al Arab Area" className="text-black">Burj Al Arab Area</option>
-                                <option value="Dubai Festival City" className="text-black">Dubai Festival City</option>
-                                <option value="Dubai Sports City" className="text-black">Dubai Sports City</option>
-                                <option value="Dubai Media City" className="text-black">Dubai Media City</option>
-                                <option value="Dubai Internet City" className="text-black">Dubai Internet City</option>
-                                <option value="Dubai Knowledge Park" className="text-black">Dubai Knowledge Park</option>
-                                <option value="Dubai Healthcare City" className="text-black">Dubai Healthcare City</option>
-                                <option value="Dubai World Trade Centre" className="text-black">Dubai World Trade Centre</option>
-                                <option value="Dubai Creek" className="text-black">Dubai Creek</option>
-                                <option value="Deira" className="text-black">Deira</option>
-                                <option value="Bur Dubai" className="text-black">Bur Dubai</option>
-                                <option value="Al Barsha" className="text-black">Al Barsha</option>
-                                <option value="Jumeirah Beach Residence (JBR)" className="text-black">Jumeirah Beach Residence (JBR)</option>
-                                <option value="Dubai Hills" className="text-black">Dubai Hills</option>
-                                <option value="Arabian Ranches" className="text-black">Arabian Ranches</option>
-                                <option value="Emirates Hills" className="text-black">Emirates Hills</option>
-                                <option value="Dubai Silicon Oasis" className="text-black">Dubai Silicon Oasis</option>
-                                <option value="Dubai Production City" className="text-black">Dubai Production City</option>
-                                <option value="Dubai Studio City" className="text-black">Dubai Studio City</option>
+                                {UAE_EMIRATES.map((emirate) => (
+                                    <option key={emirate} value={emirate} className="text-black">
+                                        {emirate}
+                                    </option>
+                                ))}
                             </select>
                         </div>
 
@@ -773,15 +768,73 @@ export default function PackageDetailsPage() {
 
                     </div>
 
+                    {/* Add-ons Selection - Only for FIXED packages */}
+                    {pkg && pkg.customisation_type === 'FIXED' && pkg.add_ons && pkg.add_ons.length > 0 && (
+                        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                            <h3 className="text-sm font-semibold text-gray-900 mb-3">Optional Add-ons</h3>
+                            <div className="space-y-3">
+                                {pkg.add_ons.map((addOn) => {
+                                    const isSelected = selectedAddOns.has(addOn.id);
+                                    return (
+                                        <label
+                                            key={addOn.id}
+                                            className={`flex items-start gap-3 p-3 bg-white rounded-lg border-2 cursor-pointer transition-all ${
+                                                isSelected ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
+                                            } ${!addOn.is_active ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                onChange={(e) => {
+                                                    const newSet = new Set(selectedAddOns);
+                                                    if (e.target.checked) {
+                                                        newSet.add(addOn.id);
+                                                    } else {
+                                                        newSet.delete(addOn.id);
+                                                    }
+                                                    setSelectedAddOns(newSet);
+                                                }}
+                                                disabled={!addOn.is_active}
+                                                className="mt-1 w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
+                                            />
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <h4 className="text-sm font-medium text-gray-900">{addOn.name}</h4>
+                                                    {!addOn.is_active && (
+                                                        <span className="px-2 py-0.5 bg-gray-200 text-gray-600 rounded text-xs">Unavailable</span>
+                                                    )}
+                                                </div>
+                                                {addOn.description && (
+                                                    <p className="text-xs text-gray-600 mt-1">{addOn.description}</p>
+                                                )}
+                                                <p className="text-sm font-medium text-gray-900 mt-1">
+                                                    {addOn.currency} {addOn.price.toLocaleString()}
+                                                </p>
+                                            </div>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="mt-4 font-semibold">
                         Total Cost
                         <div className="text-lg flex items-center gap-1">
                             <img src="/dirham.svg" alt="AED" className="w-5 h-5" />
                             {(() => {
                                 const peopleCount = pkg.people_count || pkg.minimum_people || 1;
-                                return guests > 0 && guests !== peopleCount 
-                                    ? (pkg.total_price * (guests / peopleCount)).toLocaleString(undefined, { maximumFractionDigits: 2 })
-                                    : pkg.total_price?.toLocaleString() ?? '0';
+                                const basePrice = guests > 0 && guests !== peopleCount 
+                                    ? pkg.total_price * (guests / peopleCount)
+                                    : pkg.total_price ?? 0;
+                                
+                                // Add add-ons price
+                                const addOnsTotal = Array.from(selectedAddOns).reduce((sum, addOnId) => {
+                                    const addOn = pkg.add_ons?.find(a => a.id === addOnId);
+                                    return sum + (addOn ? addOn.price : 0);
+                                }, 0);
+                                
+                                return (basePrice + addOnsTotal).toLocaleString(undefined, { maximumFractionDigits: 2 });
                             })()}
                         </div>
                         <div className="text-sm text-gray-500 font-normal flex items-center gap-1">

@@ -24,6 +24,19 @@ interface OrderItem {
     guests: number | null;
     date: Date | string | null;
     price_at_time: number;
+    add_ons?: Array<{
+        id: string;
+        add_on_id: string;
+        quantity: number;
+        price_at_time: number;
+        add_on: {
+            id: string;
+            name: string;
+            description?: string | null;
+            price: number;
+            currency: string;
+        };
+    }>;
     created_at: Date | string;
 }
 
@@ -267,18 +280,18 @@ export default function OrdersPage() {
                                             <div key={item.id} className="flex gap-4">
                                                 <div className="relative w-20 h-20 rounded-lg overflow-hidden shrink-0 bg-gray-50">
                                                     <Image
-                                                        src={item.package.cover_image_url || '/logo2.svg'}
-                                                        alt={item.package.name}
+                                                        src={item.package?.cover_image_url || '/logo2.svg'}
+                                                        alt={item.package?.name || 'Package'}
                                                         fill
                                                         className="object-contain p-1"
                                                     />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <h4 className="font-medium text-gray-900 mb-1">
-                                                        {item.package.name}
+                                                        {item.package?.name || 'Package'}
                                                     </h4>
                                                     <p className="text-sm text-gray-600 mb-1">
-                                                        {item.package.caterer.business_name || 'Unknown Caterer'}
+                                                        {item.package?.caterer?.business_name || 'Unknown Caterer'}
                                                     </p>
                                                     <p className="text-xs text-gray-500">
                                                         Package
@@ -286,7 +299,7 @@ export default function OrdersPage() {
                                                 </div>
                                                 <div className="text-right shrink-0">
                                                     <p className="font-semibold text-gray-900">
-                                                        {item.package.currency} {item.price_at_time.toLocaleString()}
+                                                        {item.package?.currency || 'AED'} {item.price_at_time.toLocaleString()}
                                                     </p>
                                                 </div>
                                             </div>
@@ -384,18 +397,18 @@ export default function OrdersPage() {
                                             <div className="flex gap-4">
                                                 <div className="relative w-24 h-24 rounded-lg overflow-hidden shrink-0 bg-gray-50">
                                                     <Image
-                                                        src={item.package.cover_image_url || '/logo2.svg'}
-                                                        alt={item.package.name}
+                                                        src={item.package?.cover_image_url || '/logo2.svg'}
+                                                        alt={item.package?.name || 'Package'}
                                                         fill
                                                         className="object-contain p-2"
                                                     />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <h4 className="font-semibold text-gray-900 mb-1">
-                                                        {item.package.name}
+                                                        {item.package?.name || 'Package'}
                                                     </h4>
                                                     <p className="text-sm text-gray-600 mb-2">
-                                                        {item.package.caterer.business_name || 'Unknown Caterer'}
+                                                        {item.package?.caterer?.business_name || 'Unknown Caterer'}
                                                     </p>
                                                     <p className="text-xs text-gray-500 mb-3">
                                                         Package
@@ -423,9 +436,29 @@ export default function OrdersPage() {
                                                         )}
                                                         <div className="flex items-center gap-2 text-sm font-semibold text-[#268700]">
                                                             <DollarSign size={16} />
-                                                            <span>{item.package.currency} {item.price_at_time.toLocaleString()}</span>
+                                                            <span>{item.package?.currency || 'AED'} {item.price_at_time.toLocaleString()}</span>
                                                         </div>
                                                     </div>
+
+                                                    {/* Add-ons display */}
+                                                    {item.add_ons && item.add_ons.length > 0 && (
+                                                        <div className="mt-4 pt-4 border-t border-gray-200">
+                                                            <p className="text-xs font-medium text-gray-700 mb-2">Add-ons:</p>
+                                                            <div className="space-y-1">
+                                                                {item.add_ons.map((orderAddOn) => (
+                                                                    <div key={orderAddOn.id} className="flex items-center justify-between text-xs text-gray-600">
+                                                                        <span className="flex items-center gap-1.5">
+                                                                            <div className="w-1.5 h-1.5 rounded-full bg-green-600"></div>
+                                                                            {orderAddOn.add_on.name}
+                                                                        </span>
+                                                                        <span className="text-gray-900">
+                                                                            {orderAddOn.add_on.currency} {orderAddOn.add_on.price.toLocaleString()}
+                                                                        </span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

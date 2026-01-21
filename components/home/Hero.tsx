@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, MapPin, Users, ChevronDown } from 'lucide-react';
 import { userApi } from '@/lib/api/user.api';
+import { UAE_EMIRATES } from '@/lib/constants';
 
 interface Occasion {
     id: string;
@@ -144,33 +145,12 @@ export default function Hero() {
                                     onChange={(e) => setLocation(e.target.value)}
                                     className="w-full bg-gray-50 border border-gray-200 rounded-md px-4 py-3 pl-10 appearance-none text-sm text-gray-700 focus:outline-none focus:border-[#64C042] focus:ring-1 focus:ring-[#64C042]"
                                 >
-                                    <option value="" className="text-gray-400">Dubai, Abu Dhabi...</option>
-                                    <option value="Downtown Dubai">Downtown Dubai</option>
-                                    <option value="Dubai Marina">Dubai Marina</option>
-                                    <option value="Jumeirah">Jumeirah</option>
-                                    <option value="Palm Jumeirah">Palm Jumeirah</option>
-                                    <option value="Business Bay">Business Bay</option>
-                                    <option value="DIFC">DIFC</option>
-                                    <option value="Dubai Mall Area">Dubai Mall Area</option>
-                                    <option value="Burj Al Arab Area">Burj Al Arab Area</option>
-                                    <option value="Dubai Festival City">Dubai Festival City</option>
-                                    <option value="Dubai Sports City">Dubai Sports City</option>
-                                    <option value="Dubai Media City">Dubai Media City</option>
-                                    <option value="Dubai Internet City">Dubai Internet City</option>
-                                    <option value="Dubai Knowledge Park">Dubai Knowledge Park</option>
-                                    <option value="Dubai Healthcare City">Dubai Healthcare City</option>
-                                    <option value="Dubai World Trade Centre">Dubai World Trade Centre</option>
-                                    <option value="Dubai Creek">Dubai Creek</option>
-                                    <option value="Deira">Deira</option>
-                                    <option value="Bur Dubai">Bur Dubai</option>
-                                    <option value="Al Barsha">Al Barsha</option>
-                                    <option value="JBR">JBR</option>
-                                    <option value="Dubai Hills">Dubai Hills</option>
-                                    <option value="Arabian Ranches">Arabian Ranches</option>
-                                    <option value="Emirates Hills">Emirates Hills</option>
-                                    <option value="Dubai Silicon Oasis">Dubai Silicon Oasis</option>
-                                    <option value="Dubai Production City">Dubai Production City</option>
-                                    <option value="Dubai Studio City">Dubai Studio City</option>
+                                    <option value="" className="text-gray-400">Select Emirate</option>
+                                    {UAE_EMIRATES.map((emirate) => (
+                                        <option key={emirate} value={emirate}>
+                                            {emirate}
+                                        </option>
+                                    ))}
                                 </select>
                                 <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
                             </div>

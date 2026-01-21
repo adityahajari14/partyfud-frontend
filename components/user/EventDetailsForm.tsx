@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { DUBAI_LOCATIONS, getMinEventDate } from '@/lib/constants';
+import { UAE_EMIRATES, getMinEventDate } from '@/lib/constants';
 
 interface Occasion {
   id: string;
@@ -80,9 +80,9 @@ export function EventDetailsForm({
           className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
         >
           <option value="">Select Location</option>
-          {DUBAI_LOCATIONS.map((loc) => (
-            <option key={loc} value={loc}>
-              {loc}
+          {UAE_EMIRATES.map((emirate) => (
+            <option key={emirate} value={emirate}>
+              {emirate}
             </option>
           ))}
         </select>

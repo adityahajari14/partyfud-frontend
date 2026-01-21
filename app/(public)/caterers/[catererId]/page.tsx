@@ -8,7 +8,7 @@ import { userApi, type Caterer, type Package } from '@/lib/api/user.api';
 import { Star, MapPin, Users, ChefHat, ShoppingCart, Plus, Minus, Check, Calendar, Clock, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Toast, useToast } from '@/components/ui/Toast';
-import { getLogoText, getMinEventDate, DUBAI_LOCATIONS } from '@/lib/constants';
+import { getLogoText, getMinEventDate, UAE_EMIRATES } from '@/lib/constants';
 
 type TabType = 'packages' | 'buildOwn' | 'requestQuote';
 
@@ -63,6 +63,14 @@ export default function CatererDetailPage() {
   // Cart states
   const [addingToCart, setAddingToCart] = useState(false);
   const [cartPackageIds, setCartPackageIds] = useState<Set<string>>(new Set());
+  
+  // Add-ons selection state (only for FIXED packages) - simple checkbox selection
+  const [selectedAddOns, setSelectedAddOns] = useState<Set<string>>(new Set()); // Set<addOnId>
+  
+  // Reset selected add-ons when package changes
+  useEffect(() => {
+    setSelectedAddOns(new Set());
+  }, [selectedPackage?.id]);
 
   // Gallery state
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
@@ -639,6 +647,12 @@ export default function CatererDetailPage() {
       } else {
         // For fixed packages or customizable without selections, add original package
         if (user) {
+          // Prepare add-ons array for API (quantity is always 1 for checkbox selection)
+          const addOnsArray = Array.from(selectedAddOns).map((addOnId) => ({
+            add_on_id: addOnId,
+            quantity: 1,
+          }));
+
           // Add to server cart for authenticated users
           const res = await userApi.createCartItem({
             package_id: pkg.id,
@@ -648,6 +662,7 @@ export default function CatererDetailPage() {
             event_time: eventTime,
             event_type: eventType,
             area: area,
+            add_ons: addOnsArray.length > 0 ? addOnsArray : undefined,
           });
 
           if (res.error) {
@@ -1193,22 +1208,112 @@ export default function CatererDetailPage() {
                     required
                   >
                     <option value="">Select area</option>
-                    {DUBAI_LOCATIONS.map((location) => (
-                      <option key={location} value={location}>
-                        {location}
+                    {UAE_EMIRATES.map((emirate) => (
+                      <option key={emirate} value={emirate}>
+                        {emirate}
                       </option>
                     ))}
                   </select>
                 </div>
 
+                {/* Add-ons Selection - Only for FIXED packages */}
+                {selectedPackage && selectedPackage.customisation_type === 'FIXED' && selectedPackage.add_ons && selectedPackage.add_ons.length > 0 && (
+                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Optional Add-ons</h3>
+                    <div className="space-y-3">
+                      {selectedPackage.add_ons.map((addOn) => {
+                        const isSelected = selectedAddOns.has(addOn.id);
+                        return (
+                          <label
+                            key={addOn.id}
+                            className={`flex items-start gap-3 p-3 bg-white rounded-lg border-2 cursor-pointer transition-all ${
+                              isSelected ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
+                            } ${!addOn.is_active ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => {
+                                const newSet = new Set(selectedAddOns);
+                                if (e.target.checked) {
+                                  newSet.add(addOn.id);
+                                } else {
+                                  newSet.delete(addOn.id);
+                                }
+                                setSelectedAddOns(newSet);
+                              }}
+                              disabled={!addOn.is_active}
+                              className="mt-1 w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <h4 className="text-sm font-medium text-gray-900">{addOn.name}</h4>
+                                {!addOn.is_active && (
+                                  <span className="px-2 py-0.5 bg-gray-200 text-gray-600 rounded text-xs">Unavailable</span>
+                                )}
+                              </div>
+                              {addOn.description && (
+                                <p className="text-xs text-gray-600 mt-1">{addOn.description}</p>
+                              )}
+                              <p className="text-sm font-medium text-gray-900 mt-1">
+                                {addOn.currency} {addOn.price.toLocaleString()}
+                              </p>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Price Summary */}
                 {selectedPackage && (
                   <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-gray-600">Total for {guestCount} guests</span>
-                      <span className="text-xl font-bold text-gray-900">
-                        AED {calculatePrice(selectedPackage).toLocaleString()}
-                      </span>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Package for {guestCount} guests</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {selectedPackage.currency} {calculatePrice(selectedPackage).toLocaleString()}
+                        </span>
+                      </div>
+                      {selectedPackage.customisation_type === 'FIXED' && selectedPackage.add_ons && selectedPackage.add_ons.length > 0 && (
+                        <>
+                          {Array.from(selectedAddOns).map((addOnId) => {
+                            const addOn = selectedPackage.add_ons?.find(a => a.id === addOnId);
+                            if (!addOn) return null;
+                            return (
+                              <div key={addOnId} className="flex justify-between items-center text-sm">
+                                <span className="text-gray-600">{addOn.name}</span>
+                                <span className="text-gray-900">
+                                  {addOn.currency} {addOn.price.toLocaleString()}
+                                </span>
+                              </div>
+                            );
+                          })}
+                          <div className="border-t border-gray-300 pt-2 mt-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-semibold text-gray-900">Total</span>
+                              <span className="text-xl font-bold text-gray-900">
+                                {selectedPackage.currency} {(
+                                  calculatePrice(selectedPackage) +
+                                  Array.from(selectedAddOns).reduce((sum, addOnId) => {
+                                    const addOn = selectedPackage.add_ons?.find(a => a.id === addOnId);
+                                    return sum + (addOn ? addOn.price : 0);
+                                  }, 0)
+                                ).toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                      {(!selectedPackage.add_ons || selectedPackage.add_ons.length === 0 || selectedPackage.customisation_type !== 'FIXED') && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-semibold text-gray-900">Total</span>
+                          <span className="text-xl font-bold text-gray-900">
+                            {selectedPackage.currency} {calculatePrice(selectedPackage).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1594,9 +1699,9 @@ export default function CatererDetailPage() {
                     required
                   >
                     <option value="">Select area</option>
-                    {DUBAI_LOCATIONS.map((location) => (
-                      <option key={location} value={location}>
-                        {location}
+                    {UAE_EMIRATES.map((emirate) => (
+                      <option key={emirate} value={emirate}>
+                        {emirate}
                       </option>
                     ))}
                   </select>

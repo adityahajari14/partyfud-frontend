@@ -43,8 +43,296 @@ interface FormErrors {
 }
 
 // ============================================================================
+// TYPES
+// ============================================================================
+
+interface AddOn {
+  id: string;
+  package_id: string;
+  name: string;
+  description?: string;
+  price: number;
+  currency: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// ============================================================================
 // COMPONENTS
 // ============================================================================
+
+// Add-ons Section Component
+const AddOnsSection: React.FC<{
+  packageId: string;
+}> = ({ packageId }) => {
+  const [addOns, setAddOns] = useState<AddOn[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    price: '',
+    currency: 'AED',
+    is_active: true,
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    loadAddOns();
+  }, [packageId]);
+
+  const loadAddOns = async () => {
+    try {
+      setLoading(true);
+      const response = await catererApi.getAddOns(packageId);
+      if (response.data) {
+        const data = response.data as any;
+        setAddOns(Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []));
+      }
+    } catch (error: any) {
+      console.error('Error loading add-ons:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e?: React.FormEvent | React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setErrors({});
+    if (!formData.name.trim()) {
+      setErrors({ name: 'Name is required' });
+      return;
+    }
+    if (!formData.price || parseFloat(formData.price) < 0) {
+      setErrors({ price: 'Valid price is required' });
+      return;
+    }
+
+    let response;
+    if (editingId) {
+      // Price is already in numeric format from form, send as-is (backend will round to integer)
+      response = await catererApi.updateAddOn(editingId, {
+        name: formData.name,
+        description: formData.description || undefined,
+        price: parseFloat(formData.price), // Send numeric, backend rounds to integer
+        currency: formData.currency,
+        is_active: formData.is_active,
+      });
+    } else {
+      // Price is already in numeric format from form, send as-is (backend will round to integer)
+      response = await catererApi.createAddOn(packageId, {
+        name: formData.name,
+        description: formData.description || undefined,
+        price: parseFloat(formData.price), // Send numeric, backend rounds to integer
+        currency: formData.currency,
+        is_active: formData.is_active,
+      });
+    }
+    
+    if (response.error) {
+      setErrors({ general: response.error });
+      return;
+    }
+    
+    setFormData({ name: '', description: '', price: '', currency: 'AED', is_active: true });
+    setShowAddForm(false);
+    setEditingId(null);
+    loadAddOns();
+  };
+
+  const handleEdit = (addOn: AddOn) => {
+    setFormData({
+      name: addOn.name,
+      description: addOn.description || '',
+      price: addOn.price.toString(),
+      currency: addOn.currency,
+      is_active: addOn.is_active,
+    });
+    setEditingId(addOn.id);
+    setShowAddForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this add-on?')) return;
+    const response = await catererApi.deleteAddOn(id);
+    if (response.error) {
+      setErrors({ general: response.error });
+      return;
+    }
+    loadAddOns();
+  };
+
+  const handleCancel = () => {
+    setFormData({ name: '', description: '', price: '', currency: 'AED', is_active: true });
+    setShowAddForm(false);
+    setEditingId(null);
+    setErrors({});
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Add-ons</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            Create optional add-ons that users can select when ordering this package
+          </p>
+        </div>
+        {!showAddForm && (
+          <Button
+            type="button"
+            variant="primary"
+            onClick={() => setShowAddForm(true)}
+          >
+            + Add Add-on
+          </Button>
+        )}
+      </div>
+
+      {errors.general && (
+        <div className="mb-4 bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded">
+          {errors.general}
+        </div>
+      )}
+
+      {/* Add/Edit Form */}
+      {showAddForm && (
+        <div 
+          onClick={(e) => e.stopPropagation()}
+          className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <Input
+              label="Add-on Name"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="e.g., Extra Dessert"
+              error={errors.name}
+              required
+            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Price <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <img src="/dirham.svg" alt="AED" className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 z-10" />
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                  placeholder="0"
+                  className="pl-12"
+                  error={errors.price}
+                  required
+                />
+              </div>
+            </div>
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Description (Optional)
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Describe this add-on..."
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-transparent resize-none"
+            />
+          </div>
+          <div className="flex items-center gap-4 mb-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.is_active}
+                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                className="w-4 h-4 text-[#268700] border-gray-300 rounded focus:ring-[#268700]"
+              />
+              <span className="text-sm text-gray-700">Active</span>
+            </label>
+          </div>
+          <div className="flex gap-3">
+            <Button 
+              type="button" 
+              variant="primary"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSubmit(e);
+              }}
+            >
+              {editingId ? 'Update' : 'Create'} Add-on
+            </Button>
+            <Button type="button" variant="outline" onClick={handleCancel}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Add-ons List */}
+      {loading ? (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#268700]"></div>
+        </div>
+      ) : addOns.length === 0 ? (
+        <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+          <p className="text-gray-500">No add-ons yet. Click "Add Add-on" to create one.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {addOns.map((addOn) => (
+            <div
+              key={addOn.id}
+              className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
+            >
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-1">
+                  <h3 className="font-semibold text-gray-900">{addOn.name}</h3>
+                  {!addOn.is_active && (
+                    <span className="px-2 py-1 bg-gray-200 text-gray-600 rounded text-xs font-medium">
+                      Inactive
+                    </span>
+                  )}
+                </div>
+                {addOn.description && (
+                  <p className="text-sm text-gray-600 mb-2">{addOn.description}</p>
+                )}
+                <p className="text-sm font-medium text-gray-900">
+                  {addOn.currency} {Number(addOn.price).toLocaleString()}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleEdit(addOn)}
+                >
+                  Edit
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleDelete(addOn.id)}
+                  className="text-red-600 hover:text-red-700 hover:border-red-300"
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const DishCard: React.FC<{
   dish: Dish;
@@ -857,6 +1145,11 @@ export default function EditPackagePage() {
 
             {renderDishesSection()}
           </div>
+
+          {/* Add-ons Section - Only for FIXED packages */}
+          {formData.customisation_type === 'FIXED' && (
+            <AddOnsSection packageId={packageId} />
+          )}
 
           {/* Pricing & Status */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">

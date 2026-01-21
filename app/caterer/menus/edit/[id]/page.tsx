@@ -133,7 +133,7 @@ export default function EditMenuItemPage() {
           name: dishData.name,
           price: dishData.price,
           is_active: dishData.is_active,
-          quantity_in_gm: dishData.quantity_in_gm,
+          quantity: dishData.quantity,
           pieces: dishData.pieces,
           cuisine_type_id: dishData.cuisine_type?.id || dishData.cuisine_type_id,
           category_id: dishData.category?.id || dishData.category_id,
@@ -320,12 +320,12 @@ export default function EditMenuItemPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
-                label="Quantity (gm)"
-                type="number"
-                value={formData.quantity_in_gm || ''}
-                onChange={(e) => setFormData({ ...formData, quantity_in_gm: e.target.value || undefined })}
-                placeholder="Enter quantity in grams"
-                error={formErrors.quantity_in_gm}
+                label="Quantity"
+                type="text"
+                value={formData.quantity || ''}
+                onChange={(e) => setFormData({ ...formData, quantity: e.target.value || undefined })}
+                placeholder="Enter quantity"
+                error={formErrors.quantity}
               />
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

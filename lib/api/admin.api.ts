@@ -148,5 +148,356 @@ export const adminApi = {
       body: JSON.stringify({ status }),
     });
   },
+
+  // ============================================================================
+  // METADATA MANAGEMENT
+  // ============================================================================
+
+  // Cuisine Types
+  getCuisineTypes: async () => {
+    return apiRequest<{
+      success: boolean;
+      data: Array<{
+        id: string;
+        name: string;
+        description: string | null;
+        created_at: string;
+        updated_at: string;
+      }>;
+    }>('/api/admin/metadata/cuisine-types');
+  },
+
+  createCuisineType: async (data: { name: string; description?: string }) => {
+    return apiRequest<{
+      success: boolean;
+      data: {
+        id: string;
+        name: string;
+        description: string | null;
+        created_at: string;
+        updated_at: string;
+      };
+    }>('/api/admin/metadata/cuisine-types', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateCuisineType: async (id: string, data: { name?: string; description?: string }) => {
+    return apiRequest<{
+      success: boolean;
+      data: {
+        id: string;
+        name: string;
+        description: string | null;
+        created_at: string;
+        updated_at: string;
+      };
+    }>(`/api/admin/metadata/cuisine-types/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteCuisineType: async (id: string) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+    }>(`/api/admin/metadata/cuisine-types/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Categories
+  getCategories: async () => {
+    return apiRequest<{
+      success: boolean;
+      data: Array<{
+        id: string;
+        name: string;
+        description: string | null;
+        created_at: string;
+        updated_at: string;
+        subCategories: Array<{
+          id: string;
+          name: string;
+          description: string | null;
+          category_id: string;
+        }>;
+      }>;
+    }>('/api/admin/metadata/categories');
+  },
+
+  createCategory: async (data: { name: string; description?: string }) => {
+    return apiRequest<{
+      success: boolean;
+      data: {
+        id: string;
+        name: string;
+        description: string | null;
+        created_at: string;
+        updated_at: string;
+      };
+    }>('/api/admin/metadata/categories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateCategory: async (id: string, data: { name?: string; description?: string }) => {
+    return apiRequest<{
+      success: boolean;
+      data: {
+        id: string;
+        name: string;
+        description: string | null;
+        created_at: string;
+        updated_at: string;
+      };
+    }>(`/api/admin/metadata/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteCategory: async (id: string) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+    }>(`/api/admin/metadata/categories/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Sub Categories
+  getSubCategories: async (categoryId?: string) => {
+    const query = categoryId ? `?category_id=${categoryId}` : '';
+    return apiRequest<{
+      success: boolean;
+      data: Array<{
+        id: string;
+        name: string;
+        description: string | null;
+        category_id: string;
+        created_at: string;
+        updated_at: string;
+        category: {
+          id: string;
+          name: string;
+        };
+      }>;
+    }>(`/api/admin/metadata/subcategories${query}`);
+  },
+
+  createSubCategory: async (data: { name: string; description?: string; category_id: string }) => {
+    return apiRequest<{
+      success: boolean;
+      data: {
+        id: string;
+        name: string;
+        description: string | null;
+        category_id: string;
+        created_at: string;
+        updated_at: string;
+      };
+    }>('/api/admin/metadata/subcategories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateSubCategory: async (id: string, data: { name?: string; description?: string; category_id?: string }) => {
+    return apiRequest<{
+      success: boolean;
+      data: {
+        id: string;
+        name: string;
+        description: string | null;
+        category_id: string;
+        created_at: string;
+        updated_at: string;
+      };
+    }>(`/api/admin/metadata/subcategories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteSubCategory: async (id: string) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+    }>(`/api/admin/metadata/subcategories/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Certifications
+  getCertifications: async () => {
+    return apiRequest<{
+      success: boolean;
+      data: Array<{
+        id: string;
+        name: string;
+        description: string | null;
+        created_at: string;
+        updated_at: string;
+      }>;
+    }>('/api/admin/metadata/certifications');
+  },
+
+  createCertification: async (data: { name: string; description?: string }) => {
+    return apiRequest<{
+      success: boolean;
+      data: {
+        id: string;
+        name: string;
+        description: string | null;
+        created_at: string;
+        updated_at: string;
+      };
+    }>('/api/admin/metadata/certifications', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateCertification: async (id: string, data: { name?: string; description?: string }) => {
+    return apiRequest<{
+      success: boolean;
+      data: {
+        id: string;
+        name: string;
+        description: string | null;
+        created_at: string;
+        updated_at: string;
+      };
+    }>(`/api/admin/metadata/certifications/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteCertification: async (id: string) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+    }>(`/api/admin/metadata/certifications/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Occasions
+  getOccasions: async () => {
+    return apiRequest<{
+      success: boolean;
+      data: Array<{
+        id: string;
+        name: string;
+        image_url: string | null;
+        description: string | null;
+        created_at: string;
+        updated_at: string;
+      }>;
+    }>('/api/admin/metadata/occasions');
+  },
+
+  createOccasion: async (data: { name: string; description?: string; image_url?: string }) => {
+    return apiRequest<{
+      success: boolean;
+      data: {
+        id: string;
+        name: string;
+        image_url: string | null;
+        description: string | null;
+        created_at: string;
+        updated_at: string;
+      };
+    }>('/api/admin/metadata/occasions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateOccasion: async (id: string, data: { name?: string; description?: string; image_url?: string }) => {
+    return apiRequest<{
+      success: boolean;
+      data: {
+        id: string;
+        name: string;
+        image_url: string | null;
+        description: string | null;
+        created_at: string;
+        updated_at: string;
+      };
+    }>(`/api/admin/metadata/occasions/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteOccasion: async (id: string) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+    }>(`/api/admin/metadata/occasions/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Free Forms
+  getFreeForms: async () => {
+    return apiRequest<{
+      success: boolean;
+      data: Array<{
+        id: string;
+        name: string;
+        description: string | null;
+        created_at: string;
+        updated_at: string;
+      }>;
+    }>('/api/admin/metadata/freeforms');
+  },
+
+  createFreeForm: async (data: { name: string; description?: string }) => {
+    return apiRequest<{
+      success: boolean;
+      data: {
+        id: string;
+        name: string;
+        description: string | null;
+        created_at: string;
+        updated_at: string;
+      };
+    }>('/api/admin/metadata/freeforms', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateFreeForm: async (id: string, data: { name?: string; description?: string }) => {
+    return apiRequest<{
+      success: boolean;
+      data: {
+        id: string;
+        name: string;
+        description: string | null;
+        created_at: string;
+        updated_at: string;
+      };
+    }>(`/api/admin/metadata/freeforms/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteFreeForm: async (id: string) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+    }>(`/api/admin/metadata/freeforms/${id}`, {
+      method: 'DELETE',
+    });
+  },
 };
 

@@ -47,42 +47,13 @@ const MAX_TRAVEL_DISTANCES = [
 ];
 
 const SERVICE_AREAS = [
-  // Emirates
-  'Dubai',
   'Abu Dhabi',
+  'Dubai',
   'Sharjah',
   'Ajman',
   'Umm Al Quwain',
   'Ras Al Khaimah',
   'Fujairah',
-  'Al Ain',
-  // Dubai Areas
-  'Downtown Dubai',
-  'Dubai Marina',
-  'Jumeirah',
-  'Palm Jumeirah',
-  'Business Bay',
-  'Dubai International Financial Centre (DIFC)',
-  'Dubai Mall Area',
-  'Burj Al Arab Area',
-  'Dubai Festival City',
-  'Dubai Sports City',
-  'Dubai Media City',
-  'Dubai Internet City',
-  'Dubai Knowledge Park',
-  'Dubai Healthcare City',
-  'Dubai World Trade Centre',
-  'Dubai Creek',
-  'Deira',
-  'Bur Dubai',
-  'Al Barsha',
-  'Jumeirah Beach Residence (JBR)',
-  'Dubai Hills',
-  'Arabian Ranches',
-  'Emirates Hills',
-  'Dubai Silicon Oasis',
-  'Dubai Production City',
-  'Dubai Studio City',
 ];
 
 export function BusinessProfile({ data, updateData, onNext }: BusinessProfileProps) {

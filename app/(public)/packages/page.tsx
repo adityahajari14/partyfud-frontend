@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { userApi, Package as ApiPackage } from '@/lib/api/user.api';
+import { UAE_EMIRATES } from '@/lib/constants';
 
 interface Package {
     id: string;
@@ -364,13 +365,18 @@ export default function PackagesPage() {
                     {/* Location */}
                     <div className="mb-4">
                         <label className="text-sm text-gray-500 mb-2 block">Location</label>
-                        <input
-                            type="text"
+                        <select
                             value={location}
                             onChange={(e) => setLocation(e.target.value)}
-                            placeholder="e.g., Dubai, Abu Dhabi"
                             className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2"
-                        />
+                        >
+                            <option value="">All Emirates</option>
+                            {UAE_EMIRATES.map((emirate) => (
+                                <option key={emirate} value={emirate}>
+                                    {emirate}
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
                     {/* Guests Range */}

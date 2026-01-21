@@ -65,6 +65,14 @@ export interface Package {
   items: any[];
   category_selections: any[];
   occasions: any[];
+  add_ons?: Array<{
+    id: string;
+    name: string;
+    description?: string;
+    price: number;
+    currency: string;
+    is_active: boolean;
+  }>;
   caterer?: {
     id: string;
     name: string;
@@ -96,7 +104,7 @@ export interface Dish {
     name: string;
     location?: string | null;
   } | null;
-  quantity_in_gm?: number | null;
+  quantity?: string | null;
   pieces: number;
   price: number;
   currency: string;
@@ -354,6 +362,10 @@ export const userApi = {
     event_type?: string;
     area?: string;
     price_at_time?: number;
+    add_ons?: Array<{
+      add_on_id: string;
+      quantity?: number;
+    }>;
   }) => {
     const response = await apiRequest<{ success: boolean; data: any }>(
       '/api/user/cart/items',

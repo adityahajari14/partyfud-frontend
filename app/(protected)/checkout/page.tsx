@@ -19,7 +19,7 @@ import {
   Plus
 } from 'lucide-react';
 import { Toast, useToast } from '@/components/ui/Toast';
-import { DUBAI_LOCATIONS, getMinEventDate } from '@/lib/constants';
+import { UAE_EMIRATES, getMinEventDate } from '@/lib/constants';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface CartItem {
@@ -48,6 +48,20 @@ interface CartItem {
   // Server fields (legacy)
   date?: Date | string | null;
   location?: string | null;
+  // Add-ons
+  add_ons?: Array<{
+    id: string;
+    add_on_id: string;
+    quantity: number;
+    price_at_time: number | null;
+    add_on: {
+      id: string;
+      name: string;
+      description?: string | null;
+      price: number;
+      currency: string;
+    };
+  }>;
   created_at: Date | string;
   updated_at: Date | string;
 }
@@ -69,16 +83,6 @@ const TIME_SLOTS = [
   '8:00 PM', '8:30 PM', '9:00 PM',
 ];
 
-// UAE Cities
-const UAE_CITIES = [
-  'Dubai',
-  'Abu Dhabi',
-  'Sharjah',
-  'Ajman',
-  'Ras Al Khaimah',
-  'Fujairah',
-  'Umm Al Quwain',
-];
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -107,7 +111,6 @@ export default function CheckoutPage() {
   // Delivery address form
   const [venueName, setVenueName] = useState('');
   const [streetAddress, setStreetAddress] = useState('');
-  const [city, setCity] = useState('Dubai');
   const [area, setArea] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
 
@@ -267,10 +270,19 @@ export default function CheckoutPage() {
   };
 
   // Calculate prices based on guest count
+  // In checkout, use the form's guestCount (which applies to all items)
+  // This allows users to change guest count for all items at once
   const calculateItemPrice = (item: CartItem) => {
     const pricePerPerson = item.package.price_per_person || 
       (item.package.total_price / (item.package.people_count || 1));
-    return Math.round(pricePerPerson * guestCount);
+    const packagePrice = Math.round(pricePerPerson * guestCount);
+    
+    // Add add-ons prices (add-ons are fixed price, not multiplied by guest count)
+    const addOnsPrice = item.add_ons && item.add_ons.length > 0
+      ? item.add_ons.reduce((sum, addOn) => sum + (addOn.add_on.price * addOn.quantity), 0)
+      : 0;
+    
+    return packagePrice + addOnsPrice;
   };
 
   const subtotal = useMemo(() => {
@@ -282,7 +294,7 @@ export default function CheckoutPage() {
   const total = subtotal + deliveryFee + serviceFee;
 
   // Validation
-  const isEventDetailsValid = eventDate && eventTime && eventType && guestCount > 0 && streetAddress && city;
+  const isEventDetailsValid = eventDate && eventTime && eventType && guestCount > 0 && streetAddress && area;
   const isPaymentValid = cardNumber.length >= 16 && cardExpiry.length >= 5 && cardCvc.length >= 3 && cardName.length > 0;
 
   const handleContinueToReview = () => {
@@ -612,37 +624,21 @@ export default function CheckoutPage() {
                     />
                   </div>
 
-                  {/* City and Area */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        City
-                      </label>
-                      <select
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                      >
-                        {UAE_CITIES.map((c) => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Area
-                      </label>
-                      <select
-                        value={area}
-                        onChange={(e) => setArea(e.target.value)}
-                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                      >
-                        <option value="">Area</option>
-                        {DUBAI_LOCATIONS.map((loc) => (
-                          <option key={loc} value={loc}>{loc}</option>
-                        ))}
-                      </select>
-                    </div>
+                  {/* Area */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Area
+                    </label>
+                    <select
+                      value={area}
+                      onChange={(e) => setArea(e.target.value)}
+                      className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="">Area</option>
+                      {UAE_EMIRATES.map((emirate) => (
+                        <option key={emirate} value={emirate}>{emirate}</option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* Special Instructions */}
@@ -690,33 +686,51 @@ export default function CheckoutPage() {
                     {cartItems.map((item) => (
                       <div
                         key={item.id}
-                        className="flex gap-4 pb-4 border-b border-gray-100 last:border-0 last:pb-0"
+                        className="pb-4 border-b border-gray-100 last:border-0 last:pb-0"
                       >
-                        <div className="relative w-20 h-20 shrink-0 bg-gray-50 rounded-lg overflow-hidden">
-                          <Image
-                            src={item.package.cover_image_url || '/logo2.svg'}
-                            alt={item.package.name}
-                            fill
-                            className="object-contain p-1"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-gray-900 truncate">
-                            {item.package.name}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            {item.package.caterer?.business_name || item.package.caterer?.name || 'Caterer'}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1 text-xs text-gray-600">
-                            <Users className="w-3 h-3" />
-                            <span>{guestCount} guests</span>
+                        <div className="flex gap-4">
+                          <div className="relative w-20 h-20 shrink-0 bg-gray-50 rounded-lg overflow-hidden">
+                            <Image
+                              src={item.package.cover_image_url || '/logo2.svg'}
+                              alt={item.package.name}
+                              fill
+                              className="object-contain p-1"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-gray-900 truncate">
+                              {item.package.name}
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                              {item.package.caterer?.business_name || item.package.caterer?.name || 'Caterer'}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-gray-600">
+                              <Users className="w-3 h-3" />
+                              <span>{guestCount} guests</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-semibold text-green-600">
+                              AED {calculateItemPrice(item).toLocaleString()}
+                            </span>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <span className="font-semibold text-green-600">
-                            AED {calculateItemPrice(item).toLocaleString()}
-                          </span>
-                        </div>
+                        {/* Add-ons display */}
+                        {item.add_ons && item.add_ons.length > 0 && (
+                          <div className="mt-3 ml-24 space-y-1">
+                            {item.add_ons.map((cartAddOn) => (
+                              <div key={cartAddOn.id} className="flex items-center justify-between text-sm text-gray-600">
+                                <span className="flex items-center gap-2">
+                                  <CheckCircle2 className="w-3 h-3 text-green-600" />
+                                  {cartAddOn.add_on.name}
+                                </span>
+                                <span className="text-gray-900">
+                                  {cartAddOn.add_on.currency} {cartAddOn.add_on.price.toLocaleString()}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -754,7 +768,7 @@ export default function CheckoutPage() {
                     <p className="text-gray-500 text-sm mb-1">Delivery Address</p>
                     <p className="font-medium text-gray-900">
                       {venueName && `${venueName}, `}
-                      {streetAddress}, {area && `${area}, `}{city}
+                      {streetAddress}{area && `, ${area}`}
                     </p>
                     {specialInstructions && (
                       <p className="text-sm text-gray-500 mt-2">

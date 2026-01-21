@@ -8,7 +8,7 @@ export interface Dish {
   cuisine_type_id: string;
   category_id: string;
   sub_category_id?: string;
-  quantity_in_gm?: string;
+  quantity?: string;
   pieces?: number;
   price: number;
   currency: string;
@@ -25,7 +25,7 @@ export interface CreateDishRequest {
   cuisine_type_id: string;
   category_id: string;
   sub_category_id?: string;
-  quantity_in_gm?: string;
+  quantity?: string;
   pieces?: number;
   price: number;
   currency?: string;
@@ -40,7 +40,7 @@ export interface UpdateDishRequest {
   cuisine_type_id?: string;
   category_id?: string;
   sub_category_id?: string;
-  quantity_in_gm?: string;
+  quantity?: string;
   pieces?: number;
   price?: number;
   currency?: string;
@@ -186,8 +186,8 @@ export const catererApi = {
     if (data.sub_category_id) {
       formData.append('sub_category_id', data.sub_category_id);
     }
-    if (data.quantity_in_gm) {
-      formData.append('quantity_in_gm', data.quantity_in_gm.toString());
+    if (data.quantity) {
+      formData.append('quantity', data.quantity);
     }
     if (data.pieces) {
       formData.append('pieces', data.pieces.toString());
@@ -694,5 +694,78 @@ export const catererApi = {
       created_at: string;
       updated_at: string;
     }>(`/api/caterer/info`);
+  },
+
+  // Add-ons
+  getAddOns: async (packageId: string) => {
+    return apiRequest<Array<{
+      id: string;
+      package_id: string;
+      name: string;
+      description?: string;
+      price: number;
+      currency: string;
+      is_active: boolean;
+      created_at: string;
+      updated_at: string;
+    }>>(`/api/caterer/packages/${packageId}/add-ons`);
+  },
+
+  createAddOn: async (packageId: string, data: {
+    name: string;
+    description?: string;
+    price: number;
+    currency?: string;
+    is_active?: boolean;
+  }) => {
+    return apiRequest<{
+      id: string;
+      package_id: string;
+      name: string;
+      description?: string;
+      price: number;
+      currency: string;
+      is_active: boolean;
+      created_at: string;
+      updated_at: string;
+    }>(`/api/caterer/packages/${packageId}/add-ons`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateAddOn: async (addOnId: string, data: {
+    name?: string;
+    description?: string;
+    price?: number;
+    currency?: string;
+    is_active?: boolean;
+  }) => {
+    return apiRequest<{
+      id: string;
+      package_id: string;
+      name: string;
+      description?: string;
+      price: number;
+      currency: string;
+      is_active: boolean;
+      created_at: string;
+      updated_at: string;
+    }>(`/api/caterer/add-ons/${addOnId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteAddOn: async (addOnId: string) => {
+    return apiRequest<void>(`/api/caterer/add-ons/${addOnId}`, {
+      method: 'DELETE',
+    });
   },
 };

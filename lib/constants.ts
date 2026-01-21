@@ -1,31 +1,15 @@
-// Dubai locations for event venue selection
-export const DUBAI_LOCATIONS = [
-  'Downtown Dubai',
-  'Dubai Marina',
-  'Jumeirah',
-  'Palm Jumeirah',
-  'Business Bay',
-  'DIFC',
-  'Dubai Mall Area',
-  'Burj Al Arab Area',
-  'Dubai Festival City',
-  'Dubai Sports City',
-  'Dubai Media City',
-  'Dubai Internet City',
-  'Dubai Healthcare City',
-  'Dubai World Trade Centre',
-  'Dubai Creek',
-  'Deira',
-  'Bur Dubai',
-  'Al Barsha',
-  'JBR',
-  'Dubai Hills',
-  'Arabian Ranches',
-  'Emirates Hills',
-  'Dubai Silicon Oasis',
+// UAE Emirates for event venue selection
+export const UAE_EMIRATES = [
+  'Abu Dhabi',
+  'Dubai',
+  'Sharjah',
+  'Ajman',
+  'Umm Al Quwain',
+  'Ras Al Khaimah',
+  'Fujairah',
 ] as const;
 
-export type DubaiLocation = (typeof DUBAI_LOCATIONS)[number];
+export type UAEEmirate = (typeof UAE_EMIRATES)[number];
 
 // Price formatting helper
 export const formatPrice = (price: number, currency: string = 'AED') => {

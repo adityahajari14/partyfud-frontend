@@ -45,6 +45,19 @@ interface OrderItem {
   guests: number | null;
   date: string | null;
   price_at_time: number;
+  add_ons?: Array<{
+    id: string;
+    add_on_id: string;
+    quantity: number;
+    price_at_time: number;
+    add_on: {
+      id: string;
+      name: string;
+      description?: string | null;
+      price: number;
+      currency: string;
+    };
+  }>;
   created_at: string;
 }
 
@@ -590,14 +603,20 @@ export default function CatererOrdersPage() {
                                     )}
                                   </div>
                                   <div className="flex flex-wrap gap-2 mt-1 text-xs text-gray-500">
-                                    <span>{packageItem.dish.category.name}</span>
-                                    <span>•</span>
-                                    <span>{packageItem.dish.cuisine_type.name}</span>
-                                    {packageItem.quantity > 1 && (
+                                    {packageItem.dish?.category?.name && (
                                       <>
+                                        <span>{packageItem.dish.category.name}</span>
                                         <span>•</span>
-                                        <span>Qty: {packageItem.quantity}</span>
                                       </>
+                                    )}
+                                    {packageItem.dish?.cuisine_type?.name && (
+                                      <>
+                                        <span>{packageItem.dish.cuisine_type.name}</span>
+                                        {packageItem.quantity > 1 && <span>•</span>}
+                                      </>
+                                    )}
+                                    {packageItem.quantity > 1 && (
+                                      <span>Qty: {packageItem.quantity}</span>
                                     )}
                                   </div>
                                 </div>
@@ -609,6 +628,34 @@ export default function CatererOrdersPage() {
                                     <p className="text-xs text-gray-500">
                                       × {packageItem.quantity}
                                     </p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Add-ons display */}
+                      {item.add_ons && item.add_ons.length > 0 && (
+                        <div className="p-4 bg-white border-t border-gray-200">
+                          <h5 className="text-sm font-semibold text-gray-700 mb-3">Add-ons:</h5>
+                          <div className="space-y-2">
+                            {item.add_ons.map((orderAddOn) => (
+                              <div key={orderAddOn.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 rounded-full bg-green-600"></div>
+                                  <span className="text-sm font-medium text-gray-900">{orderAddOn.add_on.name}</span>
+                                  {orderAddOn.add_on.description && (
+                                    <span className="text-xs text-gray-600">({orderAddOn.add_on.description})</span>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-sm font-semibold text-gray-900">
+                                    {orderAddOn.add_on.currency} {orderAddOn.add_on.price.toLocaleString()}
+                                  </p>
+                                  {orderAddOn.quantity > 1 && (
+                                    <p className="text-xs text-gray-500">Qty: {orderAddOn.quantity}</p>
                                   )}
                                 </div>
                               </div>
