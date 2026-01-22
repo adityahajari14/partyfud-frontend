@@ -145,7 +145,16 @@ export function Navbar() {
                             : 'text-gray-700 hover:text-[#268700]'
                             }`}
                     >
-                        Caterers
+                        Browse Caterers
+                    </Link>
+                    <Link
+                        href="/for-caterers"
+                        className={`text-sm font-medium transition-colors duration-200 py-2 ${pathname === '/for-caterers'
+                            ? 'text-[#268700] font-semibold'
+                            : 'text-gray-700 hover:text-[#268700]'
+                            }`}
+                    >
+                        For Caterers
                     </Link>
                 </nav>
 

@@ -53,6 +53,8 @@ export default function CartPage() {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  // Track input values for each cart item's guest count
+  const [guestCountInputs, setGuestCountInputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!authLoading) {
@@ -68,6 +70,13 @@ export default function CartPage() {
         const res = await userApi.getCartItems();
         if (res.data?.data) {
           setCartItems(res.data.data);
+          // Initialize input values
+          const inputs: Record<string, string> = {};
+          res.data.data.forEach((item: CartItem) => {
+            const guests = item.guests || item.package.people_count || 1;
+            inputs[item.id] = String(guests);
+          });
+          setGuestCountInputs(inputs);
         } else if (res.error && res.status !== 401) {
           showToast('error', 'Failed to load cart');
         }
@@ -76,6 +85,13 @@ export default function CartPage() {
         const { cartStorage } = await import('@/lib/utils/cartStorage');
         const localItems = cartStorage.getItems();
         setCartItems(localItems as any);
+        // Initialize input values
+        const inputs: Record<string, string> = {};
+        localItems.forEach((item: any) => {
+          const guests = item.guests || item.package.people_count || 1;
+          inputs[item.id] = String(guests);
+        });
+        setGuestCountInputs(inputs);
       }
     } catch (err) {
       // Silently handle errors for non-authenticated users
@@ -115,6 +131,9 @@ export default function CartPage() {
 
   const handleUpdateGuests = async (itemId: string, newGuests: number) => {
     if (newGuests < 1) return;
+    
+    // Update input state immediately
+    setGuestCountInputs(prev => ({ ...prev, [itemId]: String(newGuests) }));
     
     setUpdatingId(itemId);
     try {
@@ -311,21 +330,44 @@ export default function CartPage() {
                           <span className="text-sm text-gray-600">Guests:</span>
                           <div className="flex items-center border border-gray-200 rounded-lg">
                             <button
-                              onClick={() => handleUpdateGuests(item.id, guests - 10)}
-                              disabled={updatingId === item.id || guests <= 10}
+                              onClick={() => handleUpdateGuests(item.id, Math.max(1, guests - 1))}
+                              disabled={updatingId === item.id || guests <= 1}
                               className="px-2 py-1 text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
                             <input
                               type="number"
-                              value={guests}
-                              onChange={(e) => handleUpdateGuests(item.id, Math.max(1, Number(e.target.value)))}
-                              className="w-16 text-center py-1 text-sm focus:outline-none"
+                              value={guestCountInputs[item.id] ?? String(guests)}
+                              onChange={(e) => {
+                                // Allow user to type freely - store as string
+                                setGuestCountInputs(prev => ({ ...prev, [item.id]: e.target.value }));
+                              }}
+                              onBlur={(e) => {
+                                const inputValue = e.target.value.trim();
+                                const numValue = Number(inputValue);
+                                
+                                // Validate and update on blur
+                                if (inputValue === '' || isNaN(numValue) || numValue < 1) {
+                                  // Reset to current guests value
+                                  setGuestCountInputs(prev => ({ ...prev, [item.id]: String(guests) }));
+                                  return;
+                                }
+                                
+                                // Update guests if valid
+                                handleUpdateGuests(item.id, numValue);
+                              }}
+                              onKeyDown={(e) => {
+                                // Handle Enter key to validate and blur
+                                if (e.key === 'Enter') {
+                                  e.currentTarget.blur();
+                                }
+                              }}
+                              className="w-16 text-center py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-transparent"
                               min={1}
                             />
                             <button
-                              onClick={() => handleUpdateGuests(item.id, guests + 10)}
+                              onClick={() => handleUpdateGuests(item.id, guests + 1)}
                               disabled={updatingId === item.id}
                               className="px-2 py-1 text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
                             >

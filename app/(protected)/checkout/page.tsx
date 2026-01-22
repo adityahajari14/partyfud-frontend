@@ -105,6 +105,7 @@ export default function CheckoutPage() {
   const [eventTime, setEventTime] = useState('');
   const [eventType, setEventType] = useState('');
   const [guestCount, setGuestCount] = useState(50);
+  const [guestCountInput, setGuestCountInput] = useState<string>('50');
   
   // Delivery address form
   const [venueName, setVenueName] = useState('');
@@ -542,20 +543,53 @@ export default function CheckoutPage() {
                     </label>
                     <div className="flex items-center border border-gray-200 rounded-lg w-fit">
                       <button
-                        onClick={() => setGuestCount(Math.max(1, guestCount - 10))}
+                        onClick={() => {
+                          const newCount = Math.max(1, guestCount - 1);
+                          setGuestCount(newCount);
+                          setGuestCountInput(String(newCount));
+                        }}
                         className="px-4 py-2.5 text-gray-600 hover:bg-gray-50 transition"
                       >
                         <Minus className="w-4 h-4" />
                       </button>
                       <input
                         type="number"
-                        value={guestCount}
-                        onChange={(e) => setGuestCount(Math.max(1, Number(e.target.value)))}
-                        className="w-24 text-center py-2.5 text-sm focus:outline-none"
+                        value={guestCountInput}
+                        onChange={(e) => {
+                          // Allow user to type freely - store as string
+                          setGuestCountInput(e.target.value);
+                        }}
+                        onBlur={(e) => {
+                          const inputValue = e.target.value.trim();
+                          const numValue = Number(inputValue);
+                          
+                          // Validate and clamp on blur
+                          if (inputValue === '' || isNaN(numValue) || numValue < 1) {
+                            setGuestCount(1);
+                            setGuestCountInput('1');
+                            return;
+                          }
+                          
+                          // Clamp to minimum of 1
+                          const clampedValue = Math.max(1, numValue);
+                          setGuestCount(clampedValue);
+                          setGuestCountInput(String(clampedValue));
+                        }}
+                        onKeyDown={(e) => {
+                          // Handle Enter key to validate and blur
+                          if (e.key === 'Enter') {
+                            e.currentTarget.blur();
+                          }
+                        }}
+                        className="w-24 text-center py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-transparent"
                         min={1}
                       />
                       <button
-                        onClick={() => setGuestCount(guestCount + 10)}
+                        onClick={() => {
+                          const newCount = guestCount + 1;
+                          setGuestCount(newCount);
+                          setGuestCountInput(String(newCount));
+                        }}
                         className="px-4 py-2.5 text-gray-600 hover:bg-gray-50 transition"
                       >
                         <Plus className="w-4 h-4" />

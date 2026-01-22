@@ -8,7 +8,7 @@ import OccasionHero from '@/components/occasions/OccasionHero';
 import HowToHost from '@/components/occasions/HowToHost';
 import TraditionSection from '@/components/occasions/TraditionSection';
 import ModernTakes from '@/components/occasions/ModernTakes';
-import TopCaterers from '@/components/occasions/TopCaterers';
+import TopPackages from '@/components/occasions/TopPackages';
 
 export default function OccasionPage() {
   const params = useParams();
@@ -91,7 +91,7 @@ export default function OccasionPage() {
           </div>
         </section>
 
-        <TopCaterers occasionId={occasionId} occasionName={occasionName} />
+        <TopPackages occasionId={occasionId} occasionName={occasionName} />
       </div>
     );
   }
@@ -110,8 +110,8 @@ export default function OccasionPage() {
       {/* Modern Takes Section */}
       <ModernTakes content={content} />
 
-      {/* Top Caterers Section */}
-      <TopCaterers occasionId={occasionId} occasionName={occasionName} />
+      {/* Top Packages Section */}
+      <TopPackages occasionId={occasionId} occasionName={occasionName} />
     </div>
   );
 }

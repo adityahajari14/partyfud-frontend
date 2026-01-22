@@ -79,6 +79,8 @@ export default function PackagesPage() {
   ]);
   const [selectedOccasion, setSelectedOccasion] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPackages();
@@ -171,11 +173,23 @@ export default function PackagesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    const response = await catererApi.deletePackage(id);
+    setDeleting(true);
+    setDeleteError(null);
+    
+    try {
+      const response = await catererApi.deletePackage(id);
 
-    if (!response.error) {
-      setDeleteConfirm(null);
-      fetchPackages();
+      if (response.error) {
+        setDeleteError(response.error || 'Failed to delete package. Please try again.');
+      } else {
+        setDeleteConfirm(null);
+        await fetchPackages();
+      }
+    } catch (error) {
+      console.error('Error deleting package:', error);
+      setDeleteError('An unexpected error occurred. Please try again.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -271,7 +285,9 @@ export default function PackagesPage() {
                           {pkg.is_available ? 'Available' : 'Unavailable'}
                         </span>
                         <div className="text-right">
-                          <p className="text-xs text-gray-500 mb-0.5">Starting from</p>
+                          {!pkg.is_custom_price && (
+                            <p className="text-xs text-gray-500 mb-0.5">Starting from</p>
+                          )}
                           <p className="text-xl font-bold text-gray-900">
                             {pkg.currency} {typeof pkg.total_price === 'number' ? pkg.total_price.toLocaleString() : parseInt(String(pkg.total_price || '0'), 10).toLocaleString()}
                           </p>
@@ -310,18 +326,32 @@ export default function PackagesPage() {
       {/* Delete Confirmation Modal */}
       <Modal
         isOpen={!!deleteConfirm}
-        onClose={() => setDeleteConfirm(null)}
+        onClose={() => {
+          if (!deleting) {
+            setDeleteConfirm(null);
+            setDeleteError(null);
+          }
+        }}
         title="Confirm Delete"
         size="sm"
       >
         <p className="text-gray-800 mb-6">
           Are you sure you want to delete this package? This action cannot be undone.
         </p>
+        {deleteError && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-800">{deleteError}</p>
+          </div>
+        )}
         <div className="flex gap-4">
           <Button
             variant="outline"
             className="flex-1"
-            onClick={() => setDeleteConfirm(null)}
+            onClick={() => {
+              setDeleteConfirm(null);
+              setDeleteError(null);
+            }}
+            disabled={deleting}
           >
             Cancel
           </Button>
@@ -329,8 +359,16 @@ export default function PackagesPage() {
             variant="danger"
             className="flex-1"
             onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
+            disabled={deleting}
           >
-            Delete
+            {deleting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></div>
+                Deleting...
+              </>
+            ) : (
+              'Delete'
+            )}
           </Button>
         </div>
       </Modal>

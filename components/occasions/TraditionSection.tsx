@@ -25,7 +25,7 @@ export default function TraditionSection({ content }: TraditionSectionProps) {
           {/* Image */}
           <div className="relative h-[400px] rounded-lg overflow-hidden">
             <Image
-              src={content.image}
+              src={content.traditionImage || content.image}
               alt={content.traditionTitle}
               fill
               className="object-cover"

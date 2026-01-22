@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { userApi } from '@/lib/api/user.api';
-import { occasionNameToSlug } from '@/lib/data/occasion-content';
+import { occasionNameToSlug, getOccasionContent } from '@/lib/data/occasion-content';
 
 interface Occasion {
   id: string;
@@ -26,7 +26,7 @@ export default function BrowseOccasionsPage() {
         setLoading(true);
         setError(null);
         const response = await userApi.getOccasions();
-        
+
         if (response.data?.data) {
           setOccasions(response.data.data);
         } else if (response.error) {
@@ -127,12 +127,12 @@ export default function BrowseOccasionsPage() {
                 key={occasion.id}
                 className="min-w-[calc(33.333%-1.33rem)]"
               >
-                <div 
+                <div
                   onClick={() => handleOccasionClick(occasion)}
                   className="relative w-full h-[260px] bg-white border border-gray-200 rounded-2xl overflow-hidden cursor-pointer hover:shadow-md transition"
                 >
                   <Image
-                    src={occasion.image_url || '/user/user_occasion1.svg'}
+                    src={getOccasionContent(occasionNameToSlug(occasion.name))?.image || occasion.image_url || '/user/user_occasion1.svg'}
                     alt={occasion.name}
                     fill
                     className="object-cover"

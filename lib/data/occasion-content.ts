@@ -18,6 +18,8 @@ export interface OccasionContent {
   modernTitle: string;
   modernDescription: string[];
   image: string;
+  traditionImage?: string;
+  modernImage?: string;
 }
 
 export const occasionContentMap: Record<string, OccasionContent> = {
@@ -71,9 +73,11 @@ export const occasionContentMap: Record<string, OccasionContent> = {
       'While traditional afternoon tea remains beloved, modern interpretations are equally exciting. Think champagne afternoon teas, themed experiences, or fusion menus that blend British classics with international flavors.',
       'From Japanese-inspired matcha treats to Middle Eastern rose-scented pastries, contemporary caterers are reimagining this timeless tradition while honoring its elegant essence.',
     ],
-    image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920&h=600&fit=crop',
+    image: '/occasions/afternoon-tea.png',
+    traditionImage: '/occasions/afternoon-tea-tradition.png',
+    modernImage: '/occasions/afternoon-tea-modern.png',
   },
-  
+
   'wedding': {
     slug: 'wedding',
     title: 'Wedding',
@@ -124,7 +128,9 @@ export const occasionContentMap: Record<string, OccasionContent> = {
       'Modern couples are reimagining wedding catering with personalized touches that reflect their story. Food trucks, chef-action stations, late-night snacks, and signature cocktails add unique flair to receptions.',
       'Sustainability is also trending, with couples choosing locally-sourced ingredients, seasonal menus, and eco-friendly service options that celebrate great food while caring for the planet.',
     ],
-    image: 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=1920&h=600&fit=crop',
+    image: '/occasions/wedding.png',
+    traditionImage: '/occasions/wedding-tradition.png',
+    modernImage: '/occasions/wedding-modern.png',
   },
 
   'corporate-event': {
@@ -177,7 +183,9 @@ export const occasionContentMap: Record<string, OccasionContent> = {
       'Today\'s corporate catering emphasizes wellness, sustainability, and flexibility. Healthy menu options, eco-conscious practices, and customizable formats reflect modern workplace values.',
       'Technology integration, hybrid event capabilities, and creative presentation styles are reshaping corporate dining. Forward-thinking caterers help companies create experiences that inspire, engage, and leave lasting impressions.',
     ],
-    image: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1920&h=600&fit=crop',
+    image: '/occasions/corporate-event.png',
+    traditionImage: '/occasions/corporate-event-tradition.png',
+    modernImage: '/occasions/corporate-event-modern.png',
   },
 
   'birthday-party': {
@@ -230,7 +238,7 @@ export const occasionContentMap: Record<string, OccasionContent> = {
       'Modern birthday parties embrace creativity and personalization. Food trucks, grazing tables, character-themed treats, and Instagram-worthy presentations make celebrations more exciting and shareable.',
       'From milestone birthdays to surprise parties, contemporary catering offers endless possibilities. Dietary-conscious options, interactive experiences, and unique presentations ensure every guest feels celebrated and satisfied.',
     ],
-    image: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=1920&h=600&fit=crop',
+    image: '/occasions/birthday-party.png',
   },
 
   'graduation': {
@@ -283,7 +291,7 @@ export const occasionContentMap: Record<string, OccasionContent> = {
       'Modern graduation parties blend tradition with personal style. From casual backyard BBQs to elegant catered dinners, celebrations reflect the graduate\'s personality and future aspirations.',
       'Creative touches like themed dessert bars, signature drinks, and interactive food stations make graduations memorable. Caterers help families celebrate achievement while creating experiences that guests will remember.',
     ],
-    image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1920&h=600&fit=crop',
+    image: '/occasions/graduation.png',
   },
 
   'engagement': {
@@ -336,7 +344,7 @@ export const occasionContentMap: Record<string, OccasionContent> = {
       'Today\'s couples personalize engagement parties to reflect their unique love story. From themed parties to destination celebrations, modern engagements embrace creativity and individual style.',
       'Contemporary catering options range from food trucks to fine dining, tasting menus to themed buffets. Couples choose experiences that feel authentic to them, creating celebrations as unique as their relationships.',
     ],
-    image: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=1920&h=600&fit=crop',
+    image: '/occasions/engagement.png',
   },
 
   'anniversary': {
@@ -389,7 +397,7 @@ export const occasionContentMap: Record<string, OccasionContent> = {
       'Modern couples celebrate anniversaries in diverse, personal ways. From intimate chef\'s table experiences to vow renewal receptions, contemporary catering offers endless possibilities for meaningful celebrations.',
       'Experiential dining, personalized menus, and thoughtful presentations help couples create new memories while honoring their journey. Each anniversary becomes an opportunity to celebrate love through exceptional food and shared experiences.',
     ],
-    image: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1920&h=600&fit=crop',
+    image: '/occasions/anniversary.png',
   },
 
   'arabic-theme-night': {
@@ -442,7 +450,7 @@ export const occasionContentMap: Record<string, OccasionContent> = {
       'Modern Arabic theme nights blend authentic traditions with contemporary presentation. Interactive stations, fusion elements, and elegant plating bring traditional cuisine to new audiences.',
       'Today\'s caterers honor Arabic culinary heritage while adapting to diverse dietary needs and preferences. From traditional buffets to modern interpretations, Arabic theme nights offer unforgettable cultural dining experiences.',
     ],
-    image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=1920&h=600&fit=crop',
+    image: '/occasions/arabic-theme-night.png',
   },
 
   'traditional-afternoon-tea': {
@@ -495,7 +503,7 @@ export const occasionContentMap: Record<string, OccasionContent> = {
       'While maintaining classical traditions, modern afternoon tea embraces creative variations. Champagne teas, themed experiences, and contemporary flavors attract new generations to this elegant tradition.',
       'Today\'s caterers respect traditional formats while accommodating dietary requirements and adding innovative touches. From hotel tea rooms to private events, afternoon tea remains a beloved celebration of elegance and flavor.',
     ],
-    image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920&h=600&fit=crop',
+    image: '/occasions/traditional-afternoon-tea.png',
   },
 
   'indian-buffet': {
@@ -548,7 +556,7 @@ export const occasionContentMap: Record<string, OccasionContent> = {
       'Modern Indian catering blends traditional recipes with contemporary presentation and global influences. Fusion dishes, modern plating, and creative interpretations bring Indian cuisine to new audiences.',
       'Today\'s Indian buffets accommodate diverse dietary needs while maintaining authentic flavors. From street food-inspired stations to elegant fine dining presentations, Indian catering offers experiences for every occasion.',
     ],
-    image: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=1920&h=600&fit=crop',
+    image: '/occasions/indian-buffet.png',
   },
 };
 

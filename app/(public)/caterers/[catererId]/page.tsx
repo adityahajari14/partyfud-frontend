@@ -33,6 +33,7 @@ export default function CatererDetailPage() {
   // UI states
   const [activeTab, setActiveTab] = useState<TabType>('packages');
   const [guestCount, setGuestCount] = useState(50);
+  const [guestCountInput, setGuestCountInput] = useState<string>('50');
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
   const [selectedCustomizablePackage, setSelectedCustomizablePackage] = useState<Package | null>(null);
 
@@ -100,7 +101,9 @@ export default function CatererDetailPage() {
           setCaterer(catererRes.data.data);
           // Set initial guest count based on caterer's minimum
           if (catererRes.data.data.minimum_guests) {
-            setGuestCount(catererRes.data.data.minimum_guests);
+            const initialCount = catererRes.data.data.minimum_guests;
+            setGuestCount(initialCount);
+            setGuestCountInput(String(initialCount));
           }
         }
 
@@ -987,24 +990,57 @@ export default function CatererDetailPage() {
                 </label>
                 <div className="flex items-center border border-gray-200 rounded-lg">
                   <button
-                    onClick={() => setGuestCount(Math.max(caterer.minimum_guests || 1, guestCount - 10))}
+                    onClick={() => {
+                      const newCount = Math.max(caterer.minimum_guests || 1, guestCount - 1);
+                      setGuestCount(newCount);
+                      setGuestCountInput(String(newCount));
+                    }}
                     className="px-3 py-2 text-gray-600 hover:bg-gray-50 transition"
                   >
                     <Minus className="w-4 h-4" />
                   </button>
                   <input
                     type="number"
-                    value={guestCount}
+                    value={guestCountInput}
                     onChange={(e) => {
-                      const value = Math.max(caterer.minimum_guests || 1, Number(e.target.value));
-                      setGuestCount(value);
+                      // Allow user to type freely - store as string
+                      setGuestCountInput(e.target.value);
                     }}
-                    className="w-20 text-center py-2 text-sm focus:outline-none"
+                    onBlur={(e) => {
+                      const inputValue = e.target.value.trim();
+                      const numValue = Number(inputValue);
+                      
+                      // Validate and clamp on blur
+                      if (inputValue === '' || isNaN(numValue) || numValue < 1) {
+                        const minGuests = caterer.minimum_guests || 1;
+                        setGuestCount(minGuests);
+                        setGuestCountInput(String(minGuests));
+                        return;
+                      }
+                      
+                      // Clamp to min/max range
+                      const minGuests = caterer.minimum_guests || 1;
+                      const maxGuests = caterer.maximum_guests || 9999;
+                      const clampedValue = Math.max(minGuests, Math.min(maxGuests, numValue));
+                      setGuestCount(clampedValue);
+                      setGuestCountInput(String(clampedValue));
+                    }}
+                    onKeyDown={(e) => {
+                      // Handle Enter key to validate and blur
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur();
+                      }
+                    }}
+                    className="w-20 text-center py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-transparent"
                     min={caterer.minimum_guests || 1}
-                    max={caterer.maximum_guests}
+                    max={caterer.maximum_guests || 9999}
                   />
                   <button
-                    onClick={() => setGuestCount(Math.min(caterer.maximum_guests || 9999, guestCount + 10))}
+                    onClick={() => {
+                      const newCount = Math.min(caterer.maximum_guests || 9999, guestCount + 1);
+                      setGuestCount(newCount);
+                      setGuestCountInput(String(newCount));
+                    }}
                     className="px-3 py-2 text-gray-600 hover:bg-gray-50 transition"
                   >
                     <Plus className="w-4 h-4" />

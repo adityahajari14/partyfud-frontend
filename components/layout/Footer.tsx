@@ -18,10 +18,10 @@ export const Footer: React.FC = () => {
       <div className="absolute inset-0 flex justify-center pointer-events-none">
         <div className="relative w-90 h-60">
           {/* Top blob */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-60 h-30 rounded-full bg-[#2f3b2b] opacity-30" />
+          {/* <div className="absolute top-0 left-1/2 -translate-x-1/2 w-60 h-30 rounded-full bg-[#2f3b2b] opacity-30" /> */}
 
           {/* Bottom blob */}
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-60 h-30 rounded-full bg-[#2f3b2b] opacity-30" />
+          {/* <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-60 h-30 rounded-full bg-[#2f3b2b] opacity-30" /> */}
         </div>
       </div>
 

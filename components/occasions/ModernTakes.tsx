@@ -13,7 +13,7 @@ export default function ModernTakes({ content }: ModernTakesProps) {
           {/* Image */}
           <div className="relative h-[400px] rounded-lg overflow-hidden">
             <Image
-              src={content.image}
+              src={content.modernImage || content.image}
               alt={content.modernTitle}
               fill
               className="object-cover"

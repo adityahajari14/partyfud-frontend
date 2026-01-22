@@ -1096,6 +1096,70 @@ export default function EditPackagePage() {
             </div>
           </div>
 
+          {/* Package Type Selection */}
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div className="mb-5">
+              <h2 className="text-xl font-semibold text-gray-900">Package Type</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Choose how users will interact with this package
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <label className={`flex items-start gap-3 cursor-pointer p-4 rounded-lg border-2 transition ${
+                formData.customisation_type === 'FIXED'
+                  ? 'border-[#268700] bg-green-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}>
+                <input
+                  type="radio"
+                  name="package_type"
+                  value="FIXED"
+                  checked={formData.customisation_type === 'FIXED'}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      customisation_type: 'FIXED',
+                      category_selections: [], // Clear category selections for FIXED
+                    });
+                  }}
+                  className="mt-1 w-4 h-4 text-[#268700] border-gray-300 focus:ring-[#268700]"
+                />
+                <div className="flex-1">
+                  <span className="text-base font-semibold text-gray-900 block">Fixed Package</span>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Select specific dishes. Users cannot customize - they get exactly what you choose.
+                  </p>
+                </div>
+              </label>
+              <label className={`flex items-start gap-3 cursor-pointer p-4 rounded-lg border-2 transition ${
+                formData.customisation_type === 'CUSTOMISABLE'
+                  ? 'border-[#268700] bg-green-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}>
+                <input
+                  type="radio"
+                  name="package_type"
+                  value="CUSTOMISABLE"
+                  checked={formData.customisation_type === 'CUSTOMISABLE'}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      customisation_type: 'CUSTOMISABLE',
+                      package_item_ids: [], // Clear dish selections for CUSTOMISABLE
+                    });
+                  }}
+                  className="mt-1 w-4 h-4 text-[#268700] border-gray-300 focus:ring-[#268700]"
+                />
+                <div className="flex-1">
+                  <span className="text-base font-semibold text-gray-900 block">Customizable Package</span>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Set categories with selection limits. Users choose dishes within your constraints.
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
+
           {/* Package Items Selection */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div className="flex items-center justify-between mb-5">
