@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useMemo } from 'react';
@@ -20,6 +20,7 @@ interface Occasion {
 export default function CatererDetailPage() {
   const { catererId } = useParams<{ catererId: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const { toast, showToast, hideToast } = useToast();
 
@@ -155,6 +156,31 @@ export default function CatererDetailPage() {
 
     checkCart();
   }, [user]);
+
+  // Select package from URL query parameter
+  useEffect(() => {
+    const packageId = searchParams.get('packageId');
+    if (packageId && packages.length > 0) {
+      const pkg = packages.find((p) => p.id === packageId);
+      if (pkg) {
+        const isCustomizable = pkg.customisation_type === 'CUSTOMISABLE' || pkg.customisation_type === 'CUSTOMIZABLE';
+        if (isCustomizable) {
+          setSelectedCustomizablePackage(pkg);
+          setActiveTab('buildOwn');
+        } else {
+          setSelectedPackage(pkg);
+          setActiveTab('packages');
+        }
+        // Remove packageId from URL to clean it up
+        const newSearchParams = new URLSearchParams(searchParams.toString());
+        newSearchParams.delete('packageId');
+        const newUrl = newSearchParams.toString() 
+          ? `${window.location.pathname}?${newSearchParams.toString()}`
+          : window.location.pathname;
+        router.replace(newUrl, { scroll: false });
+      }
+    }
+  }, [packages, searchParams, router]);
 
   // Filter packages by type
   const fixedPackages = useMemo(() => {

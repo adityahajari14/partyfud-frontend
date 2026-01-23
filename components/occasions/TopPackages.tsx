@@ -98,7 +98,7 @@ export default function TopPackages({ occasionId, occasionName }: TopPackagesPro
               return (
                 <Link
                   key={pkg.id}
-                  href={catererId ? `/caterers/${catererId}/${pkg.id}` : `/packages`}
+                  href={catererId ? `/caterers/${catererId}?packageId=${pkg.id}` : `/packages`}
                   className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                 >
                   {/* Package Image */}
