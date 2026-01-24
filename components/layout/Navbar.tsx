@@ -128,16 +128,15 @@ export function Navbar() {
                     >
                         Home
                     </Link>
-                    {/* <Link
+                    <Link
                         href="/packages"
-                        className={`text-sm font-medium transition-colors duration-200 py-2 ${
-                            pathname === '/packages' || pathname?.startsWith('/packages/')
-                                ? 'text-[#268700] font-semibold' 
+                        className={`text-sm font-medium transition-colors duration-200 py-2 ${pathname === '/packages' || pathname?.startsWith('/packages/')
+                                ? 'text-[#268700] font-semibold'
                                 : 'text-gray-700 hover:text-[#268700]'
-                        }`}
+                            }`}
                     >
                         Packages
-                    </Link> */}
+                    </Link>
                     <Link
                         href="/caterers"
                         className={`text-sm font-medium transition-colors duration-200 py-2 ${pathname === '/caterers' || pathname?.startsWith('/caterers/')
