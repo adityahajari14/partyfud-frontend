@@ -30,7 +30,7 @@ export default function ForCaterersPage() {
         <div className="flex flex-col min-h-screen bg-white text-neutral-900 font-sans">
 
             {/* Hero Section */}
-            <section className="relative h-[600px] flex items-center overflow-hidden bg-black">
+            <section className="relative min-h-[500px] lg:h-[600px] flex items-center overflow-hidden bg-black">
                 {/* Background Image with Overlay */}
                 <div className="absolute inset-0 z-0">
                     <Image
@@ -44,25 +44,25 @@ export default function ForCaterersPage() {
                     <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/60 via-black/40 via-black/20 to-transparent" />
                 </div>
 
-                <div className="relative z-10 w-full max-w-7xl mx-auto px-6 lg:px-8">
+                <div className="relative z-10 w-full max-w-7xl mx-auto px-6 lg:px-8 py-12 lg:py-0">
                     <div className="max-w-3xl space-y-6">
-                        <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-white leading-tight">
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white leading-tight">
                             Grow Your Catering Business with <span className="text-[#64C042]">More Event Orders</span>
                         </h1>
 
-                        <p className="text-lg text-gray-200 leading-relaxed">
+                        <p className="text-base sm:text-lg text-gray-200 leading-relaxed">
                             Get discovered by customers planning birthdays, corporate events, and luxury experiences. Join our network of trusted catering partners.
                         </p>
 
                         <div className="flex flex-col sm:flex-row gap-4 pt-4">
                             <Link href="/onboarding">
-                                <button className="bg-[#64C042] text-white px-8 py-3 rounded-md text-sm font-bold hover:bg-[#53a635] transition-colors shadow-sm flex items-center gap-2">
+                                <button className="w-full sm:w-auto bg-[#64C042] text-white px-8 py-3 rounded-md text-sm font-bold hover:bg-[#53a635] transition-colors shadow-sm flex items-center justify-center gap-2">
                                     Join as a Caterer
                                     <ArrowRight className="h-4 w-4" />
                                 </button>
                             </Link>
                             <Link href="#how-it-works">
-                                <button className="px-8 py-3 border border-gray-200 rounded-md text-sm font-bold text-white hover:bg-white/10 transition-colors">
+                                <button className="w-full sm:w-auto px-8 py-3 border border-gray-200 rounded-md text-sm font-bold text-white hover:bg-white/10 transition-colors">
                                     How it Works
                                 </button>
                             </Link>
@@ -72,16 +72,16 @@ export default function ForCaterersPage() {
             </section>
 
             {/* Who Can Join Section */}
-            <section className="bg-[#FAFAFA] py-20">
+            <section className="bg-[#FAFAFA] py-12 md:py-20">
                 <div className="max-w-7xl mx-auto px-6">
-                    <div className="text-center mb-12">
-                        <h2 className="text-3xl md:text-4xl font-semibold mb-3 text-gray-900">Who Can Join?</h2>
-                        <p className="text-lg text-gray-600">
+                    <div className="text-center mb-8 md:mb-12">
+                        <h2 className="text-2xl md:text-3xl lg:text-4xl font-semibold mb-3 text-gray-900">Who Can Join?</h2>
+                        <p className="text-base md:text-lg text-gray-600">
                             Whether you're a solo chef or a large catering company, there's a place for you.
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
                         <PartnerTypeCard icon={ChefHat} title="Private Chefs" />
                         <PartnerTypeCard icon={UtensilsCrossed} title="Bakeries" />
                         <PartnerTypeCard icon={Truck} title="Catering Co." />
@@ -92,11 +92,11 @@ export default function ForCaterersPage() {
             </section>
 
             {/* Benefits Section */}
-            <section className="bg-white py-20">
+            <section className="bg-white py-12 md:py-20">
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="text-center mb-12">
-                        <h2 className="text-3xl md:text-4xl font-semibold mb-3 text-gray-900">Why Partner With PartyFud?</h2>
-                        <p className="text-lg text-gray-600">We handle the marketing and booking technology so you can focus on the food.</p>
+                        <h2 className="text-2xl md:text-3xl lg:text-4xl font-semibold mb-3 text-gray-900">Why Partner With PartyFud?</h2>
+                        <p className="text-base md:text-lg text-gray-600">We handle the marketing and booking technology so you can focus on the food.</p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -135,11 +135,11 @@ export default function ForCaterersPage() {
             </section>
 
             {/* How It Works Section */}
-            <section id="how-it-works" className="bg-[#FAFAFA] py-20">
+            <section id="how-it-works" className="bg-[#FAFAFA] py-12 md:py-20">
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="text-center mb-12">
-                        <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">How It Works</h2>
-                        <p className="text-lg text-gray-600">
+                        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">How It Works</h2>
+                        <p className="text-base md:text-lg text-gray-600">
                             From planning to plating, we make event catering effortless.
                         </p>
                     </div>
@@ -162,16 +162,16 @@ export default function ForCaterersPage() {
 
             {/* Final CTA Section */}
             <section className="relative bg-gradient-to-br from-[#00241b] via-[#002b20] to-[#001a14] overflow-hidden">
-                <div className="max-w-7xl mx-auto px-6 py-24">
+                <div className="max-w-7xl mx-auto px-6 py-16 md:py-24">
                     <div className="max-w-2xl">
-                        <h2 className="text-4xl md:text-5xl font-semibold text-white leading-tight mb-6">
+                        <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold text-white leading-tight mb-6">
                             Ready to Grow Your Business?
                         </h2>
-                        <p className="text-lg text-gray-300 leading-relaxed mb-10">
+                        <p className="text-base md:text-lg text-gray-300 leading-relaxed mb-10">
                             Join hundreds of caterers and chefs already using PartyFud to reach new customers and manage their bookings.
                         </p>
                         <Link href="/onboarding">
-                            <button className="bg-[#1f9d55] text-white px-8 py-3 rounded-full font-medium hover:bg-[#17a04b] hover:shadow-lg transition-all duration-200">
+                            <button className="w-full sm:w-auto bg-[#1f9d55] text-white px-8 py-3 rounded-full font-medium hover:bg-[#17a04b] hover:shadow-lg transition-all duration-200">
                                 Start Your Application
                             </button>
                         </Link>

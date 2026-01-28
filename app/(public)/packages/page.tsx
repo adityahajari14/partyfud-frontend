@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { ChevronDown, ChevronUp, Filter } from 'lucide-react';
 import { userApi, Package as ApiPackage } from '@/lib/api/user.api';
 import { UAE_EMIRATES } from '@/lib/constants';
 
@@ -40,6 +41,7 @@ export default function PackagesPage() {
     const [selectedOccasions, setSelectedOccasions] = useState<string[]>([]);
     const [dishId, setDishId] = useState<string>('');
     const [dishName, setDishName] = useState<string>('');
+    const [showFilters, setShowFilters] = useState(false);
 
     // Data states
     const [allPackages, setAllPackages] = useState<PackageViewModel[]>([]); // Store all packages from API
@@ -291,7 +293,7 @@ export default function PackagesPage() {
 
     return (
         <section className="bg-[#FAFAFA] min-h-screen">
-            <div className="flex items-center gap-4 mt-5 ml-36">
+            <div className="max-w-7xl mx-auto px-6 mt-8 flex items-center gap-4">
                 <button
                     onClick={() => router.back()}
                     className="p-2 hover:bg-gray-200 rounded-full transition-colors"
@@ -308,13 +310,13 @@ export default function PackagesPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
                     </svg>
                 </button>
-                <h1 className='text-3xl font-semibold'>Browse from Packages</h1>
+                <h1 className='text-2xl md:text-3xl font-semibold'>Browse from Packages</h1>
             </div>
 
             {/* Occasion Filters */}
             {occasions.length > 0 && (
                 <div className="max-w-7xl mx-auto px-6 mt-6">
-                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                    <div className="bg-white border border-gray-200 rounded-xl p-4 md:p-6">
                         <h3 className="text-sm font-medium text-gray-700 mb-4">
                             Filter by Occasions <span className="text-gray-500 font-normal">(Select all that apply)</span>
                         </h3>
@@ -376,127 +378,145 @@ export default function PackagesPage() {
 
                 {/* LEFT FILTERS */}
                 <aside className="bg-white border border-gray-200 rounded-xl p-4 h-fit">
-                    <div className="flex justify-between mb-4">
-                        <h3 className="font-medium">Filters</h3>
-                        <button
-                            onClick={handleClearFilters}
-                            className="text-sm text-gray-500 border border-gray-200 py-1 cursor-pointer px-2 rounded-xl hover:bg-gray-100"
-                        >
-                            Clear
-                        </button>
-                    </div>
-
-
-
-                    {/* Location */}
-                    <div className="mb-4">
-                        <label className="text-sm text-gray-500 mb-2 block">Location</label>
-                        <select
-                            value={location}
-                            onChange={(e) => setLocation(e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2"
-                        >
-                            <option value="">All Emirates</option>
-                            {UAE_EMIRATES.map((emirate) => (
-                                <option key={emirate} value={emirate}>
-                                    {emirate}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Guests Range */}
-                    <div className="mb-4">
-                        <label className="text-sm text-gray-500 mb-2 block">Guests</label>
-                        <div className="grid grid-cols-2 gap-2">
-                            <input
-                                type="number"
-                                value={minGuests}
-                                onChange={(e) => setMinGuests(e.target.value ? Number(e.target.value) : '')}
-                                placeholder="Min"
-                                min="1"
-                                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2"
-                            />
-                            <input
-                                type="number"
-                                value={maxGuests}
-                                onChange={(e) => setMaxGuests(e.target.value ? Number(e.target.value) : '')}
-                                placeholder="Max"
-                                min="1"
-                                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2"
-                            />
+                    <div className="flex items-center justify-between mb-0 lg:mb-4" onClick={() => setShowFilters(!showFilters)}>
+                        <h3 className="font-medium flex items-center gap-2 cursor-pointer lg:cursor-default">
+                            <Filter size={18} className="lg:hidden" />
+                            Filters
+                            <span className="lg:hidden text-xs bg-gray-100 px-2 py-0.5 rounded-full ml-2">
+                                {(location ? 1 : 0) + (minGuests || maxGuests ? 1 : 0) + (minPrice || maxPrice !== 50000 ? 1 : 0) + (menuType ? 1 : 0)}
+                            </span>
+                        </h3>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleClearFilters();
+                                }}
+                                className="text-sm text-gray-500 border border-gray-200 py-1 cursor-pointer px-2 rounded-xl hover:bg-gray-100"
+                            >
+                                Clear
+                            </button>
+                            <button
+                                className="lg:hidden p-1"
+                            >
+                                {showFilters ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                            </button>
                         </div>
                     </div>
 
-                    {/* Price Range */}
-                    <div className="mb-4">
-                        <label className="text-sm text-gray-500 mb-2 block flex items-center gap-1">
-                            Max Price (<img src="/dirham.svg" alt="AED" className="w-3 h-3 inline" />)
-                        </label>
-                        <input
-                            type="range"
-                            min={1000}
-                            max={50000}
-                            step={1000}
-                            value={maxPrice}
-                            onChange={(e) => setMaxPrice(Number(e.target.value))}
-                            className="w-full mt-2"
-                        />
-                        <div className="flex justify-between text-xs text-gray-500 mt-1">
-                            <span className="flex items-center gap-1"><img src="/dirham.svg" alt="AED" className="w-3 h-3" />1,000</span>
-                            <span className="flex items-center gap-1"><img src="/dirham.svg" alt="AED" className="w-3 h-3" />{maxPrice.toLocaleString()}</span>
+
+
+                    <div className={`mt-4 lg:mt-0 ${showFilters ? 'block' : 'hidden'} lg:block space-y-6 lg:space-y-0`}>
+                        {/* Location */}
+                        <div className="mb-4">
+                            <label className="text-sm text-gray-500 mb-2 block">Location</label>
+                            <select
+                                value={location}
+                                onChange={(e) => setLocation(e.target.value)}
+                                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2"
+                            >
+                                <option value="">All Emirates</option>
+                                {UAE_EMIRATES.map((emirate) => (
+                                    <option key={emirate} value={emirate}>
+                                        {emirate}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
-                    </div>
 
-                    {/* Min Price */}
-                    <div className="mb-4">
-                        <label className="text-sm text-gray-500 mb-2 block flex items-center gap-1">
-                            Min Price (<img src="/dirham.svg" alt="AED" className="w-3 h-3 inline" />)
-                        </label>
-                        <input
-                            type="number"
-                            value={minPrice}
-                            onChange={(e) => setMinPrice(e.target.value ? Number(e.target.value) : '')}
-                            placeholder="Minimum price"
-                            min="0"
-                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2"
-                        />
-                    </div>
+                        {/* Guests Range */}
+                        <div className="mb-4">
+                            <label className="text-sm text-gray-500 mb-2 block">Guests</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                <input
+                                    type="number"
+                                    value={minGuests}
+                                    onChange={(e) => setMinGuests(e.target.value ? Number(e.target.value) : '')}
+                                    placeholder="Min"
+                                    min="1"
+                                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2"
+                                />
+                                <input
+                                    type="number"
+                                    value={maxGuests}
+                                    onChange={(e) => setMaxGuests(e.target.value ? Number(e.target.value) : '')}
+                                    placeholder="Max"
+                                    min="1"
+                                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2"
+                                />
+                            </div>
+                        </div>
 
-                    {/* Menu Type */}
-                    <div className="mb-4">
-                        <label className="text-sm text-gray-500 mb-2 block">Menu Type</label>
-                        <div className="space-y-2">
-                            <label className="flex items-center gap-2">
-                                <input
-                                    type="radio"
-                                    name="menuType"
-                                    checked={menuType === 'fixed'}
-                                    onChange={() => setMenuType('fixed')}
-                                    className="w-4 h-4"
-                                />
-                                <span className="text-sm">Fixed</span>
+                        {/* Price Range */}
+                        <div className="mb-4">
+                            <label className="text-sm text-gray-500 mb-2 block flex items-center gap-1">
+                                Max Price (<img src="/dirham.svg" alt="AED" className="w-3 h-3 inline" />)
                             </label>
-                            <label className="flex items-center gap-2">
-                                <input
-                                    type="radio"
-                                    name="menuType"
-                                    checked={menuType === 'customizable'}
-                                    onChange={() => setMenuType('customizable')}
-                                    className="w-4 h-4"
-                                />
-                                <span className="text-sm">Customizable</span>
+                            <input
+                                type="range"
+                                min={1000}
+                                max={50000}
+                                step={1000}
+                                value={maxPrice}
+                                onChange={(e) => setMaxPrice(Number(e.target.value))}
+                                className="w-full mt-2"
+                            />
+                            <div className="flex justify-between text-xs text-gray-500 mt-1">
+                                <span className="flex items-center gap-1"><img src="/dirham.svg" alt="AED" className="w-3 h-3" />1,000</span>
+                                <span className="flex items-center gap-1"><img src="/dirham.svg" alt="AED" className="w-3 h-3" />{maxPrice.toLocaleString()}</span>
+                            </div>
+                        </div>
+
+                        {/* Min Price */}
+                        <div className="mb-4">
+                            <label className="text-sm text-gray-500 mb-2 block flex items-center gap-1">
+                                Min Price (<img src="/dirham.svg" alt="AED" className="w-3 h-3 inline" />)
                             </label>
-                            <label className="flex items-center gap-2">
-                                <input
-                                    type="radio"
-                                    name="menuType"
-                                    checked={menuType === ''}
-                                    onChange={() => setMenuType('')}
-                                    className="w-4 h-4"
-                                />
-                                <span className="text-sm">All</span>
-                            </label>
+                            <input
+                                type="number"
+                                value={minPrice}
+                                onChange={(e) => setMinPrice(e.target.value ? Number(e.target.value) : '')}
+                                placeholder="Minimum price"
+                                min="0"
+                                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2"
+                            />
+                        </div>
+
+                        {/* Menu Type */}
+                        <div className="mb-4">
+                            <label className="text-sm text-gray-500 mb-2 block">Menu Type</label>
+                            <div className="space-y-2">
+                                <label className="flex items-center gap-2">
+                                    <input
+                                        type="radio"
+                                        name="menuType"
+                                        checked={menuType === 'fixed'}
+                                        onChange={() => setMenuType('fixed')}
+                                        className="w-4 h-4"
+                                    />
+                                    <span className="text-sm">Fixed</span>
+                                </label>
+                                <label className="flex items-center gap-2">
+                                    <input
+                                        type="radio"
+                                        name="menuType"
+                                        checked={menuType === 'customizable'}
+                                        onChange={() => setMenuType('customizable')}
+                                        className="w-4 h-4"
+                                    />
+                                    <span className="text-sm">Customizable</span>
+                                </label>
+                                <label className="flex items-center gap-2">
+                                    <input
+                                        type="radio"
+                                        name="menuType"
+                                        checked={menuType === ''}
+                                        onChange={() => setMenuType('')}
+                                        className="w-4 h-4"
+                                    />
+                                    <span className="text-sm">All</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </aside>
@@ -585,17 +605,17 @@ export default function PackagesPage() {
                     )}
 
                     {/* Search Bar and Sort */}
-                    <div className="flex items-center gap-4 mb-6">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-6">
                         <input
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder="Search for a Package, Food Item"
-                            className="flex-1 bg-white border border-gray-200 rounded-lg px-4 py-2"
+                            className="w-full sm:flex-1 bg-white border border-gray-200 rounded-lg px-4 py-2"
                         />
                         <select
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value as 'created_desc' | 'price_asc' | 'price_desc' | 'rating_desc')}
-                            className="bg-white border border-gray-200 rounded-lg px-3 py-2"
+                            className="w-full sm:w-auto bg-white border border-gray-200 rounded-lg px-3 py-2"
                         >
                             <option value="created_desc">Newest First</option>
                             <option value="price_asc">Price: Low to High</option>

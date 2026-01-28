@@ -12,6 +12,9 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "Party Fud - Catering Management",
   description: "Manage your catering business with Party Fud",
+  icons: {
+    icon: '/logo2.svg',
+  },
 };
 
 export default function RootLayout({

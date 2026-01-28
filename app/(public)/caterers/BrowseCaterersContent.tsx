@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { userApi, type Caterer, type Occasion, type FilterCaterersParams } from '@/lib/api/user.api';
-import { Calendar, X, Filter, ChevronDown, Check } from 'lucide-react';
+import { Calendar, X, Filter, ChevronDown, Check, ChevronUp } from 'lucide-react';
 
 export default function BrowseCaterersContent() {
     const searchParams = useSearchParams();
@@ -27,6 +27,7 @@ export default function BrowseCaterersContent() {
     // Dynamic Checkbox States (store IDs as keys with boolean values)
     const [selectedMenuTypes, setSelectedMenuTypes] = useState<Record<string, boolean>>({});
     const [selectedDietaryNeeds, setSelectedDietaryNeeds] = useState<Record<string, boolean>>({});
+    const [showFilters, setShowFilters] = useState(false);
 
     const [filteredCaterers, setFilteredCaterers] = useState<Caterer[]>([]);
     const [loading, setLoading] = useState(true);
@@ -225,29 +226,46 @@ export default function BrowseCaterersContent() {
 
     return (
         <section className="bg-white min-h-screen">
-            <div className="max-w-7xl mx-auto px-6 py-12">
-                <h1 className="text-4xl font-semibold text-gray-900 mb-10">Browse Caterers</h1>
+            <div className="max-w-7xl mx-auto px-6 py-8 md:py-12">
+                <h1 className="text-3xl md:text-4xl font-semibold text-gray-900 mb-6 md:mb-10">Browse Caterers</h1>
 
                 <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
                     {/* LEFT FILTERS */}
-                    <aside className="bg-white rounded-lg p-6 h-fit border border-gray-200 shadow-sm">
-                        <div className="flex justify-between items-center mb-6">
+                    <aside className="bg-white rounded-lg p-4 md:p-6 h-fit border border-gray-200 shadow-sm transition-all">
+                        <div
+                            className="flex justify-between items-center mb-0 lg:mb-6 cursor-pointer lg:cursor-default"
+                            onClick={() => setShowFilters(!showFilters)}
+                        >
                             <div className="flex items-center gap-2">
                                 <Filter className="w-5 h-5 text-gray-500" />
                                 <h3 className="font-semibold text-gray-900">Filters</h3>
+                                <div className="lg:hidden bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+                                    {Object.values(selectedMenuTypes).filter(Boolean).length +
+                                        Object.values(selectedDietaryNeeds).filter(Boolean).length +
+                                        (selectedEventType !== 'All events' ? 1 : 0) +
+                                        (eventDate ? 1 : 0) +
+                                        (guestMin || guestMax ? 1 : 0) +
+                                        (budgetMin || budgetMax ? 1 : 0)}
+                                </div>
                             </div>
                             <div className="flex items-center gap-2">
                                 <button
                                     className="text-sm text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1"
-                                    onClick={clearFilters}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        clearFilters();
+                                    }}
                                 >
                                     <X className="w-4 h-4" />
                                     Clear
                                 </button>
+                                <button className="lg:hidden text-gray-500">
+                                    {showFilters ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                </button>
                             </div>
                         </div>
 
-                        <div className="space-y-6">
+                        <div className={`space-y-6 mt-6 lg:mt-0 ${showFilters ? 'block' : 'hidden'} lg:block`}>
                             {/* Event Type */}
                             <div>
                                 <label className="text-sm font-semibold text-gray-900 mb-2 block">Event Type</label>
@@ -385,14 +403,14 @@ export default function BrowseCaterersContent() {
 
                     {/* RIGHT CONTENT */}
                     <div>
-                        <div className="flex items-center gap-4 mb-8">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-8">
                             <input
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search for a Package, Food Item"
-                                className="flex-1 bg-white border border-gray-200 rounded-xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-transparent"
+                                className="w-full sm:flex-1 bg-white border border-gray-200 rounded-xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-transparent"
                             />
-                            <select className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-transparent">
+                            <select className="w-full sm:w-auto bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#268700] focus:border-transparent">
                                 <option>Recommended</option>
                                 <option>Rating</option>
                             </select>
