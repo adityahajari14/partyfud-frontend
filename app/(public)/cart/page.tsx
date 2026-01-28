@@ -131,24 +131,24 @@ export default function CartPage() {
 
   const handleUpdateGuests = async (itemId: string, newGuests: number) => {
     if (newGuests < 1) return;
-    
+
     // Update input state immediately
     setGuestCountInputs(prev => ({ ...prev, [itemId]: String(newGuests) }));
-    
+
     setUpdatingId(itemId);
     try {
       const item = cartItems.find(i => i.id === itemId);
       if (!item) return;
 
-      const pricePerPerson = item.package.price_per_person || 
+      const pricePerPerson = item.package.price_per_person ||
         (item.package.total_price / (item.package.people_count || 1));
       const packagePrice = Math.round(pricePerPerson * newGuests);
-      
+
       // Add add-ons prices (add-ons are fixed price, not multiplied by guest count)
       const addOnsPrice = item.add_ons && item.add_ons.length > 0
         ? item.add_ons.reduce((sum, addOn) => sum + (addOn.add_on.price * addOn.quantity), 0)
         : 0;
-      
+
       const newPrice = packagePrice + addOnsPrice;
 
       if (user) {
@@ -200,15 +200,15 @@ export default function CartPage() {
   // Calculate price for an item
   const calculateItemPrice = (item: CartItem) => {
     const guests = item.guests || item.package.people_count || 1;
-    const pricePerPerson = item.package.price_per_person || 
+    const pricePerPerson = item.package.price_per_person ||
       (item.package.total_price / (item.package.people_count || 1));
     const packagePrice = Math.round(pricePerPerson * guests);
-    
+
     // Add add-ons prices (add-ons are fixed price, not multiplied by guest count)
     const addOnsPrice = item.add_ons && item.add_ons.length > 0
       ? item.add_ons.reduce((sum, addOn) => sum + (addOn.add_on.price * addOn.quantity), 0)
       : 0;
-    
+
     return packagePrice + addOnsPrice;
   };
 
@@ -250,7 +250,7 @@ export default function CartPage() {
               Your cart is empty
             </h2>
             <p className="text-gray-500 text-sm mb-6">
-              {user 
+              {user
                 ? 'Browse our caterers and packages to get started'
                 : 'Log in to see your saved items, or browse our caterers to add items to your cart'}
             </p>
@@ -279,7 +279,7 @@ export default function CartPage() {
             <div className="lg:col-span-2 space-y-4">
               {cartItems.map((item) => {
                 const guests = item.guests || item.package.people_count || 1;
-                const pricePerPerson = item.package.price_per_person || 
+                const pricePerPerson = item.package.price_per_person ||
                   (item.package.total_price / (item.package.people_count || 1));
                 const totalPrice = calculateItemPrice(item);
 
@@ -295,7 +295,7 @@ export default function CartPage() {
                           src={item.package.cover_image_url || '/logo2.svg'}
                           alt={item.package.name}
                           fill
-                          className="object-contain p-2"
+                          className={item.package.cover_image_url === '/logo2.svg' || (item.package.cover_image_url && item.package.cover_image_url.includes('logo2.svg')) ? "object-contain p-2" : "object-cover"}
                         />
                       </div>
 
@@ -346,14 +346,14 @@ export default function CartPage() {
                               onBlur={(e) => {
                                 const inputValue = e.target.value.trim();
                                 const numValue = Number(inputValue);
-                                
+
                                 // Validate and update on blur
                                 if (inputValue === '' || isNaN(numValue) || numValue < 1) {
                                   // Reset to current guests value
                                   setGuestCountInputs(prev => ({ ...prev, [item.id]: String(guests) }));
                                   return;
                                 }
-                                
+
                                 // Update guests if valid
                                 handleUpdateGuests(item.id, numValue);
                               }}
@@ -451,11 +451,10 @@ export default function CartPage() {
                 <button
                   onClick={handleCheckout}
                   disabled={cartItems.length === 0}
-                  className={`w-full py-3 rounded-lg font-medium transition mb-3 ${
-                    cartItems.length === 0
-                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                      : 'bg-green-600 text-white hover:bg-green-700'
-                  }`}
+                  className={`w-full py-3 rounded-lg font-medium transition mb-3 ${cartItems.length === 0
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
                 >
                   Proceed to Checkout
                 </button>

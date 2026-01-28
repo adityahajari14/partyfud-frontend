@@ -78,6 +78,18 @@ export default function CatererDetailPage() {
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // Scroll state
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   // Fetch initial data
   useEffect(() => {
     if (!catererId) return;
@@ -826,12 +838,113 @@ export default function CatererDetailPage() {
           <span className="text-gray-900">{caterer.name}</span>
         </nav>
 
-        <div className={`grid grid-cols-1 ${caterer.gallery_images && caterer.gallery_images.length > 0 ? 'lg:grid-cols-2' : ''} gap-8 mb-8`}>
-          {/* Left Column - Gallery */}
+        <div className={`grid grid-cols-1 ${caterer.gallery_images && caterer.gallery_images.length > 0 ? 'lg:grid-cols-2' : ''} transition-all duration-300 ${scrolled ? 'gap-4 mb-4 py-2' : 'gap-8 mb-8'}`}>
+          {/* Left Column - Caterer Info */}
+          <div className={`bg-white rounded-xl border border-gray-200 transition-all duration-300 ${scrolled ? 'p-4' : 'p-6'} h-fit`}>
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <h1 className={`font-bold text-gray-900 transition-all duration-300 ${scrolled ? 'text-xl' : 'text-3xl'}`}>
+                {caterer.name}
+              </h1>
+              <div className={`relative rounded-lg overflow-hidden flex-shrink-0 bg-gray-100 border border-gray-200 transition-all duration-300 ${scrolled ? 'w-16 h-16' : 'w-24 h-24'}`}>
+                {caterer.image_url ? (
+                  <Image
+                    src={caterer.image_url}
+                    alt={caterer.name}
+                    fill
+                    className="object-contain"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-white font-bold text-2xl bg-green-500">
+                    {logoText}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Cuisines */}
+            <div className={`flex flex-wrap gap-2 ${scrolled ? 'mb-2' : 'mb-4'}`}>
+              {caterer.cuisines.map((cuisine) => (
+                <span
+                  key={cuisine}
+                  className="text-xs font-medium bg-green-50 text-green-700 px-3 py-1 rounded-full"
+                >
+                  {cuisine}
+                </span>
+              ))}
+            </div>
+
+            {/* Stats Grid - Hide in compact mode if desired, or just shrink */}
+            <div className={`grid grid-cols-2 gap-4 ${scrolled ? 'mb-2 text-xs' : 'mb-6'}`}>
+              {packages[0]?.rating && (
+                <div className="flex items-center gap-2 text-gray-700">
+                  <Star className={`${scrolled ? 'w-4 h-4' : 'w-5 h-5'} text-yellow-400 fill-yellow-400`} />
+                  <span className="font-semibold">
+                    {Number(packages[0].rating).toFixed(1)} <span className="text-gray-400 font-normal text-sm">Rating</span>
+                  </span>
+                </div>
+              )}
+              {caterer.location && (
+                <div className="flex items-center gap-2 text-gray-700">
+                  <MapPin className={`${scrolled ? 'w-4 h-4' : 'w-5 h-5'} text-gray-400`} />
+                  <span className={`${scrolled ? 'text-xs' : 'text-sm'} font-medium`}>{caterer.location}</span>
+                </div>
+              )}
+              {(caterer.minimum_guests || caterer.maximum_guests) && (
+                <div className="flex items-center gap-2 text-gray-700 col-span-2">
+                  <Users className={`${scrolled ? 'w-4 h-4' : 'w-5 h-5'} text-gray-400`} />
+                  <span className={`${scrolled ? 'text-xs' : 'text-sm'}`}>
+                    Capacity: <span className="font-semibold">{caterer.minimum_guests || 0} - {caterer.maximum_guests || 'Unlimited'}</span> guests
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className={`border-t border-gray-100 ${scrolled ? 'my-2 pt-2' : 'my-4 pt-4'}`}>
+              {/* Description - Hide when scrolled */}
+              {!scrolled && caterer.description && (
+                <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                  {caterer.description}
+                </p>
+              )}
+            </div>
+
+            {/* Service & Price */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500">Price Range</span>
+                <span className="font-bold text-gray-900">{caterer.priceRange}</span>
+              </div>
+
+              {!scrolled && (
+                <div className="flex flex-wrap gap-2">
+                  {caterer.delivery_only && (
+                    <span className="text-xs border border-blue-100 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                      <ChefHat className="w-3.5 h-3.5" /> Delivery
+                    </span>
+                  )}
+                  {caterer.delivery_plus_setup && (
+                    <span className="text-xs border border-blue-100 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                      <ChefHat className="w-3.5 h-3.5" /> Setup
+                    </span>
+                  )}
+                  {caterer.full_service && (
+                    <span className="text-xs border border-blue-100 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                      <ChefHat className="w-3.5 h-3.5" /> Full Service
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column - Gallery */}
           {caterer.gallery_images && caterer.gallery_images.length > 0 && (
-            <div className="flex flex-col h-full">
-              <div className="relative w-full aspect-[4/3] lg:aspect-auto lg:flex-1 lg:min-h-0 rounded-2xl overflow-hidden mb-4 cursor-pointer group"
-                onClick={() => setIsGalleryOpen(true)}>
+            <div className="flex flex-col h-full transition-all duration-300">
+              <div
+                className={`relative w-full rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 ${scrolled ? 'h-48' : 'aspect-[4/3] lg:aspect-auto lg:flex-1 lg:min-h-0 mb-4'}`}
+                onClick={() => setIsGalleryOpen(true)}
+              >
                 <Image
                   src={caterer.gallery_images[currentImageIndex]}
                   alt="Main Gallery Image"
@@ -845,8 +958,8 @@ export default function CatererDetailPage() {
                 </div>
               </div>
 
-              {/* Thumbnails */}
-              {caterer.gallery_images && caterer.gallery_images.length > 1 && (
+              {/* Thumbnails - Hide when scrolled */}
+              {!scrolled && caterer.gallery_images && caterer.gallery_images.length > 1 && (
                 <div className="grid grid-cols-5 gap-2 flex-shrink-0">
                   {caterer.gallery_images.slice(0, 5).map((img, idx) => (
                     <div
@@ -878,103 +991,6 @@ export default function CatererDetailPage() {
               )}
             </div>
           )}
-
-          {/* Right Column - Caterer Info */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 h-fit">
-            <div className="flex items-start justify-between gap-4 mb-4">
-              <h1 className="text-3xl font-bold text-gray-900">
-                {caterer.name}
-              </h1>
-              <div className="relative w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100 border border-gray-200">
-                {caterer.image_url ? (
-                  <Image
-                    src={caterer.image_url}
-                    alt={caterer.name}
-                    fill
-                    className="object-contain"
-                    unoptimized
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-white font-bold text-2xl bg-green-500">
-                    {logoText}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Cuisines */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              {caterer.cuisines.map((cuisine) => (
-                <span
-                  key={cuisine}
-                  className="text-xs font-medium bg-green-50 text-green-700 px-3 py-1 rounded-full"
-                >
-                  {cuisine}
-                </span>
-              ))}
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              {packages[0]?.rating && (
-                <div className="flex items-center gap-2 text-gray-700">
-                  <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                  <span className="font-semibold">
-                    {Number(packages[0].rating).toFixed(1)} <span className="text-gray-400 font-normal text-sm">Rating</span>
-                  </span>
-                </div>
-              )}
-              {caterer.location && (
-                <div className="flex items-center gap-2 text-gray-700">
-                  <MapPin className="w-5 h-5 text-gray-400" />
-                  <span className="text-sm font-medium">{caterer.location}</span>
-                </div>
-              )}
-              {(caterer.minimum_guests || caterer.maximum_guests) && (
-                <div className="flex items-center gap-2 text-gray-700 col-span-2">
-                  <Users className="w-5 h-5 text-gray-400" />
-                  <span className="text-sm">
-                    Capacity: <span className="font-semibold">{caterer.minimum_guests || 0} - {caterer.maximum_guests || 'Unlimited'}</span> guests
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <div className="border-t border-gray-100 my-4 pt-4">
-              {/* Description */}
-              {caterer.description && (
-                <p className="text-gray-600 text-sm leading-relaxed mb-4">
-                  {caterer.description}
-                </p>
-              )}
-            </div>
-
-            {/* Service & Price */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Price Range</span>
-                <span className="font-bold text-gray-900">{caterer.priceRange}</span>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {caterer.delivery_only && (
-                  <span className="text-xs border border-blue-100 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md flex items-center gap-1.5">
-                    <ChefHat className="w-3.5 h-3.5" /> Delivery
-                  </span>
-                )}
-                {caterer.delivery_plus_setup && (
-                  <span className="text-xs border border-blue-100 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md flex items-center gap-1.5">
-                    <ChefHat className="w-3.5 h-3.5" /> Setup
-                  </span>
-                )}
-                {caterer.full_service && (
-                  <span className="text-xs border border-blue-100 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md flex items-center gap-1.5">
-                    <ChefHat className="w-3.5 h-3.5" /> Full Service
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
         </div>
         {/* Tabs */}
         <div className="bg-white rounded-xl border border-gray-200 p-1 mb-6">
@@ -1138,7 +1154,7 @@ export default function CatererDetailPage() {
                             src={pkg.cover_image_url || '/logo2.svg'}
                             alt={pkg.name}
                             fill
-                            className={pkg.cover_image_url ? "object-cover" : "object-contain p-8"}
+                            className={pkg.cover_image_url && !pkg.cover_image_url.includes('logo2.svg') ? "object-cover" : "object-contain p-8"}
                             unoptimized
                           />
                         </div>
@@ -1483,7 +1499,7 @@ export default function CatererDetailPage() {
                             src={pkg.cover_image_url || '/logo2.svg'}
                             alt={pkg.name}
                             fill
-                            className={pkg.cover_image_url ? "object-cover" : "object-contain p-8"}
+                            className={pkg.cover_image_url && !pkg.cover_image_url.includes('logo2.svg') ? "object-cover" : "object-contain p-8"}
                             unoptimized
                           />
                         </div>

@@ -59,7 +59,7 @@ export default function Hero() {
     };
 
     return (
-        <section className="relative h-[600px] flex items-center">
+        <section className="relative min-h-[600px] flex items-center">
             {/* Background Image with Overlay */}
             <div className="absolute inset-0 z-0">
                 <Image
@@ -72,10 +72,10 @@ export default function Hero() {
                 <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/60 via-black/40 via-black/20 to-transparent" />
             </div>
 
-            <div className="relative z-10 w-full max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="relative z-10 w-full max-w-7xl mx-auto px-6 lg:px-8 py-20 md:py-0">
                 {/* Text Content */}
                 <div className="max-w-3xl">
-                    <h1 className="text-5xl md:text-6xl font-bold leading-tight text-white">
+                    <h1 className="text-4xl md:text-6xl font-bold leading-tight text-white">
                         Plan Any Event.
                         <br />
                         <span className="text-[#64C042]">Order Any Food.</span>

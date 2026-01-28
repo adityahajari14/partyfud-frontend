@@ -31,17 +31,12 @@ export default function HowItWorks() {
     ];
 
     return (
-        <section className="bg-[#FAFAFA] pb-8">
-            {/* Top Image Strip */}
-            <div className="relative h-32 w-full mb-8 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-green-100 to-green-50 opacity-50 blur-3xl"></div>
-            </div>
-
+        <section className="bg-[#FAFAFA] py-16">
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-6">
                 {/* Heading */}
                 <div className="text-center mb-12">
-                    <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                    <h2 className="text-3xl md:text-4xl font-semibold text-gray-900 mb-4">
                         How It Works
                     </h2>
                     <p className="text-lg text-gray-600">
@@ -74,8 +69,8 @@ export default function HowItWorks() {
 
                                     {/* Icon */}
                                     <div className="mt-4 mb-4">
-                                        <IconComponent 
-                                            className="w-8 h-8 text-[#268700]" 
+                                        <IconComponent
+                                            className="w-8 h-8 text-[#268700]"
                                             strokeWidth={1.5}
                                         />
                                     </div>

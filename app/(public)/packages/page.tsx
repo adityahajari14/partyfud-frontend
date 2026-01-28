@@ -623,7 +623,7 @@ export default function PackagesPage() {
                             <div className="mb-4 text-sm text-gray-600">
                                 Showing {packages.length} package{packages.length !== 1 ? 's' : ''}
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                                 {packages.map((pkg) => {
                                     const apiPkg = apiPackagesData.find((p: any) => p.id === pkg.id);
                                     const minimumPeople = apiPkg?.minimum_people || apiPkg?.people_count || 1;
@@ -639,7 +639,7 @@ export default function PackagesPage() {
                                                     src={pkg.image}
                                                     alt={pkg.title}
                                                     fill
-                                                    className="object-contain p-4"
+                                                    className={pkg.image === '/logo2.svg' || pkg.image.includes('logo2.svg') ? "object-contain p-8" : "object-cover"}
                                                 />
 
                                                 {/* Badges */}
@@ -653,7 +653,7 @@ export default function PackagesPage() {
                                             </div>
 
                                             {/* Content Section */}
-                                            <div className="p-5 flex flex-col flex-1">
+                                            <div className="p-4 flex flex-col flex-1">
                                                 {/* Caterer Name with Verified Badge */}
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <svg className="w-4 h-4 text-green-600 shrink-0" fill="currentColor" viewBox="0 0 24 24">
@@ -702,17 +702,17 @@ export default function PackagesPage() {
                                                 <div className="flex-1"></div>
 
                                                 {/* Price and Button */}
-                                                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                                                    <div>
-                                                        <div className="text-xs text-gray-500 mb-0.5">Starting from</div>
-                                                        <div className="text-2xl font-black text-gray-900">
+                                                <div className="flex items-center justify-between pt-4 border-t border-gray-100 gap-3">
+                                                    <div className="min-w-0">
+                                                        <div className="text-[10px] text-gray-500 mb-0.5 uppercase tracking-wide">Starting from</div>
+                                                        <div className="text-xl font-black text-gray-900">
                                                             AED {typeof pkg.price === 'number' ? pkg.price.toLocaleString() : parseInt(String(pkg.price || '0'), 10).toLocaleString()}
                                                         </div>
-                                                        <div className="text-xs text-gray-400 font-medium mt-0.5">for {minimumPeople} people</div>
+                                                        <div className="text-xs text-gray-400 font-medium mt-0.5 whitespace-nowrap">for {minimumPeople} people</div>
                                                     </div>
                                                     <Link
                                                         href={`/caterers/${pkg.catererId}?packageId=${pkg.id}`}
-                                                        className="bg-[#268700] hover:bg-[#1f6b00] text-white px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-lg hover:shadow-xl active:scale-95"
+                                                        className="bg-[#268700] hover:bg-[#1f6b00] text-white px-4 py-2.5 rounded-lg font-bold text-sm transition-all shadow-md hover:shadow-lg active:scale-95 whitespace-nowrap"
                                                     >
                                                         View Package
                                                     </Link>

@@ -12,6 +12,10 @@ import Partner from '@/components/home/Partner';
 import Testimonials from '@/components/home/Testimonials';
 import HowItWorks from '@/components/home/HowItWorks';
 
+import CatererLogoSlider from '@/components/home/CatererLogoSlider';
+
+import WhatsAppButton from '@/components/ui/WhatsAppButton';
+
 export default function Home() {
 
   return (
@@ -19,6 +23,7 @@ export default function Home() {
       <Navbar />
       <main>
         <Hero />
+        <CatererLogoSlider />
         <HowItWorks />
         <EventTypes />
         <Occasions />
@@ -28,6 +33,7 @@ export default function Home() {
         <Partner />
         <Testimonials />
       </main>
+      <WhatsAppButton />
       <Footer />
     </div>
   );

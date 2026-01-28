@@ -58,7 +58,7 @@ export default function PopularPackagesPage() {
       try {
         setLoading(true);
         setError(null);
-        
+
         const filters: any = {
           sort_by: 'rating_desc', // Show popular packages first
         };
@@ -80,9 +80,9 @@ export default function PopularPackagesPage() {
             // Continue without occasion filter if it fails
           }
         }
-        
+
         const response = await userApi.getAllPackages(filters);
-        
+
         if (response.data?.data) {
           // Map API response to component structure
           const mappedPackages: Package[] = response.data.data
@@ -211,7 +211,7 @@ export default function PopularPackagesPage() {
                     src={pkg.image}
                     alt={pkg.title}
                     fill
-                    className="object-contain p-4"
+                    className={pkg.image === '/logo2.svg' || pkg.image.includes('logo2.svg') ? "object-contain p-4" : "object-cover"}
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.src = '/logo2.svg';
@@ -274,8 +274,8 @@ export default function PopularPackagesPage() {
             </div>
           )}
 
-          <Button 
-            onClick={() => router.push(viewAllUrl)} 
+          <Button
+            onClick={() => router.push(viewAllUrl)}
             className="mt-8 mx-auto block bg-[#268700] text-white px-6 py-3 rounded-md hover:bg-[#1f6b00] transition cursor-pointer"
           >
             View All Packages

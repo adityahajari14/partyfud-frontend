@@ -2,7 +2,7 @@
 
 
 import Link from 'next/link';
-import { MapPin, Mail, User, ShoppingCart } from 'lucide-react';
+import { MapPin, Mail, User, ShoppingCart, Menu, X } from 'lucide-react';
 import Image from 'next/image';
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -18,6 +18,7 @@ export function Navbar() {
     const pathname = usePathname();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [cartItemCount, setCartItemCount] = useState(0);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -102,17 +103,26 @@ export function Navbar() {
     }, [user]);
 
     return (
-        <header className="w-full">
+        <header className="w-full relative z-50">
             {/* Main Navbar */}
-            <div className="bg-white border-b border-gray-200 px-8 py-2 flex items-center justify-between relative">
+            <div className="bg-white border-b border-gray-200 px-4 md:px-8 py-2 flex items-center justify-between relative bg-white z-50">
                 {/* Left - Logo */}
                 <div className="flex items-center">
+                    {/* Mobile Menu Button */}
+                    <button
+                        className="md:hidden mr-4 text-gray-700 p-1"
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    >
+                        {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                    </button>
+
                     <Link href="/" className="flex items-center gap-2">
                         <Image
                             src="/logo_partyfud.svg"
                             alt="PartyFud Logo"
                             width={100}
                             height={100}
+                            className="w-20 md:w-[100px] h-auto"
                         />
                     </Link>
                 </div>
@@ -131,8 +141,8 @@ export function Navbar() {
                     <Link
                         href="/packages"
                         className={`text-sm font-medium transition-colors duration-200 py-2 ${pathname === '/packages' || pathname?.startsWith('/packages/')
-                                ? 'text-[#268700] font-semibold'
-                                : 'text-gray-700 hover:text-[#268700]'
+                            ? 'text-[#268700] font-semibold'
+                            : 'text-gray-700 hover:text-[#268700]'
                             }`}
                     >
                         Packages
@@ -158,7 +168,7 @@ export function Navbar() {
                 </nav>
 
                 {/* Right Section (Icons + User + Actions) */}
-                <div className="flex items-center gap-4 ml-auto">
+                <div className="flex items-center gap-3 md:gap-4 ml-auto">
                     <Link
                         href="/cart"
                         className="relative text-gray-600 hover:text-[#268700] transition-colors"
@@ -263,18 +273,62 @@ export function Navbar() {
                             <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#268700]/10 group-hover:text-[#268700] transition-colors">
                                 <User size={16} />
                             </div>
-                            <span className="text-sm whitespace-nowrap tracking-tight">Sign In</span>
+                            <span className="hidden md:inline text-sm whitespace-nowrap tracking-tight">Sign In</span>
                         </Link>
                     )}
 
                     <Link
                         href="/onboarding"
-                        className="bg-[#268700] text-white text-[10px] font-black uppercase tracking-widest px-6 py-2.5 rounded-xl hover:bg-[#1f6b00] transition-all duration-300 shadow-[0_10px_20px_-10px_rgba(38,135,0,0.3)] hover:shadow-[0_15px_25px_-10px_rgba(38,135,0,0.4)] active:scale-95"
+                        className="hidden md:block bg-[#268700] text-white text-[10px] font-black uppercase tracking-widest px-6 py-2.5 rounded-xl hover:bg-[#1f6b00] transition-all duration-300 shadow-[0_10px_20px_-10px_rgba(38,135,0,0.3)] hover:shadow-[0_15px_25px_-10px_rgba(38,135,0,0.4)] active:scale-95"
                     >
                         Partner with Us
                     </Link>
                 </div>
             </div>
+
+            {/* Mobile Menu Content */}
+            {isMobileMenuOpen && (
+                <div className="md:hidden absolute top-full left-0 w-full bg-white border-t border-gray-100 shadow-xl py-4 px-6 flex flex-col gap-4 z-40 origin-top animate-in slide-in-from-top-5 duration-200">
+                    <Link
+                        href="/"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className={`text-base font-medium py-2 border-b border-gray-50 ${pathname === '/' ? 'text-[#268700]' : 'text-gray-700'}`}
+                    >
+                        Home
+                    </Link>
+                    <Link
+                        href="/packages"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className={`text-base font-medium py-2 border-b border-gray-50 ${pathname.startsWith('/packages') ? 'text-[#268700]' : 'text-gray-700'}`}
+                    >
+                        Packages
+                    </Link>
+                    <Link
+                        href="/caterers"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className={`text-base font-medium py-2 border-b border-gray-50 ${pathname.startsWith('/caterers') ? 'text-[#268700]' : 'text-gray-700'}`}
+                    >
+                        Browse Caterers
+                    </Link>
+                    <Link
+                        href="/for-caterers"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className={`text-base font-medium py-2 border-b border-gray-50 ${pathname === '/for-caterers' ? 'text-[#268700]' : 'text-gray-700'}`}
+                    >
+                        For Caterers
+                    </Link>
+
+                    {!user && (
+                        <Link
+                            href="/onboarding"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="bg-[#268700] text-white text-center text-sm font-bold uppercase tracking-widest px-6 py-3 rounded-xl mt-2"
+                        >
+                            Partner with Us
+                        </Link>
+                    )}
+                </div>
+            )}
         </header>
     );
 }

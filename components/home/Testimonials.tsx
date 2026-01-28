@@ -58,10 +58,10 @@ const testimonials: Testimonial[] = [
 
 export default function TestimonialsPage() {
   return (
-    <section className="bg-[#FAFAFA] py-24">
+    <section className="bg-[#FAFAFA] py-16">
       <div className="max-w-7xl mx-auto px-6">
         {/* Heading */}
-        <div className="text-center max-w-7xl mx-auto mb-16">
+        <div className="text-center max-w-7xl mx-auto mb-12">
           <h2 className="text-3xl md:text-4xl font-semibold text-gray-900">
             We’ve got lots of friends, and we’re always looking for more
           </h2>

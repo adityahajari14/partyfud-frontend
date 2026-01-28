@@ -22,7 +22,7 @@ const PackageImage: React.FC<{ imageUrl: string | null; packageName: string }> =
         <img
           src={imageUrl}
           alt={packageName}
-          className="w-full h-full object-contain p-4"
+          className={`w-full h-full ${imageUrl === '/logo2.svg' || imageUrl.includes('logo2.svg') ? "object-contain p-4" : "object-cover"}`}
           onError={() => setImageError(true)}
         />
       ) : !fallbackError ? (
@@ -175,7 +175,7 @@ export default function PackagesPage() {
   const handleDelete = async (id: string) => {
     setDeleting(true);
     setDeleteError(null);
-    
+
     try {
       const response = await catererApi.deletePackage(id);
 

@@ -33,13 +33,13 @@ export default function MyPackagesPage() {
     const [occasionNameParam, setOccasionNameParam] = useState<string>('');
     const [cuisineTypeId, setCuisineTypeId] = useState<string>('');
     const [cuisineTypeName, setCuisineTypeName] = useState<string>('');
-    
+
     // Data states
     const [packages, setPackages] = useState<Package[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [highlightedPackageId, setHighlightedPackageId] = useState<string | null>(null);
-    
+
     // Read occasion_id, occasion_name, and cuisine_type_id from URL on mount
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -48,23 +48,23 @@ export default function MyPackagesPage() {
             const occasionNameParamValue = params.get('occasion_name');
             const cuisineTypeIdParam = params.get('cuisine_type_id');
             const highlightParam = params.get('highlight');
-            
+
             // Handle package highlighting
             if (highlightParam) {
                 setHighlightedPackageId(highlightParam);
                 // Remove highlight from URL after setting it
                 params.delete('highlight');
-                const newUrl = params.toString() 
+                const newUrl = params.toString()
                     ? `/mypackages?${params.toString()}`
                     : '/mypackages';
                 window.history.replaceState({}, '', newUrl);
-                
+
                 // Clear highlight after 2 seconds
                 setTimeout(() => {
                     setHighlightedPackageId(null);
                 }, 2000);
             }
-            
+
             if (occasionIdParam) {
                 setOccasionId(decodeURIComponent(occasionIdParam));
                 // Fetch occasion name for display
@@ -85,13 +85,13 @@ export default function MyPackagesPage() {
                 };
                 fetchOccasionName();
             }
-            
+
             if (occasionNameParamValue) {
                 const decodedName = decodeURIComponent(occasionNameParamValue);
                 setOccasionNameParam(decodedName);
                 setOccasionName(decodedName);
             }
-            
+
             if (cuisineTypeIdParam) {
                 setCuisineTypeId(decodeURIComponent(cuisineTypeIdParam));
                 // Fetch cuisine type name for display
@@ -99,8 +99,8 @@ export default function MyPackagesPage() {
                     try {
                         const response = await userApi.getCuisineTypes();
                         if (response.data) {
-                            const cuisineTypes = Array.isArray(response.data) 
-                                ? response.data 
+                            const cuisineTypes = Array.isArray(response.data)
+                                ? response.data
                                 : (response.data as any).data || [];
                             const cuisine = cuisineTypes.find(
                                 (ct: any) => ct.id === cuisineTypeIdParam
@@ -376,7 +376,7 @@ export default function MyPackagesPage() {
                                             const params = new URLSearchParams(window.location.search);
                                             params.delete('occasion_id');
                                             params.delete('occasion_name');
-                                            const newUrl = params.toString() 
+                                            const newUrl = params.toString()
                                                 ? `/mypackages?${params.toString()}`
                                                 : '/mypackages';
                                             window.history.replaceState({}, '', newUrl);
@@ -400,7 +400,7 @@ export default function MyPackagesPage() {
                                             setCuisineTypeName('');
                                             const params = new URLSearchParams(window.location.search);
                                             params.delete('cuisine_type_id');
-                                            const newUrl = params.toString() 
+                                            const newUrl = params.toString()
                                                 ? `/mypackages?${params.toString()}`
                                                 : '/mypackages';
                                             window.history.replaceState({}, '', newUrl);
@@ -458,18 +458,17 @@ export default function MyPackagesPage() {
                                     <Link
                                         key={pkg.id}
                                         href={`/mypackages/${pkg.id}`}
-                                        className={`bg-white border rounded-xl p-3 hover:shadow-md transition cursor-pointer block ${
-                                            highlightedPackageId === pkg.id
-                                                ? 'border-[#268700] border-4 shadow-lg ring-4 ring-green-200'
-                                                : 'border-gray-200'
-                                        }`}
+                                        className={`bg-white border rounded-xl p-3 hover:shadow-md transition cursor-pointer block ${highlightedPackageId === pkg.id
+                                            ? 'border-[#268700] border-4 shadow-lg ring-4 ring-green-200'
+                                            : 'border-gray-200'
+                                            }`}
                                     >
                                         <div className="relative h-48 rounded-lg overflow-hidden mb-4 bg-gray-50">
                                             <Image
                                                 src={pkg.image}
                                                 alt={pkg.title}
                                                 fill
-                                                className="object-contain p-4"
+                                                className={pkg.image === '/logo2.svg' || pkg.image.includes('logo2.svg') ? "object-contain p-4" : "object-cover"}
                                             />
 
                                             <div className="absolute top-2 left-2 flex gap-2">

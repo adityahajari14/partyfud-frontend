@@ -4,11 +4,11 @@ import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { userApi } from '@/lib/api/user.api';
-import { 
-  Calendar, 
-  MapPin, 
-  Users, 
-  CheckCircle2, 
+import {
+  Calendar,
+  MapPin,
+  Users,
+  CheckCircle2,
   Clock,
   ChevronRight,
   FileText,
@@ -86,27 +86,27 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { toast, showToast, hideToast } = useToast();
-  
+
   // Cart state
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [placingOrder, setPlacingOrder] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [syncingCart, setSyncingCart] = useState(false);
-  
+
   // Checkout step
   const [currentStep, setCurrentStep] = useState<CheckoutStep>('event-details');
-  
+
   // Occasions
   const [occasions, setOccasions] = useState<Occasion[]>([]);
-  
+
   // Event details form
   const [eventDate, setEventDate] = useState('');
   const [eventTime, setEventTime] = useState('');
   const [eventType, setEventType] = useState('');
   const [guestCount, setGuestCount] = useState(50);
   const [guestCountInput, setGuestCountInput] = useState<string>('50');
-  
+
   // Delivery address form
   const [venueName, setVenueName] = useState('');
   const [streetAddress, setStreetAddress] = useState('');
@@ -132,7 +132,7 @@ export default function CheckoutPage() {
       if (user) {
         const { cartStorage } = await import('@/lib/utils/cartStorage');
         const localItems = cartStorage.getItems();
-        
+
         // If there are items in localStorage, sync them to server
         if (localItems.length > 0) {
           setSyncingCart(true);
@@ -153,10 +153,10 @@ export default function CheckoutPage() {
       if (user) {
         // For authenticated users, fetch from server
         const cartRes = await userApi.getCartItems();
-        
+
         if (cartRes.data?.data) {
           setCartItems(cartRes.data.data);
-          
+
           // Set initial guest count from first cart item
           if (cartRes.data.data.length > 0) {
             const firstItem = cartRes.data.data[0];
@@ -164,44 +164,44 @@ export default function CheckoutPage() {
               setGuestCount(firstItem.guests);
             }
           }
-          
+
           // Load event details immediately
           const { cartStorage } = await import('@/lib/utils/cartStorage');
           const savedEventDetails = cartStorage.getEventDetails();
           const localItems = cartStorage.getItems();
-          const localItemWithDetails = localItems.find(item => 
+          const localItemWithDetails = localItems.find(item =>
             item.event_date || item.event_time || item.event_type || item.area
           );
-          
+
           const firstItem = cartRes.data.data[0];
-          
+
           // Priority: savedEventDetails > localItem > server cart item
-          const eventDateValue = savedEventDetails.event_date || 
-                               localItemWithDetails?.event_date ||
-                               firstItem.event_date || 
-                               (firstItem.date ? new Date(firstItem.date).toISOString().split('T')[0] : '');
+          const eventDateValue = savedEventDetails.event_date ||
+            localItemWithDetails?.event_date ||
+            firstItem.event_date ||
+            (firstItem.date ? new Date(firstItem.date).toISOString().split('T')[0] : '');
           if (eventDateValue) {
             setEventDate(eventDateValue);
           }
-          
-          const eventTimeValue = savedEventDetails.event_time || 
-                               localItemWithDetails?.event_time ||
-                               firstItem.event_time;
+
+          const eventTimeValue = savedEventDetails.event_time ||
+            localItemWithDetails?.event_time ||
+            firstItem.event_time;
           if (eventTimeValue && eventTimeValue.trim() !== '') {
             setEventTime(eventTimeValue.trim());
           }
-          
-          const eventTypeValue = savedEventDetails.event_type || 
-                               localItemWithDetails?.event_type ||
-                               firstItem.event_type;
+
+          const eventTypeValue = savedEventDetails.event_type ||
+            localItemWithDetails?.event_type ||
+            firstItem.event_type;
           if (eventTypeValue && eventTypeValue.trim() !== '') {
             setEventType(eventTypeValue.trim());
           }
-          
-          const areaValue = savedEventDetails.area || 
-                          localItemWithDetails?.area ||
-                          firstItem.area || 
-                          firstItem.location;
+
+          const areaValue = savedEventDetails.area ||
+            localItemWithDetails?.area ||
+            firstItem.area ||
+            firstItem.location;
           if (areaValue && areaValue.trim() !== '') {
             setArea(areaValue.trim());
           }
@@ -213,46 +213,46 @@ export default function CheckoutPage() {
         const { cartStorage } = await import('@/lib/utils/cartStorage');
         const localItems = cartStorage.getItems();
         setCartItems(localItems as any);
-        
+
         // Set initial guest count and event details from first cart item
         if (localItems.length > 0) {
           const firstItem = localItems[0];
           if (firstItem.guests) {
             setGuestCount(firstItem.guests);
           }
-          
+
           // Also check saved event details storage
           const savedEventDetails = cartStorage.getEventDetails();
-          
+
           // Auto-fill event details - priority: savedEventDetails > cart item
           const eventDateValue = savedEventDetails.event_date || firstItem.event_date;
           if (eventDateValue) {
             setEventDate(eventDateValue);
           }
-          
+
           const eventTimeValue = savedEventDetails.event_time || firstItem.event_time;
           if (eventTimeValue && eventTimeValue.trim() !== '') {
             setEventTime(eventTimeValue.trim());
           }
-          
+
           const eventTypeValue = savedEventDetails.event_type || firstItem.event_type;
           if (eventTypeValue && eventTypeValue.trim() !== '') {
             setEventType(eventTypeValue.trim());
           }
-          
+
           const areaValue = savedEventDetails.area || firstItem.area;
           if (areaValue && areaValue.trim() !== '') {
             setArea(areaValue.trim());
           }
         }
-        
+
         // If no items in localStorage, redirect to login
         if (localItems.length === 0) {
           router.push('/login?redirect=/checkout');
           return;
         }
       }
-      
+
       // Fetch occasions
       const occasionsRes = await userApi.getOccasions();
       if (occasionsRes.data?.data) {
@@ -269,15 +269,15 @@ export default function CheckoutPage() {
   // In checkout, use the form's guestCount (which applies to all items)
   // This allows users to change guest count for all items at once
   const calculateItemPrice = (item: CartItem) => {
-    const pricePerPerson = item.package.price_per_person || 
+    const pricePerPerson = item.package.price_per_person ||
       (item.package.total_price / (item.package.people_count || 1));
     const packagePrice = Math.round(pricePerPerson * guestCount);
-    
+
     // Add add-ons prices (add-ons are fixed price, not multiplied by guest count)
     const addOnsPrice = item.add_ons && item.add_ons.length > 0
       ? item.add_ons.reduce((sum, addOn) => sum + (addOn.add_on.price * addOn.quantity), 0)
       : 0;
-    
+
     return packagePrice + addOnsPrice;
   };
 
@@ -409,54 +409,48 @@ export default function CheckoutPage() {
           <div className="flex items-center">
             {/* Step 1 */}
             <div className="flex items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                currentStep === 'event-details' 
-                  ? 'bg-green-600 text-white' 
-                  : 'bg-green-600 text-white'
-              }`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep === 'event-details'
+                ? 'bg-green-600 text-white'
+                : 'bg-green-600 text-white'
+                }`}>
                 1
               </div>
-              <span className={`ml-2 text-sm font-medium ${
-                currentStep === 'event-details' ? 'text-green-600' : 'text-gray-900'
-              }`}>
+              <span className={`ml-2 text-sm font-medium ${currentStep === 'event-details' ? 'text-green-600' : 'text-gray-900'
+                }`}>
                 Event Details
               </span>
             </div>
-            
+
             <ChevronRight className="w-5 h-5 text-gray-400 mx-4" />
-            
+
             {/* Step 2 */}
             <div className="flex items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                currentStep === 'review' 
-                  ? 'bg-green-600 text-white' 
-                  : currentStep === 'payment'
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep === 'review'
+                ? 'bg-green-600 text-white'
+                : currentStep === 'payment'
                   ? 'bg-green-600 text-white'
                   : 'bg-gray-200 text-gray-600'
-              }`}>
+                }`}>
                 2
               </div>
-              <span className={`ml-2 text-sm font-medium ${
-                currentStep === 'review' ? 'text-green-600' : 'text-gray-500'
-              }`}>
+              <span className={`ml-2 text-sm font-medium ${currentStep === 'review' ? 'text-green-600' : 'text-gray-500'
+                }`}>
                 Review Order
               </span>
             </div>
-            
+
             <ChevronRight className="w-5 h-5 text-gray-400 mx-4" />
-            
+
             {/* Step 3 */}
             <div className="flex items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                currentStep === 'payment' 
-                  ? 'bg-green-600 text-white' 
-                  : 'bg-gray-200 text-gray-600'
-              }`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep === 'payment'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-200 text-gray-600'
+                }`}>
                 3
               </div>
-              <span className={`ml-2 text-sm font-medium ${
-                currentStep === 'payment' ? 'text-green-600' : 'text-gray-500'
-              }`}>
+              <span className={`ml-2 text-sm font-medium ${currentStep === 'payment' ? 'text-green-600' : 'text-gray-500'
+                }`}>
                 Payment
               </span>
             </div>
@@ -560,14 +554,14 @@ export default function CheckoutPage() {
                         onBlur={(e) => {
                           const inputValue = e.target.value.trim();
                           const numValue = Number(inputValue);
-                          
+
                           // Validate and clamp on blur
                           if (inputValue === '' || isNaN(numValue) || numValue < 1) {
                             setGuestCount(1);
                             setGuestCountInput('1');
                             return;
                           }
-                          
+
                           // Clamp to minimum of 1
                           const clampedValue = Math.max(1, numValue);
                           setGuestCount(clampedValue);
@@ -667,11 +661,10 @@ export default function CheckoutPage() {
                 <button
                   onClick={handleContinueToReview}
                   disabled={!isEventDetailsValid}
-                  className={`w-full py-3 rounded-lg font-medium transition flex items-center justify-center gap-2 ${
-                    isEventDetailsValid
-                      ? 'bg-green-600 text-white hover:bg-green-700'
-                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  }`}
+                  className={`w-full py-3 rounded-lg font-medium transition flex items-center justify-center gap-2 ${isEventDetailsValid
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    }`}
                 >
                   Continue to Review
                   <ChevronRight className="w-4 h-4" />
@@ -701,7 +694,7 @@ export default function CheckoutPage() {
                               src={item.package.cover_image_url || '/logo2.svg'}
                               alt={item.package.name}
                               fill
-                              className="object-contain p-1"
+                              className={item.package.cover_image_url === '/logo2.svg' || (item.package.cover_image_url && item.package.cover_image_url.includes('logo2.svg')) ? "object-contain p-1" : "object-cover"}
                             />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -816,11 +809,10 @@ export default function CheckoutPage() {
                   {/* Pay on Delivery Option */}
                   <div className="space-y-4">
                     <label
-                      className={`flex items-start gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                        paymentMethod === 'pay_on_delivery'
-                          ? 'border-green-600 bg-green-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                      className={`flex items-start gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${paymentMethod === 'pay_on_delivery'
+                        ? 'border-green-600 bg-green-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                        }`}
                     >
                       <input
                         type="radio"
@@ -866,11 +858,10 @@ export default function CheckoutPage() {
                   <button
                     onClick={handlePlaceOrder}
                     disabled={placingOrder || !isPaymentValid}
-                    className={`flex-1 py-3 rounded-lg font-medium transition flex items-center justify-center gap-2 ${
-                      placingOrder || !isPaymentValid
-                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                        : 'bg-green-600 text-white hover:bg-green-700'
-                    }`}
+                    className={`flex-1 py-3 rounded-lg font-medium transition flex items-center justify-center gap-2 ${placingOrder || !isPaymentValid
+                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                      : 'bg-green-600 text-white hover:bg-green-700'
+                      }`}
                   >
                     {placingOrder ? (
                       <>

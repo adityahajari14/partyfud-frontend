@@ -436,13 +436,14 @@ export default function BrowseCaterersContent() {
                                                 className="group bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 hover:border-gray-300 flex flex-col h-full"
                                             >
                                                 {/* Image Section */}
-                                                <div className="relative h-48 bg-gray-100 overflow-hidden flex-shrink-0">
+                                                <div className="relative h-40 bg-gray-100 overflow-hidden flex-shrink-0">
                                                     {c.image_url ? (
                                                         <Image
                                                             src={c.image_url}
                                                             alt={c.name}
                                                             fill
-                                                            className="object-contain group-hover:scale-105 transition-transform duration-300"
+                                                            className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                                            unoptimized
                                                         />
                                                     ) : (
                                                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
@@ -463,7 +464,7 @@ export default function BrowseCaterersContent() {
 
                                                 {/* Content Section */}
                                                 <div className="p-6 flex flex-col flex-grow">
-                                                    <h3 className="font-semibold text-lg text-gray-900 mb-2 group-hover:text-[#268700] transition-colors line-clamp-1">
+                                                    <h3 className="font-semibold text-lg text-gray-900 mb-2 group-hover:text-[#268700] transition-colors">
                                                         {c.name}
                                                     </h3>
 

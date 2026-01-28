@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { userApi } from '@/lib/api/user.api';
-import { 
-  Cake, 
-  FileText, 
-  Heart, 
-  Ship, 
-  UtensilsCrossed, 
-  Home, 
+import {
+  Cake,
+  FileText,
+  Heart,
+  Ship,
+  UtensilsCrossed,
+  Home,
   ChefHat,
   type LucideIcon
 } from 'lucide-react';
@@ -79,7 +79,7 @@ export default function EventTypes() {
       try {
         setLoading(true);
         const response = await userApi.getOccasions();
-        
+
         if (response.data?.data) {
           setOccasions(response.data.data);
         }
@@ -96,29 +96,29 @@ export default function EventTypes() {
   // Match event types to occasions from API
   const getOccasionForEventType = (eventTypeName: string): PackageType | null => {
     const lowerEventName = eventTypeName.toLowerCase();
-    
+
     // Try to find matching occasion by name or keywords
     for (const occasion of occasions) {
       const lowerOccasionName = occasion.name.toLowerCase();
-      
+
       // Check if event type keywords match occasion name
       const eventConfig = eventTypeConfigs.find(etc => etc.name === eventTypeName);
       if (eventConfig) {
-        const hasMatchingKeyword = eventConfig.matchKeywords.some(keyword => 
+        const hasMatchingKeyword = eventConfig.matchKeywords.some(keyword =>
           lowerOccasionName.includes(keyword.toLowerCase())
         );
-        
+
         if (hasMatchingKeyword || lowerOccasionName === lowerEventName) {
           return occasion;
         }
       }
     }
-    
+
     // Fallback: try exact name match
     const exactMatch = occasions.find(
       occ => occ.name.toLowerCase() === lowerEventName
     );
-    
+
     return exactMatch || null;
   };
 
@@ -156,11 +156,11 @@ export default function EventTypes() {
   }
 
   return (
-    <section className="bg-[#FAFAFA] py-20">
+    <section className="bg-[#FAFAFA] py-16">
       <div className="max-w-7xl mx-auto px-6">
         {/* Heading */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-semibold mb-2 text-gray-900">
+          <h2 className="text-3xl md:text-4xl font-semibold mb-4 text-gray-900">
             Browse by Event Type
           </h2>
           <p className="text-gray-600 text-lg">
@@ -174,7 +174,7 @@ export default function EventTypes() {
             const Icon = eventType.icon;
             const isHighlighted = eventType.name === 'Yacht & Luxury';
             const isSelected = selectedType === eventType.name;
-            
+
             return (
               <div
                 key={eventType.name}
@@ -193,9 +193,9 @@ export default function EventTypes() {
               >
                 {/* Icon */}
                 <div className="flex justify-center mb-3 md:mb-4">
-                  <Icon 
-                    size={32} 
-                    className="text-white md:w-9 md:h-9" 
+                  <Icon
+                    size={32}
+                    className="text-white md:w-9 md:h-9"
                     strokeWidth={1.5}
                   />
                 </div>

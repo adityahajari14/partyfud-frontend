@@ -11,7 +11,7 @@ export default function PartnerWithPartyFud() {
 
   const handleJoinClick = async (e: React.MouseEvent) => {
     e.preventDefault();
-    
+
     // Always redirect to onboarding
     // If user is not logged in, they'll be prompted to signup/login first
     router.push('/onboarding');
@@ -19,9 +19,9 @@ export default function PartnerWithPartyFud() {
 
   return (
     <section id="partner" className="relative bg-gradient-to-br from-[#00241b] via-[#002b20] to-[#001a14] overflow-hidden">
-      <div className="max-w-7xl mx-auto px-6 py-24">
+      <div className="max-w-7xl mx-auto px-6 py-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          
+
           {/* LEFT CONTENT */}
           <div>
             <h2 className="text-4xl md:text-5xl font-semibold text-white leading-tight">
@@ -45,18 +45,18 @@ export default function PartnerWithPartyFud() {
             </button>
           </div>
 
-          {/* STICKY IMAGE - Bottom Left */}
-<div className="absolute bottom-0 right-0 z-20">
-  <div className="relative w-[565px] h-[430px] overflow-hidden shadow-2xl">
-    <Image
-      src="/user/Desktop.svg"
-      alt="PartyFud Dashboard Preview"
-      fill
-      className="object-cover"
-      priority
-    />
-  </div>
-</div>
+          {/* STICKY IMAGE - Bottom Right */}
+          <div className="relative lg:absolute lg:bottom-0 lg:right-0 mt-12 lg:mt-0 lg:absolute lg:bottom-0 lg:right-0 z-20 flex justify-center lg:block">
+            <div className="relative w-[340px] md:w-[480px] lg:w-[565px] h-[240px] md:h-[360px] lg:h-[430px]  overflow-hidden shadow-2xl rounded-xl lg:rounded-none lg:rounded-tl-2xl">
+              <Image
+                src="/user/Desktop.svg"
+                alt="PartyFud Dashboard Preview"
+                fill
+                className="object-cover object-top"
+                priority
+              />
+            </div>
+          </div>
 
 
         </div>

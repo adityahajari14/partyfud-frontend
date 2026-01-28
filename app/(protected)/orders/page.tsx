@@ -70,7 +70,7 @@ export default function OrdersPage() {
         setError(null);
         try {
             const response = await userApi.getOrders();
-            
+
             if (response.error) {
                 setError(response.error);
             } else if (response.data?.data) {
@@ -87,7 +87,7 @@ export default function OrdersPage() {
     const handleViewOrder = async (orderId: string) => {
         try {
             const response = await userApi.getOrderById(orderId);
-            
+
             if (response.error) {
                 setMessage({ type: 'error', text: response.error });
             } else if (response.data?.data) {
@@ -110,7 +110,7 @@ export default function OrdersPage() {
 
         try {
             const response = await userApi.deleteOrder(orderId);
-            
+
             if (response.error) {
                 setMessage({ type: 'error', text: response.error });
             } else {
@@ -210,19 +210,18 @@ export default function OrdersPage() {
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">My Orders</h1>
                     <p className="text-gray-600">
-                        {orders.length === 0 
-                            ? 'You have no orders yet' 
+                        {orders.length === 0
+                            ? 'You have no orders yet'
                             : `${orders.length} ${orders.length === 1 ? 'order' : 'orders'} found`}
                     </p>
                 </div>
 
                 {/* Message */}
                 {message && (
-                    <div className={`mb-6 p-4 rounded-lg text-sm ${
-                        message.type === 'success' 
-                            ? 'bg-green-100 text-green-800 border border-green-300' 
-                            : 'bg-red-100 text-red-800 border border-red-300'
-                    }`}>
+                    <div className={`mb-6 p-4 rounded-lg text-sm ${message.type === 'success'
+                        ? 'bg-green-100 text-green-800 border border-green-300'
+                        : 'bg-red-100 text-red-800 border border-red-300'
+                        }`}>
                         {message.text}
                     </div>
                 )}
@@ -283,7 +282,7 @@ export default function OrdersPage() {
                                                         src={item.package?.cover_image_url || '/logo2.svg'}
                                                         alt={item.package?.name || 'Package'}
                                                         fill
-                                                        className="object-contain p-1"
+                                                        className={item.package?.cover_image_url === '/logo2.svg' || (item.package?.cover_image_url && item.package.cover_image_url.includes('logo2.svg')) ? "object-contain p-1" : "object-cover"}
                                                     />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
@@ -400,7 +399,7 @@ export default function OrdersPage() {
                                                         src={item.package?.cover_image_url || '/logo2.svg'}
                                                         alt={item.package?.name || 'Package'}
                                                         fill
-                                                        className="object-contain p-2"
+                                                        className={item.package?.cover_image_url === '/logo2.svg' || (item.package?.cover_image_url && item.package.cover_image_url.includes('logo2.svg')) ? "object-contain p-2" : "object-cover"}
                                                     />
                                                 </div>
                                                 <div className="flex-1 min-w-0">

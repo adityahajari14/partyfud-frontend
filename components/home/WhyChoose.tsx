@@ -1,10 +1,10 @@
 'use client';
 
-import { 
-  CheckCircle2, 
-  Sliders, 
-  DollarSign, 
-  ShieldCheck, 
+import {
+  CheckCircle2,
+  Sliders,
+  DollarSign,
+  ShieldCheck,
   Headphones,
   type LucideIcon
 } from 'lucide-react';
@@ -45,11 +45,11 @@ const features: Feature[] = [
 
 export default function WhyChoose() {
   return (
-    <section className="bg-[#FAFAFA] py-20">
+    <section className="bg-[#FAFAFA] py-16">
       <div className="max-w-7xl mx-auto px-6">
         {/* Heading */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-semibold mb-3 text-gray-900">
+          <h2 className="text-3xl md:text-4xl font-semibold mb-4 text-gray-900">
             Why Choose PartyFud
           </h2>
           <p className="text-gray-600 text-lg">
@@ -69,9 +69,9 @@ export default function WhyChoose() {
                 {/* Icon with light green background */}
                 <div className="mb-4">
                   <div className="w-14 h-14 bg-green-50 rounded-lg flex items-center justify-center">
-                    <Icon 
-                      size={28} 
-                      className="text-[#268700]" 
+                    <Icon
+                      size={28}
+                      className="text-[#268700]"
                       strokeWidth={1.5}
                     />
                   </div>
