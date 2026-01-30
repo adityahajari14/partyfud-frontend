@@ -406,14 +406,19 @@ export default function CartPage() {
                         {item.add_ons && item.add_ons.length > 0 && (
                           <div className="mt-3 pt-3 border-t border-gray-100">
                             <p className="text-xs font-medium text-gray-700 mb-2">Add-ons:</p>
-                            <div className="space-y-1">
+                            <div className="space-y-2">
                               {item.add_ons.map((cartAddOn) => (
-                                <div key={cartAddOn.id} className="flex items-center justify-between text-xs text-gray-600">
-                                  <span className="flex items-center gap-1.5">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-green-600"></div>
-                                    {cartAddOn.add_on.name}
-                                  </span>
-                                  <span className="text-gray-900">
+                                <div key={cartAddOn.id} className="flex items-start justify-between text-xs">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-1.5 text-gray-900">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-green-600 mt-1.5"></div>
+                                      <span className="font-medium">{cartAddOn.add_on.name}</span>
+                                    </div>
+                                    {cartAddOn.add_on.description && (
+                                      <p className="text-gray-600 text-xs mt-0.5 ml-4">{cartAddOn.add_on.description}</p>
+                                    )}
+                                  </div>
+                                  <span className="text-gray-900 font-medium ml-2">
                                     {cartAddOn.add_on.currency} {cartAddOn.add_on.price.toLocaleString()}
                                   </span>
                                 </div>

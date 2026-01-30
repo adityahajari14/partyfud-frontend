@@ -104,8 +104,8 @@ export default function CheckoutPage() {
   const [eventDate, setEventDate] = useState('');
   const [eventTime, setEventTime] = useState('');
   const [eventType, setEventType] = useState('');
-  const [guestCount, setGuestCount] = useState(50);
-  const [guestCountInput, setGuestCountInput] = useState<string>('50');
+  const [guestCount, setGuestCount] = useState(1);
+  const [guestCountInput, setGuestCountInput] = useState<string>('1');
 
   // Delivery address form
   const [venueName, setVenueName] = useState('');
@@ -160,9 +160,9 @@ export default function CheckoutPage() {
           // Set initial guest count from first cart item
           if (cartRes.data.data.length > 0) {
             const firstItem = cartRes.data.data[0];
-            if (firstItem.guests) {
-              setGuestCount(firstItem.guests);
-            }
+            const initialGuests = firstItem.guests || firstItem.package?.people_count || 1;
+            setGuestCount(initialGuests);
+            setGuestCountInput(String(initialGuests));
           }
 
           // Load event details immediately
@@ -217,9 +217,9 @@ export default function CheckoutPage() {
         // Set initial guest count and event details from first cart item
         if (localItems.length > 0) {
           const firstItem = localItems[0];
-          if (firstItem.guests) {
-            setGuestCount(firstItem.guests);
-          }
+          const initialGuests = firstItem.guests || firstItem.package?.people_count || 1;
+          setGuestCount(initialGuests);
+          setGuestCountInput(String(initialGuests));
 
           // Also check saved event details storage
           const savedEventDetails = cartStorage.getEventDetails();
@@ -771,14 +771,19 @@ export default function CheckoutPage() {
                         </div>
                         {/* Add-ons display */}
                         {item.add_ons && item.add_ons.length > 0 && (
-                          <div className="mt-3 ml-24 space-y-1">
+                          <div className="mt-3 ml-24 space-y-2">
                             {item.add_ons.map((cartAddOn) => (
-                              <div key={cartAddOn.id} className="flex items-center justify-between text-sm text-gray-600">
-                                <span className="flex items-center gap-2">
-                                  <CheckCircle2 className="w-3 h-3 text-green-600" />
-                                  {cartAddOn.add_on.name}
-                                </span>
-                                <span className="text-gray-900">
+                              <div key={cartAddOn.id} className="flex items-start justify-between text-sm">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 text-gray-900">
+                                    <CheckCircle2 className="w-3 h-3 text-green-600 mt-0.5" />
+                                    <span className="font-medium">{cartAddOn.add_on.name}</span>
+                                  </div>
+                                  {cartAddOn.add_on.description && (
+                                    <p className="text-gray-600 text-xs mt-1 ml-5">{cartAddOn.add_on.description}</p>
+                                  )}
+                                </div>
+                                <span className="text-gray-900 font-medium ml-2">
                                   {cartAddOn.add_on.currency} {cartAddOn.add_on.price.toLocaleString()}
                                 </span>
                               </div>

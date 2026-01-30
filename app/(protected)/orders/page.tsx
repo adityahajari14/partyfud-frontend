@@ -443,14 +443,19 @@ export default function OrdersPage() {
                                                     {item.add_ons && item.add_ons.length > 0 && (
                                                         <div className="mt-4 pt-4 border-t border-gray-200">
                                                             <p className="text-xs font-medium text-gray-700 mb-2">Add-ons:</p>
-                                                            <div className="space-y-1">
+                                                            <div className="space-y-2">
                                                                 {item.add_ons.map((orderAddOn) => (
-                                                                    <div key={orderAddOn.id} className="flex items-center justify-between text-xs text-gray-600">
-                                                                        <span className="flex items-center gap-1.5">
-                                                                            <div className="w-1.5 h-1.5 rounded-full bg-green-600"></div>
-                                                                            {orderAddOn.add_on.name}
-                                                                        </span>
-                                                                        <span className="text-gray-900">
+                                                                    <div key={orderAddOn.id} className="flex items-start justify-between text-xs">
+                                                                        <div className="flex-1">
+                                                                            <div className="flex items-center gap-1.5 text-gray-900">
+                                                                                <div className="w-1.5 h-1.5 rounded-full bg-green-600 mt-1.5"></div>
+                                                                                <span className="font-medium">{orderAddOn.add_on.name}</span>
+                                                                            </div>
+                                                                            {orderAddOn.add_on.description && (
+                                                                                <p className="text-gray-600 text-xs mt-0.5 ml-4">{orderAddOn.add_on.description}</p>
+                                                                            )}
+                                                                        </div>
+                                                                        <span className="text-gray-900 font-medium ml-2">
                                                                             {orderAddOn.add_on.currency} {orderAddOn.add_on.price.toLocaleString()}
                                                                         </span>
                                                                     </div>
